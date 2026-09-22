@@ -1,0 +1,50 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: eduref_postgres
+    restart: always
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: root
+      POSTGRES_DB: eduref_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - eduref_pgdata:/var/lib/postgresql/data
+
+  backend:
+    build:
+      context: ./EDUREF_AI/backend
+      dockerfile: Dockerfile
+    container_name: eduref_backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      PORT: 5000
+      NODE_ENV: production
+      DATABASE_URL: "${DATABASE_URL:-postgresql://postgres:root@postgres:5432/eduref_db?schema=public}"
+      DIRECT_URL: "${DIRECT_URL:-postgresql://postgres:root@postgres:5432/eduref_db?schema=public}"
+      JWT_SECRET: "${JWT_SECRET:-eduref_jwt_secret_hackathon_2026_super_secure_key}"
+      ALLOW_DEMO_ROLE_SWITCH: "true"
+      ALLOW_DESTRUCTIVE_SEED: "true"
+      GEMINI_API_KEY: "${GEMINI_API_KEY}"
+      GEMINI_MODEL: "${GEMINI_MODEL:-gemini-flash-lite-latest}"
+      FRONTEND_URL: "${FRONTEND_URL:-http://localhost:8080}"
+    depends_on:
+      - postgres
+
+  frontend:
+    build:
+      context: ./EDUREF_AI/frontend
+      dockerfile: Dockerfile
+    container_name: eduref_frontend
+    restart: always
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+
+volumes:
+  eduref_pgdata:
+    name: eduref_pgdata
