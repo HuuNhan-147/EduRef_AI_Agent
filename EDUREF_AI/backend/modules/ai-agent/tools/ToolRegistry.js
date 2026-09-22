@@ -188,7 +188,15 @@ export class ToolRegistry {
       // F. Observability & Self-Testing
       {
         name: 'run_verify_90s',
-        description: 'Chạy kiểm thử tự hành 5 Test Cases chuẩn Track 2 Option A trong 90 giây phục vụ Ban Giám Khảo.',
+        description: 'Chạy kiểm thử tự hành 5 ca chuẩn Đề A track VNG trong 90 giây phục vụ Ban Giám Khảo.',
+        parameters: {
+          type: 'OBJECT',
+          properties: {},
+        },
+      },
+      {
+        name: 'run_general_verify',
+        description: 'Chạy bộ Verify tổng quát 4 ca, hiển thị PASS/FAIL và timestamp cho từng ca.',
         parameters: {
           type: 'OBJECT',
           properties: {},

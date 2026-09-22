@@ -10,21 +10,21 @@ const router = express.Router();
 /**
  * POST /api/agent/chat (HTTP Fallback khi không dùng Socket.IO)
  */
-router.post('/chat', async (req, res) => {
+router.post('/chat', authenticateToken, async (req, res) => {
   try {
-    const { message, studentCode, currentUser: clientUser, sessionId, attachments, inputData } = req.body;
+    const { message, sessionId, attachments, inputData } = req.body;
 
     if (!message) {
       return res.status(400).json({ success: false, message: 'Thiếu trường message.' });
     }
 
     // Tự động nạp ngữ cảnh người dùng thực tế từ Database
-    let userContext = clientUser || {};
-    const codeToFind = studentCode || clientUser?.code || clientUser?.studentCode || '2280602154';
+    let userContext = {};
+    const codeToFind = req.user?.studentCode;
 
-    if (clientUser?.type === 'STAFF' || clientUser?.role === 'STAFF' || clientUser?.role === 'DEAN') {
-      const staffUser = await prisma.user.findFirst({
-        where: { role: clientUser.role || 'STAFF' },
+    if (['STAFF', 'DEAN', 'ADMIN'].includes(req.user?.role)) {
+      const staffUser = await prisma.user.findUnique({
+        where: { id: req.user.id },
       });
       if (staffUser) {
         userContext = {
@@ -35,7 +35,7 @@ router.post('/chat', async (req, res) => {
           type: 'STAFF',
         };
       }
-    } else {
+    } else if (req.user?.role === 'STUDENT' && codeToFind) {
       const student = await prisma.student.findUnique({
         where: { studentCode: String(codeToFind).trim() },
         include: { department: true },
@@ -55,6 +55,10 @@ router.post('/chat', async (req, res) => {
       }
     }
 
+    if (!userContext.role) {
+      return res.status(403).json({ success: false, message: 'Không xác định được danh tính hợp lệ của phiên đăng nhập.' });
+    }
+
     const result = await runAgent({
       message,
       currentUser: userContext,
@@ -72,7 +76,7 @@ router.post('/chat', async (req, res) => {
 /**
  * POST /api/agent/verify-90s (Kích hoạt bộ chạy kiểm thử 5 Test Cases 90s cho BGK)
  */
-router.post('/verify-90s', async (req, res) => {
+router.post('/verify-90s', authenticateToken, async (req, res) => {
   try {
     const result = await verifyTools.run_verify_90s();
     res.json(result);
@@ -82,12 +86,40 @@ router.post('/verify-90s', async (req, res) => {
 });
 
 /**
+ * POST /api/agent/verify-general (Bộ Verify tổng quát 4 ca theo đề bài)
+ */
+router.post('/verify-general', authenticateToken, async (req, res) => {
+  try {
+    const result = await verifyTools.run_general_verify();
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
  * POST /api/agent/verify-custom (Kích hoạt thẩm định ca kiểm thử tùy chỉnh do BGK nhập)
  */
-router.post('/verify-custom', async (req, res) => {
+router.post('/verify-custom', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const { studentCode, requestTypeCode, inputData, documents } = req.body;
     const result = await verifyTools.run_custom_verify({ studentCode, requestTypeCode, inputData, documents });
+    res.json(result);
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * POST /api/agent/verify-custom-prompt (Ca mới do giám khảo nhập bằng ngôn ngữ tự nhiên)
+ */
+router.post('/verify-custom-prompt', authenticateToken, async (req, res) => {
+  try {
+    const { prompt, studentCode } = req.body;
+    if (!prompt || !String(prompt).trim()) {
+      return res.status(400).json({ success: false, message: 'Vui lòng nhập ca kiểm thử.' });
+    }
+    const result = await verifyTools.run_custom_prompt({ prompt, studentCode });
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -131,7 +163,7 @@ router.post('/staff-confirm', authenticateToken, requireStaffOrDean, async (req,
 /**
  * GET /api/agent/terminal-logs (Lấy lịch sử reasoning terminal logs gần nhất)
  */
-router.get('/terminal-logs', async (req, res) => {
+router.get('/terminal-logs', authenticateToken, async (req, res) => {
   try {
     const { agentTerminalLogger } = await import('../modules/ai-agent/core/AgentTerminalLogger.js');
     const limit = parseInt(req.query.limit, 10) || 150;
@@ -145,7 +177,7 @@ router.get('/terminal-logs', async (req, res) => {
 /**
  * POST /api/agent/terminal-logs/clear (Xóa bộ đệm log terminal)
  */
-router.post('/terminal-logs/clear', async (req, res) => {
+router.post('/terminal-logs/clear', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const { agentTerminalLogger } = await import('../modules/ai-agent/core/AgentTerminalLogger.js');
     agentTerminalLogger.clear();

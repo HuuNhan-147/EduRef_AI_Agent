@@ -134,6 +134,7 @@ export class GraduationAssessmentHandler extends BasePetitionHandler {
     // 5. Thẩm định đa phương thức bằng AI Agent (Multimodal Vision & Cross-Check)
     const attachedCerts = inputData?.attachedCerts || {};
     const certDocs = documents || [];
+    let manualReviewRequired = false;
 
     // Duyệt qua từng chứng chỉ đã kiểm tra hợp lệ về mặt format để soi ảnh và đối soát
     for (let i = 0; i < validCerts.length; i++) {
@@ -153,6 +154,16 @@ export class GraduationAssessmentHandler extends BasePetitionHandler {
             expectedType: isB1 ? 'B1' : 'TEAMWORK',
             studentName,
           });
+
+          if (visionResult.requiresManualReview || visionResult.imageQuality === 'ERROR') {
+            manualReviewRequired = true;
+            passed.push({
+              code: 'REQ_VISION_MANUAL_REVIEW',
+              name: `Thẩm định thủ công "${c.certType}"`,
+              value: 'Dịch vụ thị giác chưa thể kết luận; không công bố chứng chỉ đã được xác minh.',
+            });
+            continue;
+          }
 
           // 5.1. Kiểm tra ảnh mờ (Blurry Image Detection)
           if (visionResult.imageQuality === 'BLURRY' || (!visionResult.isValid && (!visionResult.extractedData?.certNumber || !visionResult.extractedData?.bookNumber))) {
@@ -205,15 +216,16 @@ export class GraduationAssessmentHandler extends BasePetitionHandler {
           }
         } catch (visionErr) {
           console.warn('⚠️ [GraduationAssessmentHandler] Lỗi kiểm tra AI Vision đối soát:', visionErr.message);
+          manualReviewRequired = true;
         }
       }
     }
 
-    if (missing.length === 0) {
+    if (missing.length === 0 && !manualReviewRequired) {
       passed.push({
         code: 'REQ_MULTIMODAL_VERIFIED',
         name: 'Minh chứng ảnh & Đối soát chéo',
-        value: 'Ảnh chứng chỉ rõ nét, đúng họ tên sinh viên và số hiệu trên đơn trùng khớp 100% với văn bằng gốc',
+        value: 'Ảnh chứng chỉ rõ nét; họ tên và số hiệu khai báo khớp dữ liệu OCR từ ảnh. Chưa đối chiếu cơ sở dữ liệu cấp phát gốc.',
       });
     }
 
@@ -221,6 +233,7 @@ export class GraduationAssessmentHandler extends BasePetitionHandler {
       complete: missing.length === 0,
       passed,
       missing,
+      manualReviewRequired,
     };
   }
 
@@ -315,7 +328,10 @@ export class GraduationAssessmentHandler extends BasePetitionHandler {
     return {
       role: 'DEAN',
       action: 'DEAN_APPROVAL',
+      classification: 'BEYOND_AUTHORITY',
+      uncertaintyType: 'BEYOND_AUTHORITY',
       reason: 'HỘI ĐỒNG XÉT TỐT NGHIỆP: Thẩm quyền công nhận tốt nghiệp và ký cấp văn bằng thuộc Trưởng Phòng Đào Tạo & Hội đồng xét tốt nghiệp.',
+      actionableQuestion: `Sinh viên ${student.fullName} (${student.studentCode}) có GPA ${Number(student.gpa || 0).toFixed(2)}, nợ học phí ${Number(student.tuitionDebt || 0).toLocaleString('vi-VN')} VNĐ và đã nộp các chứng chỉ được liệt kê trong Context Capsule. Hội đồng có phê duyệt công nhận đủ điều kiện tốt nghiệp không?`,
     };
   }
 }

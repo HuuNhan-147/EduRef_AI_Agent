@@ -1,4 +1,8 @@
 import prisma from '../config/prisma.js';
+import {
+  evaluateStudentConfirmation,
+  TRACK_A_DECISION,
+} from './StudentConfirmationDecisionService.js';
 
 class AcademicPolicyEngine {
   /**
@@ -10,6 +14,36 @@ class AcademicPolicyEngine {
    */
   static async evaluateRequest({ student, requestType, inputData = {} }) {
     const startTime = Date.now();
+
+    if (requestType.code === 'STUDENT_CONFIRMATION') {
+      const result = evaluateStudentConfirmation({ student, inputData });
+      const common = { ...result, decisionTimeMs: Date.now() - startTime };
+      if (result.decision === TRACK_A_DECISION.AUTO_APPROVE) {
+        return { ...common, decision: 'ROUTINE_AUTO_APPROVE', isRoutine: true };
+      }
+      if (result.decision === TRACK_A_DECISION.AUTO_REJECT) {
+        return {
+          ...common,
+          decision: 'EXPLICIT_POLICY_DENY',
+          policyCode: result.rule || 'STUDENT_CONFIRMATION_POLICY',
+          userMessage: result.userMessage || result.reason,
+        };
+      }
+      if (result.decision === TRACK_A_DECISION.ESCALATE_STAFF) {
+        return {
+          ...common,
+          decision: 'BEYOND_AUTHORITY',
+          targetRole: result.targetRole || 'STAFF',
+          contextCapsule: {
+            studentCode: student.studentCode,
+            studentName: student.fullName,
+            classification: result.classification,
+            actionableQuestion: result.actionableQuestion,
+          },
+        };
+      }
+      return common;
+    }
 
     // =========================================================================
     // CHỐT CHẶN 1: KIỂM TRA YÊU CẦU BẮT BUỘC (MISSING FACTUAL INFORMATION)
@@ -68,13 +102,13 @@ class AcademicPolicyEngine {
     }
 
     // =========================================================================
-    // CHỐT CHẶN 2: KIỂM TRA QUY CHẾ ĐÀO TẠO (OUTSIDE POLICY VIOLATION)
+    // CHỐT CHẶN 2: KIỂM TRA ĐIỀU CẤM/ĐIỀU KIỆN ĐƯỢC POLICY QUY ĐỊNH RÕ
     // =========================================================================
     // 2.1. Kiểm tra trạng thái học tập của sinh viên
     if (student.status === 'DROPPED') {
       return {
-        decision: 'OUT_OF_POLICY',
-        uncertaintyType: 'OUTSIDE_POLICY',
+        decision: 'EXPLICIT_POLICY_DENY',
+        uncertaintyType: null,
         policyCode: 'POL_STUDENT_ACTIVE',
         reason: 'Sinh viên đã có quyết định buộc thôi học (DROPPED). Vi phạm Điều 3 Quy chế quản lý sinh viên.',
         userMessage:
@@ -85,8 +119,8 @@ class AcademicPolicyEngine {
 
     if (student.status === 'SUSPENDED') {
       return {
-        decision: 'OUT_OF_POLICY',
-        uncertaintyType: 'OUTSIDE_POLICY',
+        decision: 'EXPLICIT_POLICY_DENY',
+        uncertaintyType: null,
         policyCode: 'POL_STUDENT_ACTIVE',
         reason: 'Sinh viên đang trong thời gian bị đình chỉ học tập (SUSPENDED).',
         userMessage: 'Hồ sơ bị tạm dừng: Tài khoản của bạn đang bị đình chỉ học tập theo quyết định kỷ luật.',
@@ -97,8 +131,8 @@ class AcademicPolicyEngine {
     // 2.2. Kiểm tra quy định nợ học phí
     if (Number(student.tuitionDebt) > 10000000) {
       return {
-        decision: 'OUT_OF_POLICY',
-        uncertaintyType: 'OUTSIDE_POLICY',
+        decision: 'EXPLICIT_POLICY_DENY',
+        uncertaintyType: null,
         policyCode: 'POL_NO_TUITION_DEBT',
         reason: `Sinh viên đang nợ học phí quá hạn ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ (vượt trần 10.000.000 đ).`,
         userMessage: `Yêu cầu bị chặn: Bạn đang nợ học phí quá hạn ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ. Vui lòng hoàn thành nghĩa vụ tài chính với Phòng Kế hoạch - Tài chính trước khi xin cấp giấy tờ.`,
@@ -111,8 +145,8 @@ class AcademicPolicyEngine {
       const daysElapsed = Number(inputData.daysAfterResult || 0);
       if (daysElapsed > 7) {
         return {
-          decision: 'OUT_OF_POLICY',
-          uncertaintyType: 'OUTSIDE_POLICY',
+          decision: 'EXPLICIT_POLICY_DENY',
+          uncertaintyType: null,
           policyCode: 'POL_APPEAL_DEADLINE_7DAYS',
           reason: `Đơn phúc khảo nộp trễ ${daysElapsed} ngày sau khi có điểm (vượt quá hạn chót 7 ngày quy định tại Điều 14).`,
           userMessage: `Từ chối tiếp nhận đơn: Thời hạn nộp đơn phúc khảo là trong vòng 7 ngày kể từ ngày công bố điểm thi. Đơn của bạn nộp sau ${daysElapsed} ngày nên không còn hiệu lực.`,
@@ -126,8 +160,8 @@ class AcademicPolicyEngine {
       const reasonLower = (inputData.reason || '').toLowerCase();
       if (reasonLower.includes('du lịch') || reasonLower.includes('đi chơi') || reasonLower.includes('việc cá nhân')) {
         return {
-          decision: 'OUT_OF_POLICY',
-          uncertaintyType: 'OUTSIDE_POLICY',
+          decision: 'EXPLICIT_POLICY_DENY',
+          uncertaintyType: null,
           policyCode: 'POL_DEFERRAL_REASON',
           reason: 'Lý do cá nhân / du lịch không thuộc danh mục bất khả kháng được hoãn thi.',
           userMessage: 'Từ chối đơn hoãn thi: Quy chế đào tạo chỉ cho phép hoãn thi vì lý do bất khả kháng (sức khỏe, tang gia). Lý do cá nhân/du lịch không được chấp thuận.',

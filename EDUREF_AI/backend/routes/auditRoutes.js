@@ -1,12 +1,13 @@
 import express from 'express';
 import AuditLogService from '../services/AuditLogService.js';
+import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
 
 const router = express.Router();
 
 /**
  * GET /api/audit/logs (Lấy danh sách nhật ký kiểm toán bất biến SHA-256)
  */
-router.get('/logs', async (req, res) => {
+router.get('/logs', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const { limit = 50, action } = req.query;
     const logs = await AuditLogService.getLogs({ limit: Number(limit), action });
@@ -19,7 +20,7 @@ router.get('/logs', async (req, res) => {
 /**
  * GET /api/audit/verify-chain (Kiểm tra tính toàn vẹn của TOÀN BỘ CHUỖI BĂM từ đầu tới cuối)
  */
-router.get('/verify-chain', async (req, res) => {
+router.get('/verify-chain', authenticateToken, async (req, res) => {
   try {
     const result = await AuditLogService.verifyEntireChain();
     res.json(result);
@@ -31,7 +32,7 @@ router.get('/verify-chain', async (req, res) => {
 /**
  * GET /api/audit/verify/:id (Kiểm tra tính toàn vẹn mật mã học của một bản ghi)
  */
-router.get('/verify/:id', async (req, res) => {
+router.get('/verify/:id', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const result = await AuditLogService.verifyLogIntegrity(req.params.id);
     res.json(result);
