@@ -1,5 +1,5 @@
 // src/services/api.js
-// Client giao tiếp HTTP REST API tới Backend EduRef AI (port 5001)
+// Client giao tiếp HTTP REST API tới Backend EduRef AI.
 
 import axios from 'axios';
 
@@ -38,7 +38,7 @@ export const DEMO_ACCOUNTS = {
     major: 'Công nghệ thông tin',
     tag: 'Sinh viên tiêu chuẩn (Hợp lệ)',
     badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    payload: { studentCode: '2280602154' },
+    accountKey: 'STUDENT_ACTIVE',
   },
   STUDENT_DROPPED: {
     type: 'STUDENT',
@@ -47,7 +47,7 @@ export const DEMO_ACCOUNTS = {
     role: 'STUDENT',
     tag: 'Sinh viên thôi học (Test Sai quy chế)',
     badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
-    payload: { studentCode: '2110002' },
+    accountKey: 'STUDENT_DROPPED',
   },
   STUDENT_DEBT: {
     type: 'STUDENT',
@@ -56,7 +56,7 @@ export const DEMO_ACCOUNTS = {
     role: 'STUDENT',
     tag: 'Sinh viên nợ phí 15M (Test Chặn nợ)',
     badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
-    payload: { studentCode: '2110003' },
+    accountKey: 'STUDENT_DEBT',
   },
   STAFF_DAOTAO: {
     type: 'STAFF',
@@ -65,7 +65,7 @@ export const DEMO_ACCOUNTS = {
     role: 'STAFF',
     tag: 'Chuyên viên PĐT (STAFF Review)',
     badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
-    payload: { username: 'staff_daotao', password: '123456' },
+    accountKey: 'STAFF_DAOTAO',
   },
   DEAN_DAOTAO: {
     type: 'DEAN',
@@ -74,28 +74,45 @@ export const DEMO_ACCOUNTS = {
     role: 'DEAN',
     tag: 'Trưởng phòng Đào tạo (DEAN Approval)',
     badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
-    payload: { username: 'dean_daotao', password: '123456' },
+    accountKey: 'DEAN_DAOTAO',
   },
 };
 
 /**
  * Hàm đăng nhập và đổi vai trò 1-Click
  */
-export const switchRoleAuth = async (accountKey) => {
+const roleSwitchRequests = new Map();
+let latestRoleSwitchRequest = 0;
+
+export const switchRoleAuth = (accountKey) => {
   const acc = DEMO_ACCOUNTS[accountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
-  try {
-    const res = await axios.post(`${API_BASE_URL}/auth/login`, acc.payload);
-    if (res.data.success && res.data.token) {
+  const requestId = ++latestRoleSwitchRequest;
+  let request = roleSwitchRequests.get(accountKey);
+
+  if (!request) {
+    request = axios
+      .post(`${API_BASE_URL}/auth/demo-login`, { accountKey: acc.accountKey })
+      .finally(() => {
+        if (roleSwitchRequests.get(accountKey) === request) roleSwitchRequests.delete(accountKey);
+      });
+    roleSwitchRequests.set(accountKey, request);
+  }
+
+  return request
+    .then((res) => {
+      // Chỉ yêu cầu đổi vai trò mới nhất được quyền ghi JWT. Một request cũ
+      // hoàn tất muộn không thể ghi đè phiên mà người dùng vừa chọn.
+      if (requestId !== latestRoleSwitchRequest || !res.data.success || !res.data.token) return null;
       localStorage.setItem('eduref_token', res.data.token);
       localStorage.setItem('eduref_user', JSON.stringify(res.data.user));
       localStorage.setItem('eduref_role_key', accountKey);
       window.dispatchEvent(new Event('eduref-auth-changed'));
       return res.data.user;
-    }
-  } catch (err) {
-    console.error('❌ Lỗi đăng nhập khi đổi vai trò:', err);
-  }
-  return null;
+    })
+    .catch((err) => {
+      console.error('❌ Lỗi đăng nhập khi đổi vai trò:', err);
+      return null;
+    });
 };
 
 export default api;

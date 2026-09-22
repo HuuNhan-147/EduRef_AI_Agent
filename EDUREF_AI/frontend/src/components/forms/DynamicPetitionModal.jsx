@@ -50,14 +50,14 @@ export default function DynamicPetitionModal({
     studentClass: currentAccount.class || '22DTHE4',
     studentCode: currentAccount.code || '2280602154',
     faculty: currentAccount.faculty || 'Khoa Công Nghệ Thông Tin',
-    phone: currentAccount.phone || '0901234567',
+    phone: currentAccount.phone || '0900000000',
     purpose: 'Xác nhận sinh viên để bổ sung hồ sơ học bổng và xin visa.',
     pickupCampus: 'Trụ sở chính: phòng Công tác sinh viên (A-01,01)'
   });
 
   // State cho Form 2: Đơn Đề Nghị Xét Tốt Nghiệp
   const [gradData, setGradData] = useState({
-    phone: currentAccount.phone || '0901234567',
+    phone: currentAccount.phone || '0900000000',
     birthPlace: 'TP. Hồ Chí Minh',
     reason: 'Em đã hoàn thành toàn bộ chương trình đào tạo và các học phần thực tập tốt nghiệp, kính xin Hội đồng xét tốt nghiệp đợt này.',
     certificates: [],

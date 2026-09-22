@@ -23,7 +23,13 @@ export const getSocket = () => {
     });
 
     socketInstance.on('disconnect', (reason) => {
-      console.warn('🔴 [Socket.IO] Mất kết nối EduRef Backend:', reason);
+      // Ngắt kết nối chủ động là một phần bình thường của việc thay JWT khi
+      // chuyển vai trò; chỉ cảnh báo với các sự cố kết nối thực sự.
+      if (reason === 'io client disconnect') {
+        console.info('🔄 [Socket.IO] Đang kết nối lại với phiên mới.');
+      } else {
+        console.warn('🔴 [Socket.IO] Mất kết nối EduRef Backend:', reason);
+      }
     });
 
     window.addEventListener('eduref-auth-changed', () => {
