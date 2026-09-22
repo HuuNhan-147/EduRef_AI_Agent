@@ -53,10 +53,11 @@ Tối thiểu:
 - `DIRECT_URL` — chỉ cần ở build/release job chạy migration
 - `JWT_SECRET` — chuỗi ngẫu nhiên dài, không dùng giá trị demo
 - `FRONTEND_URL` — origin frontend chính xác, không có dấu `/` cuối
+- `ALLOW_DEMO_ROLE_SWITCH=true` — chỉ cho bản hackathon demo dùng dữ liệu synthetic; đặt `false` cho hệ thống thật
 - `GEMINI_API_KEY` và `GEMINI_MODEL` nếu dùng chat/vision
 - `NODE_ENV=production`
 
-Build command đề xuất: `npm install && npm run db:deploy`. Start command: `npm start`.
+Build command đề xuất: `npm ci && npm run db:deploy`. Start command: `npm start`.
 
 ## 5. Kiểm tra
 

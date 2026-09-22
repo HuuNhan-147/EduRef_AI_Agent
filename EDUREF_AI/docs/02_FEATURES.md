@@ -8,7 +8,7 @@
 
 | Nhóm | Chức năng | Mô tả mục đích | Frontend | Backend | AI Model | Database | Trạng thái thực tế |
 |---|---|---|---|---|---|---|---|
-| **Auth** | **1-Click Role Switcher** | Chuyển đổi nhanh 5 tài khoản demo (Active, Dropped, Debt, Staff, Dean) để BGK chấm thi | Có (`TopNavbar.jsx`) | Có (`/api/auth/login`) | Không | Có (`Student`, `User`) | ✅ **Hoàn thành 100%** |
+| **Auth** | **1-Click Role Switcher** | Chuyển đổi nhanh 5 tài khoản allowlist khi `ALLOW_DEMO_ROLE_SWITCH=true`; frontend không chứa mật khẩu cán bộ | Có (`TopNavbar.jsx`) | Có (`/api/auth/demo-login`) | Không | Có (`Student`, `User`) | ✅ **Hoàn thành 100%** |
 | **Student** | **Khung chat Trợ lý AI (ReAct Chat)** | Hội thoại tự nhiên hỏi đáp, nộp đơn, thẩm định đa bước có streaming SSE | Có (`StudentWorkspacePage.jsx`) | Có (`server.js`, `AgentOrchestrator.js`) | Có (Gemini Flash Lite) | Có (`StudentRequest`) | ✅ **Hoàn thành 100%** |
 | **Student** | **Biểu mẫu động nộp đơn (Modal)** | Điền thông tin chuẩn hóa cho Giấy XNSV và Đơn xét tốt nghiệp | Có (`DynamicPetitionModal.jsx`) | Có (`POST /api/petitions`) | Tùy chọn | Có (`StudentRequest`, `RequestDocument`) | ✅ **Hoàn thành 100%** |
 | **Student** | **Theo dõi đơn cá nhân (My Petitions)** | Xem danh sách hồ sơ cá nhân, tiến trình FSM, mã chứng thực và mã QR | Có (`MyPetitionsPage.jsx`) | Có (`GET /api/petitions`) | Không | Có (`StudentRequest`) | ✅ **Hoàn thành 100%** |
@@ -16,7 +16,7 @@
 | **Decision** | **Chốt 1: Thẩm định Điều kiện (Requirements)** | Kiểm tra đủ trường bắt buộc (mục đích, SĐT, nơi sinh, chứng chỉ) | Có | Có (`checkRequirements`) | Có (Prompt) | Có (`Requirement`) | ✅ **Hoàn thành 100%** |
 | **Decision** | **Chốt 2: Thẩm định Quy chế (Policies)** | Kiểm tra sinh viên ACTIVE, nợ phí $\le$ 10M, GPA $\ge$ 2.0 | Có | Có (`AcademicPolicyEngine.js`) | Không | Có (`Policy`) | ✅ **Hoàn thành 100%** |
 | **Decision** | **Chốt 3: Phân cấp Thẩm quyền (Authority)** | Chặn AI tự duyệt đơn cấp Khoa/Trường, ép đơn tốt nghiệp chuyển Lãnh đạo | Có | Có (`checkAuthority`) | Không | Có (`AuthorityRule`) | ✅ **Hoàn thành 100%** |
-| **Decision** | **Chốt 4: Tự động phê duyệt thường quy** | Cấp mã số ST-XXXXXX và mã QR có chữ ký số trong < 1s | Có | Có (`processRequest`) | Không | Có | ✅ **Hoàn thành 100%** |
+| **Decision** | **Chốt 4: Tự động phê duyệt thường quy** | Cấp mã số ST-XXXXXX, mã QR và SHA-256; thời gian thực tế được ghi theo từng lần chạy | Có | Có (`processRequest`) | Không | Có | ✅ **Hoàn thành 100%** |
 | **Vision** | **Giám định Đa phương thức (Multimodal Vision)** | Bóc tách Số hiệu, Số vào sổ trên ảnh scan văn bằng tốt nghiệp | Có (Upload/Preview) | Có (`CertificateVisionService.js`) | Có (Gemini 2.0 Flash Vision) | Có (`RequestDocument`) | ✅ **Hoàn thành 100%** |
 | **Vision** | **Đối soát chéo Text vs Ảnh (Cross-Check)** | Bắt lỗi sai lệch giữa số gõ trên form và số trên ảnh scan văn bằng | Có (Báo lỗi đỏ) | Có (`GraduationAssessmentHandler.js`) | Có | Có | ✅ **Hoàn thành 100%** |
 | **HITL** | **Đóng gói Context Capsule** | Đóng gói lý do, hồ sơ và Actionable Question cho người duyệt | Có (`StaffEscalationPage.jsx`) | Có (`contextCapsule` JSONB) | Heuristic | Có (`StudentRequest.contextCapsule`) | ✅ **Hoàn thành 100%** |

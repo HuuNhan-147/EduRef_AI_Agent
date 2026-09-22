@@ -29,9 +29,10 @@ Yêu cầu Node.js 18+ và một project Supabase.
 
 ```bash
 cd EDUREF_AI/backend
-npm install
+npm ci
 cp .env.example .env
 # Điền DATABASE_URL (Transaction pooler) và DIRECT_URL (Session pooler) từ Supabase.
+# Giữ ALLOW_DEMO_ROLE_SWITCH=true chỉ cho bản chấm thi dùng dữ liệu synthetic.
 npm run db:deploy
 # Chỉ trên project Supabase demo/disposable: đặt ALLOW_DESTRUCTIVE_SEED=true
 npm run seed
@@ -40,7 +41,8 @@ npm start
 
 ```bash
 cd EDUREF_AI/frontend
-npm install
+npm ci
+cp .env.example .env
 npm run dev
 ```
 

@@ -7,14 +7,14 @@
 ## 1. NHÓM XÁC THỰC (AUTHENTICATION) — `/api/auth`
 
 ### 1.1. `POST /api/auth/login`
-- **Mục đích:** Đăng nhập và cấp Token JWT cho Sinh viên hoặc Cán bộ PĐT / Trưởng khoa (phục vụ 1-Click Role Switcher).
+- **Mục đích:** Đăng nhập thông thường và cấp JWT cho sinh viên hoặc cán bộ.
 - **Request Body (Sinh viên):**
   ```json
   { "studentCode": "2280602154" }
   ```
 - **Request Body (Cán bộ):**
   ```json
-  { "username": "dean_daotao", "password": "password123" }
+  { "username": "dean_daotao", "password": "<STAFF_PASSWORD>" }
   ```
 - **Response Success (200):**
   ```json
@@ -32,6 +32,13 @@
     }
   }
   ```
+
+### 1.2. `POST /api/auth/demo-login`
+
+- **Mục đích:** Chuyển nhanh giữa các tài khoản allowlist phục vụ chấm hackathon mà không nhúng mật khẩu cán bộ vào frontend.
+- **Điều kiện:** Chỉ hoạt động khi `ALLOW_DEMO_ROLE_SWITCH=true`; production thông thường phải để `false`.
+- **Body:** `{ "accountKey": "STUDENT_ACTIVE" }`. Các khóa hợp lệ: `STUDENT_ACTIVE`, `STUDENT_DROPPED`, `STUDENT_DEBT`, `STAFF_DAOTAO`, `DEAN_DAOTAO`.
+- Endpoint chỉ cấp JWT cho đúng năm tài khoản demo cố định, không nhận username/role tùy ý từ client.
 
 ---
 

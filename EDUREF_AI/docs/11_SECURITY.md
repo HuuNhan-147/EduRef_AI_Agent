@@ -6,6 +6,7 @@
 - Socket.IO xác thực JWT trong handshake và dùng danh tính đã ký thay vì `studentCode`/role từ payload.
 - API duyệt, từ chối và rollback yêu cầu role `STAFF`, `DEAN` hoặc `ADMIN`.
 - Đăng nhập cán bộ bắt buộc có mật khẩu và không có mật khẩu “fail-safe”.
+- Mật khẩu cán bộ không nằm trong bundle frontend. Role switch dùng endpoint allowlist riêng và chỉ hoạt động khi bật `ALLOW_DEMO_ROLE_SWITCH`.
 - `JWT_SECRET` là bắt buộc trong production; secret demo chỉ tồn tại ngoài production.
 - CORS dùng allowlist từ localhost và `FRONTEND_URL`.
 - Audit ghi tuần tự; auto-approve ghi trạng thái và hash trong cùng transaction.
@@ -15,6 +16,7 @@
 ## Rủi ro còn lại trước production
 
 - Tài khoản sinh viên demo hiện đăng nhập bằng MSSV, chưa có mật khẩu/SSO; chỉ phù hợp môi trường demo.
+- Khi `ALLOW_DEMO_ROLE_SWITCH=true`, mọi người truy cập bản demo có thể nhận quyền của năm tài khoản allowlist, gồm STAFF/DEAN. Chỉ bật cờ này trên database synthetic dành riêng cho chấm thi.
 - In-memory audit queue chỉ đồng bộ trong một Node process. Triển khai nhiều replica cần advisory lock/row lock ở PostgreSQL.
 - QR hiện dùng dịch vụ công cộng và chứa mã hồ sơ/MSSV trong payload; production nên sinh QR nội bộ với token ký, thời hạn ngắn.
 - Terminal log đang broadcast cho mọi socket đã xác thực; production cần room theo tenant/user và lọc PII.
