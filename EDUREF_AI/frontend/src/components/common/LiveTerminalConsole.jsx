@@ -9,7 +9,7 @@ import getSocket from '../../services/socket';
 export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', className = '' }) {
   const [terminalLogs, setTerminalLogs] = useState([]);
   const [loading, setLoading] = useState(false);
-  const terminalEndRef = useRef(null);
+  const logContainerRef = useRef(null);
   const socket = getSocket();
 
   // Nạp lịch sử log từ API khi mount
@@ -41,9 +41,11 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
     fetchTerminalLogs();
   }, []);
 
-  // Tự động cuộn xuống cuối khi có log mới
+  // Tự động cuộn xuống cuối khi có log mới - CHỈ CUỘN NỘI BỘ TRONG KHUNG TERMINAL, KHÔNG KÉO TRÔI TRANG MẸ
   useEffect(() => {
-    terminalEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (logContainerRef.current) {
+      logContainerRef.current.scrollTop = logContainerRef.current.scrollHeight;
+    }
   }, [terminalLogs]);
 
   // Lắng nghe Socket.IO thời gian thực
@@ -144,7 +146,7 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
       </div>
 
       {/* Vùng hiển thị log terminal */}
-      <div className={`p-3 font-mono text-[11px] overflow-y-auto space-y-2 select-text ${maxHeight}`}>
+      <div ref={logContainerRef} className={`p-3 font-mono text-[11px] overflow-y-auto space-y-2 select-text ${maxHeight}`}>
         {terminalLogs.length === 0 ? (
           <div className="py-8 text-center space-y-1.5 text-slate-500 select-none">
             <p className="text-slate-400 text-xs">$ node --agent-orchestrator.js</p>
@@ -200,7 +202,6 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
           <span className="text-slate-500 text-[10px]">agent-trace</span>
           <span className="inline-block w-1.5 h-3 bg-emerald-400 animate-pulse"></span>
         </div>
-        <div ref={terminalEndRef} />
       </div>
     </div>
   );

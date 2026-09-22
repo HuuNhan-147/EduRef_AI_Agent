@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect, useRef } from 'react';
 import { Activity, CheckCircle2, Clock, FileText, Play, RotateCw, Send, ShieldCheck, XCircle } from 'lucide-react';
 import api from '../services/api';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
@@ -43,6 +43,16 @@ export default function VerifyHarnessPage() {
   const [customPrompt, setCustomPrompt] = useState('Em cần giấy xác nhận sinh viên để nộp hồ sơ xin việc');
   const [customResult, setCustomResult] = useState(null);
   const [isCustomRunning, setIsCustomRunning] = useState(false);
+
+  const containerRef = useRef(null);
+
+  // Đảm bảo vừa vào trang là luôn hiển thị ở đỉnh đầu trang (Top = 0)
+  useEffect(() => {
+    if (containerRef.current) {
+      containerRef.current.parentElement?.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+    }
+  }, []);
 
   const definitionCases = mode === 'track' ? TRACK_A_CASES : GENERAL_CASES;
   const run = runs[mode];
@@ -95,7 +105,7 @@ export default function VerifyHarnessPage() {
     || customResult?.data?.contextCapsule?.actionableQuestion;
 
   return (
-    <div className="w-full min-h-full bg-slate-100 p-4 pb-24 text-slate-900">
+    <div ref={containerRef} className="w-full min-h-full bg-slate-100 p-4 pb-24 text-slate-900">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
         <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
