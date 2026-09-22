@@ -63,6 +63,86 @@ Kịch bản trình diễn: [`EDUREF_AI/RUNBOOK.md`](EDUREF_AI/RUNBOOK.md). Poli
 
 ## Kiến trúc
 
+```mermaid
+flowchart TB
+    subgraph ACTORS["Người dùng"]
+        direction LR
+        STUDENT["Sinh viên"]
+        REVIEWER["Cán bộ PĐT / Trưởng phòng"]
+        JUDGE["Ban giám khảo"]
+    end
+
+    subgraph FRONTEND["Frontend · React + Vite"]
+        direction LR
+        PORTAL["Student Workspace"]
+        HUB["Escalation Hub"]
+        VERIFY_UI["Verify Harness"]
+        AUDIT_UI["Audit Explorer"]
+    end
+
+    subgraph BACKEND["Backend · Express + Socket.IO"]
+        direction LR
+        AUTH["JWT Auth + RBAC"]
+        API["REST API"]
+        REALTIME["Realtime Gateway"]
+        AGENT["Agent Orchestrator<br/>ReAct + Tool Registry"]
+        VERIFY["Verify Runner<br/>General / Track A / Custom"]
+        WORKFLOW["Petition Workflow Core"]
+        POLICY["Versioned Policy Engine<br/>StudentConfirmationDecisionService"]
+        AUDIT["Transactional Audit Service<br/>SHA-256 hash chain"]
+    end
+
+    subgraph AI["AI hỗ trợ — không nắm quyền quyết định cuối"]
+        direction LR
+        GEMINI["Gemini<br/>NLU + streaming + vision"]
+    end
+
+    subgraph DATA["Data layer"]
+        direction LR
+        PRISMA["Prisma ORM"]
+        SUPABASE[("Supabase PostgreSQL<br/>Transaction / Session Pooler")]
+    end
+
+    STUDENT --> PORTAL
+    REVIEWER --> HUB
+    JUDGE --> VERIFY_UI
+    REVIEWER --> AUDIT_UI
+
+    PORTAL -->|"HTTPS + JWT"| API
+    HUB -->|"HTTPS + JWT"| API
+    VERIFY_UI -->|"HTTPS + JWT"| API
+    AUDIT_UI -->|"HTTPS + JWT"| API
+    PORTAL <-->|"Socket.IO + JWT"| REALTIME
+    HUB <-->|"Socket.IO + JWT"| REALTIME
+    VERIFY_UI <-->|"Socket.IO + JWT"| REALTIME
+    AUDIT_UI <-->|"Socket.IO + JWT"| REALTIME
+
+    API --> AUTH
+    AUTH --> AGENT
+    AUTH --> VERIFY
+    AGENT <-->|"hiểu yêu cầu / đọc chứng chỉ"| GEMINI
+    AGENT --> WORKFLOW
+    VERIFY --> WORKFLOW
+    WORKFLOW --> POLICY
+
+    POLICY -->|"ROUTINE"| AUTO["Tự động phê duyệt"]
+    POLICY -->|"ROUTINE_POLICY_DENY"| DENY["Từ chối theo policy"]
+    POLICY -->|"UNKNOWN_FACT"| CLARIFY["Dừng và hỏi sinh viên<br/>WAITING_STUDENT"]
+    POLICY -->|"OUTSIDE_POLICY / BEYOND_AUTHORITY"| ESCALATE["Dừng và chuyển STAFF / DEAN<br/>kèm Context Capsule + câu hỏi hành động"]
+    AUTO --> AUDIT
+    DENY --> AUDIT
+    CLARIFY --> AUDIT
+    ESCALATE --> AUDIT
+    CLARIFY --> REALTIME
+    ESCALATE --> REALTIME
+
+    AUDIT -->|"cùng transaction với thay đổi trạng thái"| PRISMA
+    WORKFLOW --> PRISMA
+    PRISMA --> SUPABASE
+```
+
+Luồng quyết định cuối luôn đi qua policy engine có phiên bản. Gemini chỉ hỗ trợ hiểu ngôn ngữ tự nhiên, streaming và vision; mô hình không được tự ý phê duyệt ngoại lệ hoặc vượt qua RBAC.
+
 - React/Vite: workspace sinh viên, hàng đợi cán bộ, Verify Harness, Audit Explorer.
 - Express/Socket.IO: REST + realtime đã xác thực JWT.
 - Prisma/Supabase PostgreSQL: hồ sơ, policy, authority và audit log; runtime dùng connection pooler.
