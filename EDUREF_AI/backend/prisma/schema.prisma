@@ -1,0 +1,211 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+enum StudentStatus {
+  ACTIVE
+  INACTIVE
+  DROPPED
+  GRADUATED
+  SUSPENDED
+}
+
+enum RequestStatus {
+  PENDING
+  PROCESSING
+  WAITING_STUDENT
+  APPROVED
+  ESCALATED
+  REJECTED
+  COMPLETED
+  CANCELLED
+}
+
+enum ActorType {
+  AI_AGENT
+  STUDENT
+  STAFF
+  DEAN
+  ADMIN
+}
+
+enum AuthorityRole {
+  AI_AGENT
+  STAFF
+  DEAN
+  ADMIN
+}
+
+enum AuthorityAction {
+  AUTO_APPROVE
+  STAFF_REVIEW
+  DEAN_APPROVAL
+  REJECT
+  ASK_CLARIFICATION
+}
+
+// 1. Departments (Khoa / Viện)
+model Department {
+  id        String    @id @default(cuid())
+  code      String    @unique // e.g. "CSE", "ECE"
+  name      String    // e.g. "Khoa Khoa học & Kỹ thuật Máy tính"
+  students  Student[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+// 2. Students (Sinh viên)
+model Student {
+  id           String         @id @default(cuid())
+  studentCode  String         @unique // MSSV, e.g. "2110001"
+  fullName     String
+  email        String         @unique
+  phone        String?
+  status       StudentStatus  @default(ACTIVE)
+  tuitionDebt  Decimal        @default(0.0) // Nợ học phí (VNĐ)
+  gpa          Decimal?       @default(3.0)
+  departmentId String
+  department   Department     @relation(fields: [departmentId], references: [id])
+  requests     StudentRequest[]
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+// 3. Users (Cán bộ PĐT, Trưởng khoa, Admin)
+model User {
+  id               String           @id @default(cuid())
+  username         String           @unique
+  passwordHash     String
+  fullName         String
+  email            String           @unique
+  role             AuthorityRole    @default(STAFF)
+  active           Boolean          @default(true)
+  assignedRequests StudentRequest[] @relation("AssignedStaff")
+  auditLogs        AuditLog[]
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
+}
+
+// 4. RequestTypes (Loại thủ tục hành chính)
+model RequestType {
+  id             String          @id @default(cuid())
+  code           String          @unique // e.g. "STUDENT_CONFIRMATION", "EXAM_DEFERRAL"
+  name           String          // e.g. "Giấy Xác Nhận Sinh Viên"
+  description    String?
+  active         Boolean         @default(true)
+  requirements   Requirement[]
+  policies       Policy[]
+  authorityRules AuthorityRule[]
+  requests       StudentRequest[]
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+}
+
+// 5. Requirements (Ràng buộc hồ sơ bắt buộc của từng loại đơn)
+model Requirement {
+  id            String      @id @default(cuid())
+  requestTypeId String
+  requestType   RequestType @relation(fields: [requestTypeId], references: [id], onDelete: Cascade)
+  code          String      // e.g. "REQ_PURPOSE", "REQ_HOSPITAL_DOC"
+  name          String      // e.g. "Mục đích sử dụng cụ thể"
+  isRequired    Boolean     @default(true)
+  description   String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// 6. Policies (Quy chế đào tạo & quy định kiểm tra)
+model Policy {
+  id            String      @id @default(cuid())
+  requestTypeId String
+  requestType   RequestType @relation(fields: [requestTypeId], references: [id], onDelete: Cascade)
+  code          String      @unique // e.g. "POL_STUDENT_ACTIVE", "POL_DEADLINE_7DAYS"
+  name          String
+  ruleDefinition Json       // JSONB định nghĩa logic kiểm tra
+  priority      Int         @default(1)
+  active        Boolean     @default(true)
+  auditLogs     AuditLog[]
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+}
+
+// 7. AuthorityRules (Phân quyền thẩm quyền bất biến)
+model AuthorityRule {
+  id            String          @id @default(cuid())
+  requestTypeId String
+  requestType   RequestType     @relation(fields: [requestTypeId], references: [id], onDelete: Cascade)
+  role          AuthorityRole   // AI_AGENT, STAFF, DEAN
+  action        AuthorityAction // AUTO_APPROVE, STAFF_REVIEW, DEAN_APPROVAL
+  condition     Json?           // JSONB ranh giới thẩm quyền
+  active        Boolean         @default(true)
+  auditLogs     AuditLog[]
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+// 8. StudentRequests (Hồ sơ đơn phiếu trung tâm)
+model StudentRequest {
+  id                String            @id @default(cuid())
+  requestCode       String            @unique // Mã đơn ST-XXXXXX
+  studentId         String
+  student           Student           @relation(fields: [studentId], references: [id])
+  requestTypeId     String
+  requestType       RequestType       @relation(fields: [requestTypeId], references: [id])
+  status            RequestStatus     @default(PENDING)
+  inputData         Json              // JSONB lưu các trường dữ liệu linh hoạt
+  decision          String?           // ROUTINE_AUTO_APPROVE, ASK_CLARIFICATION, ESCALATE_STAFF, REJECTED
+  escalationReason  String?           // Lý do gắn cờ chuyển tiếp
+  contextCapsule    Json?             // Tóm tắt sự vụ, chỉ số rủi ro, câu hỏi hành động cho người duyệt
+  assignedStaffId   String?
+  assignedStaff     User?             @relation("AssignedStaff", fields: [assignedStaffId], references: [id])
+  qrCodeUrl         String?           // Mã QR chứng thực số
+  sha256Proof       String?           // Chữ ký băm bảo đảm tính toàn vẹn
+  documents         RequestDocument[]
+  auditLogs         AuditLog[]
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+}
+
+// 9. RequestDocuments (Chứng từ đính kèm)
+model RequestDocument {
+  id                 String         @id @default(cuid())
+  requestId          String
+  request            StudentRequest @relation(fields: [requestId], references: [id], onDelete: Cascade)
+  documentType       String         // e.g. "HOSPITAL_CERT", "STUDENT_CARD"
+  fileName           String
+  fileUrl            String
+  extractedData      Json?          // Dữ liệu bóc tách từ file
+  verificationStatus String         @default("PENDING") // VERIFIED, REJECTED
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+}
+
+// 10. AuditLogs (Nhật ký kiểm toán bất biến SHA-256)
+model AuditLog {
+  id               String          @id @default(cuid())
+  requestId        String?
+  request          StudentRequest? @relation(fields: [requestId], references: [id], onDelete: SetNull)
+  actorType        ActorType       @default(AI_AGENT)
+  actorId          String?
+  action           String          // CHECK_REQUIREMENT, AUTO_APPROVE, ESCALATE, ROLLBACK
+  decision         String?
+  reason           String?
+  policyId         String?
+  policy           Policy?         @relation(fields: [policyId], references: [id], onDelete: SetNull)
+  authorityRuleId  String?
+  authorityRule    AuthorityRule?  @relation(fields: [authorityRuleId], references: [id], onDelete: SetNull)
+  userId           String?
+  user             User?           @relation(fields: [userId], references: [id], onDelete: SetNull)
+  inputSnapshot    Json?           // Dữ liệu đầu vào tại thời điểm ra quyết định
+  beforeState      Json?
+  afterState       Json?
+  sha256Hash       String          // Mã băm SHA-256 chuỗi khối
+  previousHash     String?         // Mã băm của bản ghi trước đó
+  decisionTimeMs   Int?            // Thời gian xử lý tính bằng mili-giây
+  createdAt        DateTime        @default(now())
+}
