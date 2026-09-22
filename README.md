@@ -14,6 +14,11 @@
 
 > *"Tự động hóa thủ tục thường quy — Minh bạch trách nhiệm giải trình — Dừng lại chính xác khi vượt thẩm quyền."*
 
+> 🚀 **HỆ THỐNG ĐÃ TRIỂN KHAI TRỰC TUYẾN (PUBLIC LIVE DEMO CHO BAN GIÁM KHẢO):**  
+> 🌐 **Cổng Dịch Vụ Học Vụ Tự Hành (Frontend):** [https://edu-ref-ai-agent.vercel.app/](https://edu-ref-ai-agent.vercel.app/)  
+> ⚙️ **Backend API & Health Check (Render):** [https://eduref-ai-agent.onrender.com/health](https://eduref-ai-agent.onrender.com/health)  
+> 💡 *Hệ thống đã tích hợp sẵn 1-Click Role Switcher (Sinh viên, Cán bộ đào tạo, Trưởng khoa), Verify Harness 5 ca khép kín, Sandbox kiểm thử ca ngoài cho Giám khảo và Kiểm toán SHA-256.*
+
 [Kiến Trúc Hệ Thống](#-kiến-trúc-hệ-thống) • [Luồng Ra Quyết Định (3 Chốt)](#-luồng-ra-quyết-định--cơ-chế-trọng-tài-3-chốt) • [4 Trụ Cột Đột Phá](#-4-trụ-cột-đột-phá-của-eduref-ai) • [Kịch Bản Demo BGK](#-kịch-bản-dành-cho-ban-giám-khảo-golden-test-cases) • [Cài Đặt & Chạy Nhanh](#-hướng-dẫn-cài-đặt--chạy-nhanh) • [Đội Ngũ KAISER](#-thông-tin-đội-thi-kaiser)
 
 </div>
@@ -306,7 +311,7 @@ Dưới đây là bộ **15 test cases chuẩn** (được nạp sẵn trong `ED
 
 ### 🧪 HƯỚNG DẪN BAN GIÁM KHẢO TỰ TẠO TESTCASE NGOÀI (JUDGE SANDBOX)
 
-Tại trang **Verify Harness** trên giao diện Web, Ban Giám Khảo có thể kiểm thử khả năng thích ứng của hệ thống bằng cách nhập câu Prompt tùy ý vào ô **"Nhập ca kiểm thử tùy chỉnh / Sandbox"**:
+Tại tab **Verify Track A** trên giao diện trực tuyến [https://edu-ref-ai-agent.vercel.app/](https://edu-ref-ai-agent.vercel.app/), Ban Giám Khảo có thể kiểm thử khả năng thích ứng của hệ thống bằng cách nhập câu Prompt tùy ý vào ô **"Ca mới của giám khảo"**:
 
 * **Thử nghiệm ca Ngoài Quy Chế (`OUTSIDE_POLICY`):**
   > *"Em cần giấy xác nhận sinh viên để làm thủ tục mua xe máy trả góp."*  
