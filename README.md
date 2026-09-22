@@ -169,6 +169,10 @@ flowchart TB
     PRISMA --> SUPABASE
 ```
 
+> [!TIP]
+> **Điểm Sáng Công Nghệ — Giao Thức WebMCP & Cơ Chế Dual-Path Fallback:**  
+> EduRef AI tích hợp giao thức **WebMCP (Web Model Context Protocol)** hiện thực hóa mô hình **Hybrid Client-Server Agent**. Agent Orchestrator tại Server có thể ủy quyền các tác vụ phía Client (như tiền kiểm tra ảnh trên Canvas, tự động prefill form) xuống Trình duyệt qua kênh WebSocket hai chiều. Nếu client mất kết nối hoặc quá hạn 15 giây, hệ thống tự động kích hoạt cơ chế **Dual-Path Fallback** chuyển ngược về xử lý an toàn tại máy chủ. Xem phân tích chuyên sâu tại [`EDUREF_AI/docs/13_WEBMCP.md`](EDUREF_AI/docs/13_WEBMCP.md).
+
 ---
 
 ## ⚖️ LUỒNG RA QUYẾT ĐỊNH & CƠ CHẾ TRỌNG TÀI (3 CHỐT)
@@ -258,6 +262,7 @@ Tại trang **Verify Harness**, Ban Giám Khảo nhấn **"Chạy bộ test Đ�
 | :--- | :--- | :--- |
 | **Frontend UI/UX** | React 18, Vite 6.4, TailwindCSS | Giao diện Single Page tương tác cao, thiết kế Responsive hiện đại |
 | **Realtime Gateway** | Socket.IO Client / Server | Truyền phát luồng suy nghĩ và nhật ký 3 chốt kiểm soát thời gian thực |
+| **Distributed Agent** | **WebMCP Protocol & Adapter** | Giao thức Web Model Context Protocol, cơ chế **Dual-Path Fallback** (Client Edge & Server) |
 | **Backend Core** | Node.js (ES Modules), Express | Kiến trúc Clean Modular Architecture, phân tầng Services & Handlers |
 | **Policy Engine** | Versioned Rule Engine (JavaScript) | Bộ quy chế xác định độc lập, tách rời hoàn toàn khỏi gợi ý của LLM |
 | **Database & ORM** | PostgreSQL, Prisma ORM, Supabase | Quản lý dữ liệu quan hệ với Transaction & Session Pooler |
@@ -347,6 +352,7 @@ EduRef_AI_Agent/
     └── docs/                           # Bộ tài liệu chuyên đề chi tiết
         ├── 08_VERIFY.md                # Quy chuẩn kiểm thử Verify Harness
         ├── 11_SECURITY.md              # Phòng vệ Prompt Injection & Kiểm toán
+        ├── 13_WEBMCP.md                # Kiến trúc tác tử phân tán & Giao thức WebMCP Dual-Path
         ├── 14_TRACK_A_POLICY.md        # Toàn văn Quy chế Học vụ Đề bài A
         └── 16_SUPABASE_DEPLOYMENT.md   # Hướng dẫn kết nối cơ sở dữ liệu Supabase
 ```
