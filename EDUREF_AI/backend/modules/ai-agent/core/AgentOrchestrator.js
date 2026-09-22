@@ -7,6 +7,7 @@ import { resolveContext } from '../memory/ContextResolver.js';
 import { conversationMemory } from '../memory/ConversationMemory.js';
 import certificateVisionService from '../../../services/CertificateVisionService.js';
 import AuditLogService from '../../../services/AuditLogService.js';
+import { describeToolOutcome } from './toolOutcome.js';
 
 export class AgentOrchestrator {
   constructor(socket = null, sessionId = null) {
@@ -217,7 +218,7 @@ export class AgentOrchestrator {
 
         this.logger.log({
           step: 'TOOL_OBSERVATION',
-          message: `Kết quả từ [${toolName}]: Quyết định=${toolResult.decision || (toolResult.success ? 'SUCCESS' : toolResult.found ? 'FOUND' : 'FAILED')}`,
+          message: `Kết quả từ [${toolName}]: Trạng thái=${describeToolOutcome(toolResult)}`,
           type: 'tool_result',
           meta: toolResult,
         });
