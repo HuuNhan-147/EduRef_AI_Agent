@@ -5,18 +5,21 @@ import Category from "../../../../models/Category.js";
 
 const STOP_WORDS = [
   "thiết bị", "thiet bi", "máy móc", "may moc", "sản phẩm", "san pham",
-  "đồ", "do", "kho", "con", "cái", "cai", "chiếc", "chiec", "những", "nhung", "các", "cac"
+  "đồ", "do", "kho", "con", "cái", "cai", "chiếc", "chiec", "những", "nhung", "các", "cac",
+  "có", "không", "ko", "k", "bạn", "cho", "mượn", "cần", "còn", "nào", "hộ", "giúp", "với", "ơi", "đi", "nhé", "nhe", "ạ", "a"
 ];
 
 function cleanSearchKeyword(rawKeyword) {
   if (!rawKeyword || typeof rawKeyword !== "string") return "";
   let cleaned = rawKeyword.trim().toLowerCase();
 
-  for (const sw of STOP_WORDS) {
-    const reg = new RegExp(`(^|\\s)${sw}(\\s|$)`, "gi");
+  // Sắp xếp stop words từ dài nhất đến ngắn nhất để tránh xóa đè
+  const sortedStopWords = [...STOP_WORDS].sort((a, b) => b.length - a.length);
+  for (const sw of sortedStopWords) {
+    const reg = new RegExp(`(^|\\s|[.,?!])${escapeRegExp(sw)}(\\s|[.,?!]|$)`, "gi");
     cleaned = cleaned.replace(reg, " ").trim();
   }
-  return cleaned;
+  return cleaned.replace(/\s+/g, " ").trim();
 }
 
 function removeVietnameseTones(str) {
@@ -63,21 +66,45 @@ export async function searchEquipment({
   limit = 10,
 }) {
   try {
-    let query = {};
-    const cleanedKeyword = cleanSearchKeyword(keyword);
+    const cleanedKeyword = cleanSearchKeyword(keyword) || keyword.trim();
     const regexPattern = makeAccentInsensitiveRegex(cleanedKeyword);
 
-    // 1. Lọc theo từ khóa (Không phân biệt hoa thường và không phân biệt dấu)
-    if (regexPattern) {
-      query.$or = [
-        { name: { $regex: regexPattern, $options: "i" } },
-        { brand: { $regex: regexPattern, $options: "i" } },
-        { modelCode: { $regex: regexPattern, $options: "i" } },
-        { description: { $regex: regexPattern, $options: "i" } },
-      ];
+    // 1. Lọc theo khoảng giá (minPrice, maxPrice, isHighValue)
+    let priceConditions = {};
+    if (isHighValue === true) {
+      priceConditions.$gt = 20000000;
+    } else if (isHighValue === false) {
+      priceConditions.$lte = 20000000;
+    }
+    if (minPrice && Number(minPrice) > 0) {
+      priceConditions.$gte = Number(minPrice);
+    }
+    if (maxPrice && Number(maxPrice) > 0) {
+      priceConditions.$lte = Number(maxPrice);
     }
 
-    // 2. Lọc theo danh mục (Category)
+    // Hàm phụ trợ tạo query an toàn
+    const buildMongoQuery = (regex, catIds = null) => {
+      const q = {};
+      if (regex) {
+        q.$or = [
+          { name: { $regex: regex, $options: "i" } },
+          { brand: { $regex: regex, $options: "i" } },
+          { modelCode: { $regex: regex, $options: "i" } },
+          { description: { $regex: regex, $options: "i" } },
+        ];
+      }
+      if (catIds && catIds.length > 0) {
+        q.category = { $in: catIds };
+      }
+      if (Object.keys(priceConditions).length > 0) {
+        q.estimatedValue = priceConditions;
+      }
+      return q;
+    };
+
+    // 2. Tìm Category tương ứng nếu có
+    let matchedCatIds = null;
     if (category && category.trim()) {
       const cleanCat = category.trim();
       const catPattern = makeAccentInsensitiveRegex(cleanCat);
@@ -90,40 +117,27 @@ export async function searchEquipment({
       }).lean();
 
       if (matchedCats.length > 0) {
-        const catIds = matchedCats.map((c) => c._id);
-        query.category = { $in: catIds };
-      } else {
-        // Nếu không khớp bảng Category, mở rộng tìm kiếm trong tên thiết bị
-        if (!query.$or) query.$or = [];
-        query.$or.push({ name: { $regex: catPattern, $options: "i" } });
+        matchedCatIds = matchedCats.map((c) => c._id);
       }
     }
 
-    // 3. Lọc theo khoảng giá (minPrice, maxPrice, isHighValue)
-    let priceConditions = {};
-
-    if (isHighValue === true) {
-      priceConditions.$gt = 20000000;
-    } else if (isHighValue === false) {
-      priceConditions.$lte = 20000000;
-    }
-
-    if (minPrice && Number(minPrice) > 0) {
-      priceConditions.$gte = Number(minPrice);
-    }
-    if (maxPrice && Number(maxPrice) > 0) {
-      priceConditions.$lte = Number(maxPrice);
-    }
-
-    if (Object.keys(priceConditions).length > 0) {
-      query.estimatedValue = priceConditions;
-    }
-
-    // 4. Thực thi truy vấn với populate category
-    const models = await EquipmentModel.find(query)
+    // 3. Thực thi truy vấn chính
+    let query = buildMongoQuery(regexPattern, matchedCatIds);
+    let models = await EquipmentModel.find(query)
       .populate("category")
       .limit(Number(limit) || 10)
       .lean();
+
+    // 4. Smart Fallback (Kế thừa mô hình DA_IELS_OLD):
+    // Nếu có lọc Category nhưng không có kết quả, tự động nới lỏng bỏ category để tìm lại theo keyword
+    if (models.length === 0 && matchedCatIds && regexPattern) {
+      console.log(`⚠️ [searchEquipment] Không tìm thấy kết quả với category, tự động fallback tìm theo keyword: "${cleanedKeyword}"`);
+      const fallbackQuery = buildMongoQuery(regexPattern, null);
+      models = await EquipmentModel.find(fallbackQuery)
+        .populate("category")
+        .limit(Number(limit) || 10)
+        .lean();
+    }
 
     // 5. Tính toán tồn kho thực tế cho từng mẫu thiết bị
     const results = await Promise.all(

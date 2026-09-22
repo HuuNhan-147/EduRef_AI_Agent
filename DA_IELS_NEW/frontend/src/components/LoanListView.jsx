@@ -21,7 +21,7 @@ export default function LoanListView({
 
   const statusBadges = {
     PENDING: { label: 'Chờ duyệt', color: 'bg-amber-500/15 text-amber-400 border-amber-500/30' },
-    AUTO_APPROVED: { label: 'Đã duyệt', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
+    AUTO_APPROVED: { label: '⚡ Tự duyệt (AI)', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
     APPROVED: { label: 'Đã duyệt (Chờ lấy)', color: 'bg-emerald-500/15 text-emerald-400 border-emerald-500/30' },
     DISPATCHED: { label: 'Đang mượn', color: 'bg-blue-500/15 text-blue-400 border-blue-500/30' },
     RETURNED: { label: 'Đã hoàn tất', color: 'bg-slate-700/40 text-slate-300 border-slate-700' },
@@ -38,6 +38,9 @@ export default function LoanListView({
 
   const filteredLoans = loans.filter((loan) => {
     if (filterStatus === 'ALL') return true;
+    if (filterStatus === 'APPROVED') {
+      return loan.status === 'APPROVED' || loan.status === 'AUTO_APPROVED';
+    }
     return loan.status === filterStatus;
   });
 

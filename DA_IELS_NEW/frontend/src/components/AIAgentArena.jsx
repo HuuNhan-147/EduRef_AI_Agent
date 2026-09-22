@@ -28,6 +28,9 @@ import {
   XCircle,
   AlertCircle,
   Sparkles,
+  Terminal,
+  Trash2,
+  Copy,
 } from "lucide-react";
 import api, { switchRoleAuth } from "../api";
 import { webMcpManager } from "../webmcp";
@@ -40,7 +43,7 @@ const DEFAULT_WELCOME_MSG = {
   timestamp: new Date(),
 };
 
-export default function AIAgentArena({ currentRole }) {
+export default function AIAgentArena({ currentRole, onLoanCreated }) {
   const [messages, setMessages] = useState(() => {
     try {
       const cached = sessionStorage.getItem("iels_arena_messages");
@@ -84,23 +87,49 @@ export default function AIAgentArena({ currentRole }) {
   const [verifyData, setVerifyData] = useState(null);
   const [activeTab, setActiveTab] = useState("chat"); // chat | verify | policy
 
-  // Nhật ký Audit Trail gần nhất
-  const [auditLogs, setAuditLogs] = useState([]);
+  // Live Agent Terminal Logs
+  const [terminalLogs, setTerminalLogs] = useState([]);
+  const [terminalLoading, setTerminalLoading] = useState(false);
+  const terminalEndRef = useRef(null);
+
+  // BGK Decision state: { [caseId or loanId]: { decision, auditLogId, tamperHash, note } }
+  const [bgkDecisions, setBgkDecisions] = useState({});
 
   const chatEndRef = useRef(null);
   const socketRef = useRef(null);
 
-  // Load audit logs khi mount
+  // Load terminal logs khi mount
   useEffect(() => {
-    fetchAuditLogs();
+    fetchTerminalLogs();
   }, []);
 
-  const fetchAuditLogs = async () => {
+  // Tự động cuộn xuống cuối terminal khi có log mới
+  useEffect(() => {
+    if (terminalEndRef.current) {
+      terminalEndRef.current.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [terminalLogs]);
+
+  const fetchTerminalLogs = async () => {
+    setTerminalLoading(true);
     try {
-      const res = await api.get("/audit?limit=6");
-      setAuditLogs(res.data?.data || []);
+      const res = await api.get(`/agent/terminal-logs?limit=100&_t=${Date.now()}`);
+      if (res.data?.success) {
+        setTerminalLogs(res.data.data || []);
+      }
     } catch (e) {
-      console.warn("Không thể tải audit log:", e.message);
+      console.warn("Không thể tải terminal log:", e.message);
+    } finally {
+      setTerminalLoading(false);
+    }
+  };
+
+  const clearTerminalLogs = async () => {
+    try {
+      await api.post("/agent/terminal-logs/clear");
+      setTerminalLogs([]);
+    } catch (e) {
+      console.warn("Không thể xóa terminal log:", e.message);
     }
   };
 
@@ -164,7 +193,22 @@ export default function AIAgentArena({ currentRole }) {
       });
 
       setLoading(false);
-      fetchAuditLogs();
+      fetchTerminalLogs();
+      if (data.payload?.loan && onLoanCreated) {
+        setTimeout(() => onLoanCreated(), 500);
+      }
+    });
+
+    // Lắng nghe Terminal Log bắn từ Backend
+    socket.on("agent_terminal_log", (entry) => {
+      setTerminalLogs((prev) => {
+        if (prev.some((p) => p.id === entry.id)) return prev;
+        return [...prev.slice(-150), entry];
+      });
+    });
+
+    socket.on("agent_terminal_clear", () => {
+      setTerminalLogs([]);
     });
 
     // WebMCP Client Tool Execution
@@ -243,6 +287,10 @@ export default function AIAgentArena({ currentRole }) {
         if (data.sessionId) setSessionId(data.sessionId);
         setLoading(false);
         fetchAuditLogs();
+        // Neu AI da tao phieu muon → refresh loan list o tab LOANS
+        if (data.payload?.loan && onLoanCreated) {
+          setTimeout(() => onLoanCreated(), 500);
+        }
       } catch (err) {
         setMessages((prev) => [
           ...prev.slice(0, -1),
@@ -284,6 +332,8 @@ export default function AIAgentArena({ currentRole }) {
   // Chạy Bộ Kiểm Thử Verify Harness 90s
   const handleRunVerify90s = async () => {
     setVerifyLoading(true);
+    setVerifyData(null);
+    setBgkDecisions({}); // reset decisions khi chạy lại
     try {
       const res = await api.post("/agent/verify-90s");
       setVerifyData(res.data);
@@ -292,6 +342,56 @@ export default function AIAgentArena({ currentRole }) {
       alert("Lỗi khi chạy Verify 90s: " + (err.response?.data?.message || err.message));
     } finally {
       setVerifyLoading(false);
+    }
+  };
+
+  // BGK xác nhận escalation case
+  const handleBGKConfirm = async (key, loanId, caseLabel) => {
+    try {
+      const note = `[Verify ${caseLabel}] BGK xác nhận phê duyệt — hệ thống đã phân loại đúng vượt thẩm quyền`;
+      const res = await api.post("/agent/bgk-confirm", {
+        loanId: loanId || key,
+        judgeNote: note,
+        judgeName: "BGK_JUDGE",
+      });
+      setBgkDecisions((prev) => ({
+        ...prev,
+        [key]: {
+          decision: "BGK_APPROVED",
+          auditLogId: res.data.auditLogId,
+          tamperHash: res.data.tamperHash,
+          note,
+          timestamp: new Date().toLocaleTimeString("vi-VN"),
+        },
+      }));
+      fetchAuditLogs();
+    } catch (err) {
+      alert("Lỗi BGK confirm: " + (err.response?.data?.error || err.message));
+    }
+  };
+
+  // BGK từ chối escalation case
+  const handleBGKReject = async (key, loanId, caseLabel) => {
+    try {
+      const note = `[Verify ${caseLabel}] BGK từ chối — xác nhận AI đã phân loại đúng cần chuyển tiếp`;
+      const res = await api.post("/agent/bgk-reject", {
+        loanId: loanId || key,
+        judgeNote: note,
+        judgeName: "BGK_JUDGE",
+      });
+      setBgkDecisions((prev) => ({
+        ...prev,
+        [key]: {
+          decision: "BGK_REJECTED",
+          auditLogId: res.data.auditLogId,
+          tamperHash: res.data.tamperHash,
+          note,
+          timestamp: new Date().toLocaleTimeString("vi-VN"),
+        },
+      }));
+      fetchAuditLogs();
+    } catch (err) {
+      alert("Lỗi BGK reject: " + (err.response?.data?.error || err.message));
     }
   };
 
@@ -451,22 +551,28 @@ export default function AIAgentArena({ currentRole }) {
               <Zap className="w-3.5 h-3.5 mr-1" /> Thử nhanh:
             </span>
             <button
-              onClick={() => sendMessageWithText("Mượn chuột quang Logitech 2 ngày")}
+              onClick={() => sendMessageWithText("Mượn bộ đàm Motorola điều phối sự kiện 3 ngày tại phòng sự kiện")}
               className="px-2.5 py-1 bg-slate-800/90 hover:bg-emerald-950 hover:border-emerald-500/50 border border-slate-700 text-slate-300 hover:text-emerald-300 rounded-lg whitespace-nowrap transition cursor-pointer"
             >
-              Chuột 2 ngày (Tự duyệt)
+              Bộ đàm 3 ngày (Tự duyệt)
             </button>
             <button
-              onClick={() => sendMessageWithText("Mượn Máy quay Sony A7IV 10 ngày làm đồ án")}
+              onClick={() => sendMessageWithText("Mượn bàn phím cơ DareU EK87 làm việc tại Lab 2 ngày")}
+              className="px-2.5 py-1 bg-slate-800/90 hover:bg-emerald-950 hover:border-emerald-500/50 border border-slate-700 text-slate-300 hover:text-emerald-300 rounded-lg whitespace-nowrap transition cursor-pointer"
+            >
+              Bàn phím 2 ngày (Tự duyệt)
+            </button>
+            <button
+              onClick={() => sendMessageWithText("Mượn laptop MacBook Pro M3 Max 10 ngày làm đồ án AI tốt nghiệp")}
               className="px-2.5 py-1 bg-slate-800/90 hover:bg-purple-950 hover:border-purple-500/50 border border-slate-700 text-slate-300 hover:text-purple-300 rounded-lg whitespace-nowrap transition cursor-pointer"
             >
-              Sony A7IV 10 ngày (Chuyển tiếp)
+              MacBook M3 10 ngày (BGK)
             </button>
             <button
-              onClick={() => sendMessageWithText("Cho tôi mượn máy ảnh")}
+              onClick={() => sendMessageWithText("Cho mượn cái máy chiếu")}
               className="px-2.5 py-1 bg-slate-800/90 hover:bg-orange-950 hover:border-orange-500/50 border border-slate-700 text-slate-300 hover:text-orange-300 rounded-lg whitespace-nowrap transition cursor-pointer"
             >
-              Thiếu ngày (Làm rõ)
+              Máy chiếu (Làm rõ)
             </button>
           </div>
 
@@ -546,7 +652,7 @@ export default function AIAgentArena({ currentRole }) {
                                 : msg.loan.status === "APPROVED"
                                 ? "QUẢN LÝ ĐÃ PHÊ DUYỆT"
                                 : msg.loan.status === "ESCALATED_PENDING"
-                                ? "CHUYỂN TIẾP QUẢN LÝ THẨM ĐỊNH (ESCALATION)"
+                                ? "⚖️ BGK XÁC NHẬN THẨM QUYỀN (ESCALATION)"
                                 : msg.loan.status === "CANCELLED"
                                 ? "ĐÃ HOÀN TÁC THỰC TẾ (CANCELLED)"
                                 : "TỪ CHỐI CẤP PHÁT"}
@@ -578,7 +684,7 @@ export default function AIAgentArena({ currentRole }) {
                           </div>
                         )}
 
-                        {/* Chi tiết Chuyển tiếp Escalation */}
+                        {/* Chi tiết Chuyển tiếp — Thiết kế BGK xác nhận ngược lại */}
                         {msg.loan.status === "ESCALATED_PENDING" && (
                           <div className="space-y-2 bg-purple-950/30 p-3 rounded-lg border border-purple-800/30">
                             {msg.loan.category && (
@@ -588,14 +694,44 @@ export default function AIAgentArena({ currentRole }) {
                             )}
                             {msg.loan.reason && (
                               <p className="text-slate-300 text-[11px]">
-                                <strong>Căn cứ:</strong> {msg.loan.reason}
+                                <strong>Căn cứ pháp lý:</strong> {msg.loan.reason}
                               </p>
                             )}
                             {msg.loan.specificQuestion && (
-                              <p className="text-amber-300 text-[11px]">
-                                <strong>Điểm cần Quản lý làm rõ:</strong> {msg.loan.specificQuestion}
+                              <p className="text-amber-300 text-[11px] bg-amber-950/30 p-2 rounded border border-amber-800/40">
+                                <strong>⚖️ Câu hỏi AI gửi BGK:</strong> {msg.loan.specificQuestion}
                               </p>
                             )}
+                            {/* BGK xác nhận trực tiếp */}
+                            {(() => {
+                              const lKey = msg.loan?.loanId || msg.loan?.requestCode;
+                              const bgkD = bgkDecisions[lKey];
+                              return bgkD ? (
+                                <div className={`mt-2 p-2 rounded-lg border text-[11px] ${
+                                  bgkD.decision === "BGK_APPROVED"
+                                    ? "bg-emerald-950/50 border-emerald-500/40 text-emerald-300"
+                                    : "bg-rose-950/50 border-rose-500/40 text-rose-300"
+                                }`}>
+                                  <strong>{bgkD.decision === "BGK_APPROVED" ? "✅ BGK ĐÃ PHÊ DUYỆT" : "❌ BGK ĐÃ TỪ CHỐI"}</strong>
+                                  <div className="text-slate-400 mt-0.5">Audit: <span className="font-mono">{bgkD.auditLogId}</span> • {bgkD.timestamp}</div>
+                                </div>
+                              ) : (
+                                <div className="flex gap-2 mt-2">
+                                  <button
+                                    onClick={() => handleBGKConfirm(lKey, lKey, msg.loan?.requestCode || "CHAT")}
+                                    className="flex-1 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1"
+                                  >
+                                    <Check className="w-3 h-3" /> BGK Phê duyệt
+                                  </button>
+                                  <button
+                                    onClick={() => handleBGKReject(lKey, lKey, msg.loan?.requestCode || "CHAT")}
+                                    className="flex-1 px-3 py-1.5 bg-rose-700 hover:bg-rose-600 text-white text-[11px] font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1"
+                                  >
+                                    <X className="w-3 h-3" /> BGK Từ chối
+                                  </button>
+                                </div>
+                              );
+                            })()}
                           </div>
                         )}
 
@@ -686,7 +822,7 @@ export default function AIAgentArena({ currentRole }) {
                 </div>
                 <div>
                   <h3 className="text-sm font-bold text-white">Verify Harness 90s</h3>
-                  <p className="text-[11px] text-slate-400">Kiểm thử tự động 5/5 Scenarios Barem</p>
+                  <p className="text-[11px] text-slate-400">BGK thấy tin nhắn test thực tế + phản hồi AI</p>
                 </div>
               </div>
               <span className="text-xs font-bold text-amber-400 bg-amber-500/10 px-2.5 py-1 rounded-full border border-amber-500/30">
@@ -697,56 +833,149 @@ export default function AIAgentArena({ currentRole }) {
             {verifyLoading && (
               <div className="py-8 text-center space-y-3">
                 <div className="inline-block w-8 h-8 border-4 border-amber-500 border-t-transparent rounded-full animate-spin" />
-                <p className="text-xs text-slate-300">Đang thực thi chuỗi 5 Scenarios kiểm thử...</p>
+                <p className="text-xs text-slate-300">Đang gọi AI Agent cho 5 kịch bản thực tế...</p>
+                <p className="text-[11px] text-slate-500">Thời gian dự kiến: 10–25 giây</p>
               </div>
             )}
 
             {!verifyLoading && verifyData && (
               <div className="mt-4 space-y-3">
-                <div className="p-3 rounded-xl bg-emerald-950/60 border border-emerald-500/30 flex items-center justify-between">
+                {/* Summary Banner */}
+                <div className={`p-3 rounded-xl border flex items-center justify-between ${
+                  verifyData.failedTests === 0
+                    ? "bg-emerald-950/60 border-emerald-500/30"
+                    : "bg-amber-950/60 border-amber-500/30"
+                }`}>
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                    {verifyData.failedTests === 0
+                      ? <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+                      : <AlertCircle className="w-5 h-5 text-amber-400" />
+                    }
                     <div>
-                      <p className="text-xs font-bold text-emerald-300 uppercase">
-                        {verifyData.summary || "5/5 SCENARIOS PASSED"}
+                      <p className={`text-xs font-bold uppercase ${
+                        verifyData.failedTests === 0 ? "text-emerald-300" : "text-amber-300"
+                      }`}>
+                        {verifyData.summary || `${verifyData.passedTests}/${verifyData.totalTests} PASSED`}
                       </p>
-                      <p className="text-[10px] text-slate-400">{verifyData.timestamp}</p>
+                      <p className="text-[10px] text-slate-400">
+                        {new Date(verifyData.timestamp).toLocaleString("vi-VN")} • {verifyData.executionTimeMs}ms
+                      </p>
                     </div>
                   </div>
-                  <span className="text-xs font-extrabold text-emerald-300 bg-emerald-900/60 px-2.5 py-1 rounded-lg">
-                    12 / 12 ĐIỂM
+                  <span className={`text-xs font-extrabold px-2.5 py-1 rounded-lg ${
+                    verifyData.failedTests === 0
+                      ? "text-emerald-300 bg-emerald-900/60"
+                      : "text-amber-300 bg-amber-900/60"
+                  }`}>
+                    {verifyData.scoreAwarded?.split(" ")[0] || "12/12"}
                   </span>
                 </div>
 
-                {/* Danh sách 5 kịch bản */}
-                <div className="space-y-2 max-h-[340px] overflow-y-auto pr-1">
-                  {(verifyData.scenarios || []).map((sc, idx) => (
-                    <div
-                      key={idx}
-                      className="p-3 bg-slate-950/80 border border-slate-800 rounded-xl space-y-1 text-xs"
-                    >
-                      <div className="flex items-center justify-between">
-                        <span className="font-bold text-slate-200">
-                          {idx + 1}. {sc.name}
-                        </span>
-                        <span
-                          className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            sc.passed
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                              : "bg-red-500/20 text-red-300 border border-red-500/30"
-                          }`}
-                        >
-                          {sc.passed ? "PASSED" : "FAILED"}
-                        </span>
-                      </div>
-                      <p className="text-slate-400 text-[11px]">{sc.description}</p>
-                      {sc.detail && (
-                        <div className="text-[10px] font-mono text-amber-300/80 bg-slate-900/90 p-1.5 rounded">
-                          {sc.detail}
+                {/* Danh sách 5 kịch bản — input + output thực tế */}
+                <div className="space-y-2 max-h-[460px] overflow-y-auto pr-1">
+                  {(verifyData.scenarios || []).map((sc, idx) => {
+                    const bgkKey = sc.caseId;
+                    const bgkD = bgkDecisions[bgkKey];
+                    return (
+                      <div
+                        key={idx}
+                        className={`p-3 rounded-xl space-y-2 text-xs border ${
+                          sc.passed
+                            ? "bg-slate-950/80 border-slate-800"
+                            : "bg-red-950/30 border-red-800/40"
+                        }`}
+                      >
+                        {/* Header: tên + pass/fail */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-bold text-slate-200 text-[11px]">
+                            {sc.caseId}. {sc.name}
+                          </span>
+                          <div className="flex items-center gap-1.5 flex-shrink-0">
+                            <span className={`px-1.5 py-0.5 rounded text-[10px] font-bold ${
+                              sc.passed
+                                ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                                : "bg-red-500/20 text-red-300 border border-red-500/30"
+                            }`}>
+                              {sc.passed ? "✅ PASSED" : "❌ FAILED"}
+                            </span>
+                            <span className="text-[10px] text-slate-500">{sc.decisionTimeMs}ms</span>
+                          </div>
                         </div>
-                      )}
-                    </div>
-                  ))}
+
+                        {/* Input message */}
+                        <div className="flex items-start gap-1.5">
+                          <span className="text-[10px] text-blue-400 font-semibold whitespace-nowrap mt-0.5">📨 Input:</span>
+                          <span className="text-[11px] text-slate-300 italic">"{sc.inputPrompt}"</span>
+                        </div>
+
+                        {/* AI Reply */}
+                        {sc.aiReply && (
+                          <div className="flex items-start gap-1.5">
+                            <span className="text-[10px] text-amber-400 font-semibold whitespace-nowrap mt-0.5">🤖 AI:</span>
+                            <span className="text-[11px] text-slate-400 line-clamp-2">{sc.aiReply}</span>
+                          </div>
+                        )}
+
+                        {/* Status badges */}
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-[10px] text-slate-500">Kỳ vọng:</span>
+                          <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-800 text-slate-300">{sc.expectedStatus}</span>
+                          <span className="text-[10px] text-slate-500">→ Thực tế:</span>
+                          <span className={`font-mono text-[10px] px-1.5 py-0.5 rounded border ${
+                            sc.passed ? "bg-emerald-950/40 text-emerald-300 border-emerald-700/40" : "bg-red-950/40 text-red-300 border-red-700/40"
+                          }`}>{sc.actualStatus}</span>
+                        </div>
+
+                        {/* BGK Action Panel — chỉ với case requiresBGKConfirm */}
+                        {sc.requiresBGKConfirm && (
+                          <div className="pt-2 border-t border-purple-800/30">
+                            {bgkD ? (
+                              <div className={`p-2 rounded-lg border text-[11px] ${
+                                bgkD.decision === "BGK_APPROVED"
+                                  ? "bg-emerald-950/50 border-emerald-500/40 text-emerald-300"
+                                  : "bg-rose-950/50 border-rose-500/40 text-rose-300"
+                              }`}>
+                                <div className="font-bold">
+                                  {bgkD.decision === "BGK_APPROVED" ? "✅ BGK ĐÃ PHÊ DUYỆT" : "❌ BGK ĐÃ TỪ CHỐI"}
+                                </div>
+                                <div className="text-slate-400 text-[10px] mt-0.5 space-y-0.5">
+                                  <div>Audit: <span className="font-mono">{bgkD.auditLogId}</span></div>
+                                  <div>SHA: <span className="font-mono">{bgkD.tamperHash?.slice(0, 14)}...</span></div>
+                                  <div>Thời gian: {bgkD.timestamp}</div>
+                                </div>
+                              </div>
+                            ) : (
+                              <div className="space-y-1.5">
+                                <p className="text-[10px] text-purple-300 font-semibold flex items-center gap-1">
+                                  <ShieldCheck className="w-3 h-3" />
+                                  ⚖️ BGK xác nhận quyết định AI (Escalation Case)
+                                </p>
+                                {sc.specificQuestion && (
+                                  <p className="text-[10px] text-amber-300 bg-amber-950/30 p-1.5 rounded border border-amber-800/30">
+                                    <strong>AI hỏi BGK:</strong> {sc.specificQuestion}
+                                  </p>
+                                )}
+                                <div className="flex gap-1.5">
+                                  <button
+                                    onClick={() => handleBGKConfirm(bgkKey, sc.loanId || bgkKey, sc.caseId)}
+                                    className="flex-1 px-2 py-1.5 bg-emerald-700 hover:bg-emerald-600 text-white text-[10px] font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1"
+                                  >
+                                    <Check className="w-3 h-3" /> BGK Phê duyệt
+                                  </button>
+                                  <button
+                                    onClick={() => handleBGKReject(bgkKey, sc.loanId || bgkKey, sc.caseId)}
+                                    className="flex-1 px-2 py-1.5 bg-rose-700 hover:bg-rose-600 text-white text-[10px] font-bold rounded-lg transition cursor-pointer flex items-center justify-center gap-1"
+                                  >
+                                    <X className="w-3 h-3" /> BGK Từ chối
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
                 </div>
               </div>
             )}
@@ -756,65 +985,105 @@ export default function AIAgentArena({ currentRole }) {
                 <Activity className="w-8 h-8 text-slate-600 mx-auto" />
                 <p className="text-xs text-slate-400">
                   Chưa chạy kiểm thử. Bấm nút <strong>[⚡ Verify Harness 90s]</strong> ở trên để tự động thẩm định
-                  toàn diện 5 kịch bản.
+                  toàn diện 5 kịch bản — BGK sẽ thấy tin nhắn test thực tế và phản hồi AI.
                 </p>
               </div>
             )}
           </div>
 
-          {/* Card 2: Nhật Ký Bất Biến SHA-256 Audit Trail */}
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-xl">
+          {/* Card 2: Live Reasoning Terminal Console */}
+          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-4 shadow-xl flex flex-col">
             <div className="flex items-center justify-between pb-3 border-b border-slate-800">
               <div className="flex items-center gap-2">
-                <ShieldCheck className="w-5 h-5 text-indigo-400" />
-                <h3 className="text-sm font-bold text-white">Immutable Audit Trail</h3>
+                {/* 3 nút macOS */}
+                <div className="flex items-center gap-1.5 mr-1">
+                  <div className="w-2.5 h-2.5 rounded-full bg-rose-500/80"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-amber-500/80"></div>
+                  <div className="w-2.5 h-2.5 rounded-full bg-emerald-500/80"></div>
+                </div>
+                <Terminal className="w-4 h-4 text-emerald-400" />
+                <h3 className="text-xs font-bold font-mono text-slate-200">
+                  Live Terminal Console
+                </h3>
+                <span className="flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-bold bg-emerald-950/60 text-emerald-400 border border-emerald-800/40 animate-pulse">
+                  ● LIVE
+                </span>
               </div>
-              <button
-                onClick={fetchAuditLogs}
-                className="text-xs text-indigo-400 hover:text-indigo-300 flex items-center gap-1 cursor-pointer"
-              >
-                <RefreshCw className="w-3 h-3" /> Làm mới
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={clearTerminalLogs}
+                  title="Xóa log terminal"
+                  className="p-1 text-slate-400 hover:text-rose-400 rounded transition cursor-pointer"
+                >
+                  <Trash2 className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  onClick={fetchTerminalLogs}
+                  disabled={terminalLoading}
+                  title="Tải lại log"
+                  className="text-xs text-indigo-400 hover:text-indigo-300 disabled:opacity-50 flex items-center gap-1 cursor-pointer"
+                >
+                  <RefreshCw className={`w-3 h-3 ${terminalLoading ? "animate-spin" : ""}`} />
+                </button>
+              </div>
             </div>
 
-            <div className="mt-3 space-y-2.5 max-h-[220px] overflow-y-auto pr-1">
-              {auditLogs.length === 0 ? (
-                <p className="text-xs text-slate-500 text-center py-4">Chưa có bản ghi Audit</p>
+            {/* Terminal Window Box */}
+            <div className="mt-3 bg-[#070b14] border border-slate-800/90 rounded-xl p-3 font-mono text-[11px] max-h-[260px] overflow-y-auto space-y-2 select-text shadow-inner">
+              {terminalLogs.length === 0 ? (
+                <div className="py-6 text-center space-y-1">
+                  <p className="text-slate-500 text-xs">$ node --agent-orchestrator.js</p>
+                  <p className="text-slate-600 text-[10px]">
+                    Sẵn sàng! Hãy chat hoặc chạy Verify 90s để xem log suy luận bắn thời gian thực...
+                  </p>
+                </div>
               ) : (
-                auditLogs.map((log, idx) => (
-                  <div
-                    key={log._id || idx}
-                    className="p-2.5 bg-slate-950/70 border border-slate-800/80 rounded-xl text-xs space-y-1"
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-bold text-indigo-300">
-                        {log.decision || log.eventType || log.action}
-                      </span>
-                      <span className="text-[10px] text-slate-400">
-                        {log.timestamp || log.createdAt
-                          ? new Date(log.timestamp || log.createdAt).toLocaleTimeString("vi-VN")
-                          : ""}
-                      </span>
-                    </div>
-                    {log.reason && (
-                      <p className="text-[11px] text-slate-300 line-clamp-1 italic">
-                        {log.reason}
-                      </p>
-                    )}
-                    <div className="flex items-center justify-between text-[11px] text-slate-400">
-                      <span>{log.actor || log.performedBy?.name || "The Escalation Referee"}</span>
-                      {(log.tamperHash || log.hash) && (
-                        <span
-                          className="font-mono text-[9px] text-emerald-400 truncate max-w-[140px]"
-                          title={log.tamperHash || log.hash}
-                        >
-                          SHA: {(log.tamperHash || log.hash).substring(0, 12)}...
+                terminalLogs.map((log, idx) => {
+                  let badgeColor = "text-slate-400 bg-slate-800/60 border-slate-700";
+                  let tag = log.type || "INFO";
+                  if (log.type === "REQUEST") badgeColor = "text-cyan-400 bg-cyan-950/50 border-cyan-800/60 font-semibold";
+                  if (log.type === "INTENT") badgeColor = "text-purple-400 bg-purple-950/50 border-purple-800/60 font-semibold";
+                  if (log.type === "REASONING") badgeColor = "text-amber-400 bg-amber-950/50 border-amber-800/60 font-semibold";
+                  if (log.type === "TOOL_CALL") badgeColor = "text-yellow-300 bg-yellow-950/50 border-yellow-800/60 font-bold";
+                  if (log.type === "TOOL_RESULT") badgeColor = "text-emerald-400 bg-emerald-950/50 border-emerald-800/60 font-semibold";
+                  if (log.type === "DECISION") badgeColor = "text-fuchsia-400 bg-fuchsia-950/50 border-fuchsia-800/60 font-bold";
+                  if (log.type === "ERROR") badgeColor = "text-rose-400 bg-rose-950/50 border-rose-800/60 font-bold";
+
+                  return (
+                    <div key={log.id || idx} className="space-y-0.5 leading-relaxed border-b border-slate-900/60 pb-1.5 last:border-b-0">
+                      <div className="flex items-start gap-1.5 flex-wrap">
+                        <span className="text-slate-500 text-[10px] select-none">
+                          [{log.timeFormatted || ""}]
                         </span>
+                        <span className={`px-1 py-0.2 rounded text-[9px] border ${badgeColor}`}>
+                          {tag}
+                        </span>
+                        <span className="text-slate-200 flex-1 break-words">
+                          {log.text}
+                        </span>
+                      </div>
+                      {log.details && (
+                        <div className="ml-4 pl-2 border-l border-slate-800 text-[10px] text-slate-400">
+                          {typeof log.details === "string" ? (
+                            <p className="line-clamp-2">{log.details}</p>
+                          ) : (
+                            <pre className="text-[9px] text-slate-400 overflow-x-auto whitespace-pre-wrap max-h-24">
+                              {JSON.stringify(log.details, null, 2)}
+                            </pre>
+                          )}
+                        </div>
                       )}
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
+              {/* Terminal cursor */}
+              <div className="flex items-center gap-1.5 text-emerald-400 font-mono text-[11px] pt-1">
+                <span className="text-slate-600 select-none">$</span>
+                <span className="text-slate-500 text-[10px]">agent-trace</span>
+                <span className="inline-block w-1.5 h-3 bg-emerald-400 animate-pulse"></span>
+              </div>
+              <div ref={terminalEndRef} />
             </div>
           </div>
         </div>

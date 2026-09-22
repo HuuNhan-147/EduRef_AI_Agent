@@ -18,6 +18,7 @@ export class WebMCPAdapter {
     }
 
     console.log(`  🌐 [WebMCPAdapter] Gửi yêu cầu thực thi [${tool.name}] về trình duyệt qua WebMCP...`);
+    console.log(`  🌐 [WebMCPAdapter] Args:`, JSON.stringify(args));
     const startTime = Date.now();
 
     try {
@@ -52,7 +53,26 @@ export class WebMCPAdapter {
       });
 
       const duration = Date.now() - startTime;
-      console.log(`  ✅ [WebMCPAdapter] Trình duyệt phản hồi thành công [${tool.name}] (${duration}ms)`);
+      console.log(`  ✅ [WebMCPAdapter] Trình duyệt phản hồi [${tool.name}] (${duration}ms):`, JSON.stringify(clientResult));
+
+      // Nếu client thực thi thất bại (hoặc tool chưa được đăng ký trên trình duyệt) -> Kích hoạt Server Fallback
+      if (clientResult?.success === false || clientResult?.error) {
+        console.warn(`  ⚠️ [WebMCPAdapter] Client không thực thi được [${tool.name}] (${clientResult.error}). Kích hoạt Server Fallback!`);
+        return await localServiceAdapter.execute(tool, args, context);
+      }
+
+      // Kiểm tra nếu clientResult không hợp lệ hoặc rỗng (đối với search_equipment) -> Fallback Server
+      const hasValidItems = Array.isArray(clientResult?.equipments) && clientResult.equipments.length > 0
+        || Array.isArray(clientResult?.data) && clientResult.data.length > 0;
+
+      if (!hasValidItems && tool.name === "search_equipment") {
+        console.warn(`  ⚠️ [WebMCPAdapter] Trình duyệt không tìm thấy đồ, kích hoạt Server Fallback để kiểm tra trực tiếp DB...`);
+        const serverResult = await localServiceAdapter.execute(tool, args, context);
+        if ((serverResult?.equipments?.length || serverResult?.data?.length || 0) > 0) {
+          console.log(`  🎉 [WebMCPAdapter] Server Fallback tìm thấy ${serverResult.equipments?.length || serverResult.data?.length} thiết bị! Ưu tiên dữ liệu Server.`);
+          return serverResult;
+        }
+      }
 
       return {
         success: clientResult.success !== false,

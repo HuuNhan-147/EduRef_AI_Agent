@@ -478,68 +478,94 @@ export const rollbackLoanRequest = async (req, res) => {
     const { loanId } = req.params;
     const { rollbackReason } = req.body;
 
-    const loan = await LoanRequest.findById(loanId);
+    // Tìm phiếu bằng MongoDB _id hoặc requestCode
+    const loan = await LoanRequest.findOne({
+      $or: [
+        { _id: loanId.match(/^[a-f\d]{24}$/i) ? loanId : null },
+        { requestCode: loanId }
+      ]
+    }).populate('borrower');
+
     if (!loan) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy phiếu mượn' });
     }
 
-    // [RÀNG BUỘC AN TOÀN]: Cấm hoàn tác khi thiết bị đang ở ngoài kho (DISPATCHED)
-    if (loan.status === 'DISPATCHED') {
+    // [RÀNG BUỘC AN TOÀN]: Cấm hoàn tác khi thiết bị đã xuất kho hoặc kết thúc
+    if (loan.status === 'DISPATCHED' || loan.status === 'RETURNED') {
       return res.status(400).json({
         success: false,
-        message: 'Phiếu mượn đã xuất kho bàn giao (thiết bị đang ở ngoài kho), không thể hoàn tác! Vui lòng thực hiện quy trình thu hồi hoàn kho tại quầy Thủ kho.'
+        message: 'Thiết bị đã xuất kho bàn giao, không thể hoàn tác! Vui lòng thực hiện quy trình thu hồi hoàn kho tại quầy Thủ kho.'
       });
     }
 
-    if (loan.status === 'RETURNED' || loan.status === 'CANCELLED') {
-      return res.status(400).json({ success: false, message: 'Phiếu mượn đã kết thúc hoặc đã bị hủy, không thể hoàn tác!' });
+    if (loan.status === 'CANCELLED') {
+      return res.status(400).json({ success: false, message: 'Phiếu mượn đã kết thúc hoặc đã bị hủy trước đó!' });
     }
 
-    // Nếu phiếu đã được duyệt (APPROVED) và máy đang giữ chỗ (RESERVED): giải phóng về AVAILABLE
-    const items = await LoanItem.find({ loanRequest: loan._id });
-    for (const it of items) {
-      if (it.equipment) {
-        await Equipment.findByIdAndUpdate(it.equipment, { status: 'AVAILABLE' });
-      }
-      it.itemStatus = 'CANCELLED';
-      await it.save();
-    }
+    const reason = rollbackReason?.trim() || 'Can thiệp dừng & hoàn tác bởi quản trị viên';
+    const prevStatus = loan.status;
 
-    const oldStatus = loan.status;
+    // Đảo ngược trạng thái phiếu & vô hiệu hóa mã PIN nhận đồ
     loan.status = 'CANCELLED';
-    loan.pickupCode = ''; // Thu hồi mã nhận đồ
-    loan.notes = `[HOÀN TÁC ROLLBACK] ${rollbackReason || 'Quản lý hủy bỏ cấp phát'}. (Trạng thái trước: ${oldStatus})`;
+    loan.pickupCode = '';
+    loan.notes = `[HOÀN TÁC ROLLBACK] ${reason}. (Trạng thái trước: ${prevStatus})`;
     await loan.save();
+
+    // Khôi phục trạng thái thiết bị cá thể về AVAILABLE và hoàn trả tồn kho EquipmentModel
+    const loanItems = await LoanItem.find({ loanRequest: loan._id });
+    let restoredCount = 0;
+
+    for (const item of loanItems) {
+      if (item.equipment) {
+        await Equipment.findByIdAndUpdate(item.equipment, { status: 'AVAILABLE' });
+        restoredCount++;
+      }
+      item.itemStatus = 'CANCELLED';
+      await item.save();
+
+      // Hoàn trả số lượng tồn kho cho EquipmentModel
+      if (item.equipmentModel) {
+        const qty = item.requestedQuantity || 1;
+        await EquipmentModel.findByIdAndUpdate(item.equipmentModel, {
+          $inc: { countInStock: qty }
+        });
+      }
+    }
 
     // Ghi nhận Approval Action
     await ApprovalAction.create({
       loanRequest: loan._id,
       actionType: 'REJECT',
-      actorType: req.user?.role || 'MANAGER',
+      actorType: req.user?.role === 'ADMIN' ? 'ADMIN' : 'MANAGER',
       actorUser: req.user?.userId || null,
-      decisionReason: rollbackReason || 'Quyền can thiệp dừng & hoàn tác khẩn cấp',
-      policyRule: 'HUMAN_ROLLBACK_OVERRIDE'
+      decisionReason: reason,
+      policyRule: 'ROLLBACK_WITHIN_24H_PRE_DISPATCH'
     });
 
     // Ghi nhận sổ cái kiểm toán bất biến (Audit Trail)
     await AuditLogService.record({
-      eventType: 'MANAGER_OVERRIDE',
+      eventType: 'LOAN_ROLLED_BACK',
       actor: req.user?.role || 'MANAGER',
       actorId: req.user?.email || 'MANAGER',
-      decision: 'CANCELLED',
-      policyRuleId: 'HUMAN_ROLLBACK_OVERRIDE',
+      decision: 'ROLLED_BACK',
+      policyRuleId: 'ROLLBACK_WITHIN_24H_PRE_DISPATCH',
       factsSnapshot: {
-        loanDays: loan.loanDays
+        assetCode: loanItems[0]?.equipment?.toString() || '',
+        loanDays: loan.loanDays,
+        borrowerStaffCode: loan.borrower?.staffCode || '',
+        estimatedValue: loan.totalEstimatedValue || 0,
+        prevStatus
       },
-      reason: `Hoàn tác/Hủy phiếu ${loan.requestCode}: ${rollbackReason || 'Quản lý can thiệp dừng'}. Khôi phục trạng thái máy về AVAILABLE.`
+      reason: `Hoàn tác phiếu ${loan.requestCode} (trạng thái trước: ${prevStatus}). Lý do: ${reason}. Đã khôi phục thiết bị về AVAILABLE và cập nhật tồn kho.`
     });
 
     res.json({
       success: true,
-      message: `Đã thực hiện hoàn tác phiếu mượn ${loan.requestCode}. Thu hồi mã nhận đồ và khôi phục tồn kho thành công!`,
-      data: loan
+      message: `Đã thực hiện hoàn tác phiếu mượn ${loan.requestCode}. Thu hồi mã nhận đồ và khôi phục ${restoredCount} thiết bị về kho thành công!`,
+      data: { requestCode: loan.requestCode, status: 'CANCELLED', restoredCount }
     });
   } catch (error) {
+    console.error('[Rollback Error]:', error);
     res.status(500).json({ success: false, message: error.message });
   }
 };

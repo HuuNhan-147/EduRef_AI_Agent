@@ -29,6 +29,7 @@ import loanRoutes from './routes/loanRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import agentRoutes from './routes/agentRoutes.js';
 import { runAgent } from './modules/ai-agent/index.js';
+import { agentTerminalLogger } from './modules/ai-agent/core/AgentTerminalLogger.js';
 
 const app = express();
 
@@ -46,6 +47,8 @@ const io = new Server(httpServer, {
     credentials: true,
   },
 });
+
+agentTerminalLogger.setIO(io);
 
 io.on('connection', (socket) => {
   console.log('🟢 [Socket.IO] Client connected:', socket.id);

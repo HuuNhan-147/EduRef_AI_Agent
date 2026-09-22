@@ -30,10 +30,11 @@ export class ToolResolver {
 
     // Chọn adapter phù hợp
     const selectedAdapter = clientSupportsWebMCP ? this.mcpAdapter : this.localAdapter;
-    console.log(`🔀 [ToolResolver] Điều phối tool [${tool.name}] qua [${selectedAdapter.name}]`);
+    console.log(`🔀 [ToolResolver] Tool [${tool.name}] | ClientWebMCP: ${!!clientSupportsWebMCP} | Adapter: [${selectedAdapter.name}]`);
 
     try {
-      return await selectedAdapter.execute(tool, args, context);
+      const res = await selectedAdapter.execute(tool, args, context);
+      return res;
     } catch (error) {
       console.error(`💥 [ToolResolver] Lỗi nghiêm trọng khi thực thi tool [${tool.name}]:`, error.message);
       // Fallback khẩn cấp nếu adapter bị throw uncaught exception

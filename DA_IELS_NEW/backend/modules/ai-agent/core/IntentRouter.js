@@ -22,7 +22,7 @@ export class IntentRouter {
     }
 
     // 3. Ý định tra cứu kho thiết bị
-    if (text.includes("tìm") || text.includes("có") || text.includes("xem") || text.includes("kho") || text.includes("danh mục")) {
+    if (text.includes("tìm") || text.includes("có") || text.includes("xem") || text.includes("kho") || text.includes("danh mục") || text.includes("còn")) {
       return {
         domain: "INVENTORY",
         toolSet: ["search_equipment", "get_equipment_detail"],

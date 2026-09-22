@@ -151,8 +151,8 @@ export default function Navbar({
                     : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                 }`}
               >
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
-                <span>Sổ Kiểm Toán</span>
+                <Terminal className="w-4 h-4 text-emerald-400" />
+                <span>Terminal Log AI</span>
               </button>
             )}
           </nav>

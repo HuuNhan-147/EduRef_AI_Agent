@@ -20,12 +20,12 @@ export const toolInstances = [
   new AgentTool({
     name: "search_equipment",
     description:
-      "🔍 BẮT BUỘC GỌI TOOL NÀY để tra cứu kho thiết bị theo từ khóa (tên, hãng), theo danh mục (Laptop, Chuột, Bàn phím, Màn hình, Máy quay...), theo khoảng giá (minPrice, maxPrice) hoặc theo phân định thẩm quyền (isHighValue: true là > 20M, false là <= 20M). Trigger: 'kho có macbook không', 'tìm chuột', 'thiết bị dưới 20 triệu', 'các dòng laptop', 'máy ảnh có không'.",
+      "🔍 BẮT BUỘC GỌI TOOL NÀY để tra cứu kho thiết bị theo từ khóa (tên máy, thương hiệu như Micro, MacBook, Máy chiếu, Bàn phím, Chuột, Bộ đàm...), theo khoảng giá hoặc theo phân định thẩm quyền. Trigger: 'kho có mic không', 'tìm máy chiếu', 'cho mượn bàn phím', 'còn bộ đàm không'.",
     inputSchema: {
       type: "object",
       properties: {
-        keyword: { type: "string", description: "Từ khóa tìm kiếm (tên máy, thương hiệu như MacBook, Sony, Dell, DareU... Để trống nếu chỉ tìm theo giá hoặc danh mục)" },
-        category: { type: "string", description: "Danh mục thiết bị (Laptop, Màn hình, Bàn phím, Chuột, Máy quay, Thiết bị văn phòng...)" },
+        keyword: { type: "string", description: "Từ khóa cốt lõi của thiết bị cần tìm (ví dụ: 'micro', 'máy chiếu', 'laptop', 'bàn phím', 'chuột', 'macbook', 'sony'...). Trích xuất tên thiết bị khi người dùng hỏi đồ cụ thể." },
+        category: { type: "string", description: "Danh mục thiết bị (không bắt buộc, CHỈ truyền khi người dùng nêu rõ tên danh mục)" },
         minPrice: { type: "number", description: "Giá tối thiểu (VNĐ)" },
         maxPrice: { type: "number", description: "Giá tối đa (VNĐ)" },
         isHighValue: { type: "boolean", description: "true nếu tìm thiết bị giá trị cao > 20.000.000 VNĐ cần Quản lý duyệt; false nếu tìm thiết bị thường quy <= 20.000.000 VNĐ tự duyệt" },
@@ -52,18 +52,19 @@ export const toolInstances = [
   new AgentTool({
     name: "create_auto_loan",
     description:
-      "⚡ TỰ ĐỘNG PHÊ DUYỆT & CẤP PHÁT (Deterministic Policy Gate). Dành cho yêu cầu THƯỜNG QUY: Thiết bị giá trị ≤ 20.000.000 VNĐ VÀ thời gian mượn ≤ 7 ngày. Tạo phiếu mượn, cấp mã PIN lấy đồ tại kho và trừ tồn kho ngay lập tức.",
+      "⚡ TỰ ĐỘNG PHÊ DUYỆT & CẤP PHÁT (Deterministic Policy Gate). Dành cho yêu cầu THƯỜNG QUY: Thiết bị giá trị ≤ 20.000.000 VNĐ VÀ thời gian mượn ≤ 7 ngày. BẮT BUỘC PHẢI CÓ thời hạn mượn (durationDays) VÀ mục đích sử dụng rõ ràng (purpose) do người dùng cung cấp. TUYỆT ĐỐI KHÔNG tự bịa số ngày hoặc mục đích nếu người dùng chưa cung cấp (như câu 'cho mượn cái máy chiếu') mà phải dừng lại hỏi người dùng.",
     inputSchema: {
       type: "object",
       properties: {
         equipmentId: { type: "string", description: "ID thiết bị cần mượn" },
         equipmentName: { type: "string", description: "Tên thiết bị (nếu chưa có ID)" },
         durationDays: { type: "number", description: "Số ngày mượn (phải <= 7)" },
-        purpose: { type: "string", description: "Mục đích sử dụng thiết bị" },
+        purpose: { type: "string", description: "Mục đích sử dụng thiết bị do người dùng nêu (BẮT BUỘC, tối thiểu 3 ký tự)" },
+        locationOfUse: { type: "string", description: "Địa điểm hoặc phòng sử dụng thiết bị" },
         startDate: { type: "string", description: "Ngày bắt đầu mượn (YYYY-MM-DD)" },
         endDate: { type: "string", description: "Ngày kết thúc mượn (YYYY-MM-DD)" },
       },
-      required: ["durationDays"],
+      required: ["durationDays", "purpose"],
     },
     execute: (args, context) => createAutoLoan({ ...args, ...context }),
   }),

@@ -54,11 +54,32 @@ export default function App() {
       const catalogRes = await api.get('/equipment/catalog');
       if (catalogRes.data.success) setCatalog(catalogRes.data.data);
 
-      // 4. Danh sách phiếu mượn
-      const loansRes = await api.get('/loans/list');
-      if (loansRes.data.success) setLoans(loansRes.data.data);
+      // 4. Danh sach phieu muon (public-list — khong can auth)
+      try {
+        const loansRes = await api.get('/loans/public-list');
+        if (loansRes.data.success) setLoans(loansRes.data.data);
+      } catch (lErr) {
+        console.warn('Khong load duoc public-list, thu /loans/list:', lErr.message);
+        try {
+          const loansRes2 = await api.get('/loans/list');
+          if (loansRes2.data.success) setLoans(loansRes2.data.data);
+        } catch (_) {}
+      }
     } catch (error) {
       console.error('Error fetching data:', error);
+    }
+  };
+
+  // Ham fetch rieng chi de refresh phieu muon (dung sau khi AI tao phieu)
+  const fetchLoans = async () => {
+    try {
+      const res = await api.get('/loans/public-list');
+      if (res.data.success) setLoans(res.data.data);
+    } catch (e) {
+      try {
+        const res2 = await api.get('/loans/list');
+        if (res2.data.success) setLoans(res2.data.data);
+      } catch (_) {}
     }
   };
 
@@ -265,9 +286,9 @@ export default function App() {
 
       {/* Main Content Area */}
       <main className="max-w-7xl mx-auto px-4 py-8 flex-1 w-full">
-        {/* KHÔNG GIAN 1: ĐẤU TRƯỜNG AI HACKATHON BẢNG 1 ĐỀ A */}
+        {/* KHONG GIAN 1: DAU TRUONG AI HACKATHON BANG 1 DE A */}
         <div className={currentMode === 'AI_ARENA' ? 'block' : 'hidden'}>
-          <AIAgentArena currentRole={activeRole} />
+          <AIAgentArena currentRole={activeRole} onLoanCreated={fetchLoans} />
         </div>
 
         {/* KHÔNG GIAN 2: VẬN HÀNH THỦ CÔNG (CRUD & MANUAL WORKFLOWS) */}

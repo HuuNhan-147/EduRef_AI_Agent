@@ -12,7 +12,7 @@ const loanItemSchema = new mongoose.Schema({
   returnedCondition: { type: String },
   itemStatus: {
     type: String,
-    enum: ['PENDING', 'ASSIGNED', 'CHECKED_OUT', 'RETURNED', 'DAMAGED', 'LOST'],
+    enum: ['PENDING', 'ASSIGNED', 'CHECKED_OUT', 'RETURNED', 'DAMAGED', 'LOST', 'CANCELLED'],
     default: 'PENDING'
   }
 }, { timestamps: true });

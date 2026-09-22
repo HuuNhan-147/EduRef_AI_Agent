@@ -9,6 +9,7 @@ import { normalizeSlang, processInput } from "../memory/ContextResolver.js";
 import { IntentRouter } from "./IntentRouter.js";
 import { PromptEngine } from "./PromptEngine.js";
 import { ToolRegistry } from "../tools/ToolRegistry.js";
+import { agentTerminalLogger } from "./AgentTerminalLogger.js";
 
 const AUTH_KEYWORDS = [
   "phiếu mượn", "mượn đồ", "lấy đồ", "trả đồ", "mượn thiết bị",
@@ -92,8 +93,20 @@ export class AgentOrchestrator {
         await this.memory.saveUserMessage(effectiveUserId, currentSessionId, messageToUse);
       }
 
+      agentTerminalLogger.log({
+        type: "REQUEST",
+        text: `🤖 [REQUEST] "${messageToUse}"`,
+        sessionId: currentSessionId,
+      });
+
       // 4. Intent Routing & Lọc Tools
       const intentResult = IntentRouter.detectIntent(messageToUse, conversationHistory);
+      agentTerminalLogger.log({
+        type: "INTENT",
+        text: `🧠 [INTENT] Nhận diện miền: [${intentResult.domain}]`,
+        sessionId: currentSessionId,
+      });
+
       const systemInstruction = PromptEngine.buildSystemInstruction(
         intentResult.domains || intentResult.domain,
         sessionSummaryText
@@ -124,10 +137,22 @@ export class AgentOrchestrator {
       while (response.functionCalls && iterationCount < maxIterations) {
         iterationCount++;
         console.log(`\n🔄 [AgentOrchestrator] Vòng lặp suy luận ${iterationCount}:`);
+        agentTerminalLogger.log({
+          type: "REASONING",
+          text: `🔄 [REASONING] Vòng lặp suy luận ${iterationCount}: Phân tích ${response.functionCalls.length} tool calls...`,
+          sessionId: currentSessionId,
+        });
 
         const functionResponses = await Promise.all(
           response.functionCalls.map(async (fc) => {
-            console.log(`  🛠️ Thực thi tool: ${fc.name}`);
+            console.log(`  🛠️ Thực thi tool: [${fc.name}] với args:`, JSON.stringify(fc.args));
+            agentTerminalLogger.log({
+              type: "TOOL_CALL",
+              text: `🛠️ [TOOL CALL] Thực thi [${fc.name}]`,
+              details: fc.args,
+              sessionId: currentSessionId,
+            });
+
             try {
               const params = {
                 ...fc.args,
@@ -148,14 +173,27 @@ export class AgentOrchestrator {
               const result = await ToolRegistry.executeTool(fc.name, params, executionContext);
               const duration = Date.now() - startTime;
 
-              console.log(`  ✅ Thành công (${duration}ms):`, result.message || "OK");
+              const itemCount = result.count ?? (Array.isArray(result.equipments) ? result.equipments.length : (Array.isArray(result.data) ? result.data.length : null));
+              console.log(`  ✅ [${fc.name}] Kết thúc (${duration}ms) | Số lượng: ${itemCount ?? 'N/A'} | Thông điệp:`, result.message || "OK");
+
+              agentTerminalLogger.log({
+                type: "TOOL_RESULT",
+                text: `✅ [TOOL RESULT] [${fc.name}] hoàn tất (${duration}ms): ${result.message || (result.success ? "Thành công" : "Thất bại")}`,
+                details: result,
+                sessionId: currentSessionId,
+              });
 
               return {
                 name: fc.name,
                 response: { success: true, ...result },
               };
             } catch (err) {
-              console.error(`  ❌ Lỗi khi thực thi ${fc.name}:`, err.message);
+              console.error(`  ❌ Lỗi khi thực thi [${fc.name}]:`, err.message);
+              agentTerminalLogger.log({
+                type: "ERROR",
+                text: `❌ [ERROR] Lỗi thực thi tool [${fc.name}]: ${err.message}`,
+                sessionId: currentSessionId,
+              });
               return {
                 name: fc.name,
                 response: { success: false, error: err.message },
@@ -213,6 +251,13 @@ export class AgentOrchestrator {
 
       // 6. Định dạng Payload và lưu tin nhắn trợ lý ảo
       let assistantPayload = this._buildAssistantPayload(allFunctionCalls);
+
+      agentTerminalLogger.log({
+        type: "DECISION",
+        text: `⚖️ [DECISION] Trạng thái: ${assistantPayload?.loan?.status || "PHẢN HỒI"} | Tóm tắt: "${finalText.replace(/\n/g, ' ').slice(0, 90)}..."`,
+        details: assistantPayload,
+        sessionId: currentSessionId,
+      });
 
       if (effectiveUserId && currentSessionId) {
         await this.memory.saveAssistantMessage(
@@ -300,6 +345,22 @@ export class AgentOrchestrator {
             message: result.message || "Tự động phê duyệt 100% thành công.",
           };
           hasAnyData = true;
+
+          // Cập nhật số tồn kho tức thì trên Card thiết bị gửi kèm tin nhắn
+          if (Array.isArray(payload.equipments) && result.remainingStock !== undefined) {
+            payload.equipments = payload.equipments.map((eq) => {
+              const matches = (result.modelId && (eq.id === result.modelId || String(eq.id) === String(result.modelId)))
+                || (result.equipmentName && eq.name && eq.name.toLowerCase().includes(result.equipmentName.toLowerCase()));
+              if (matches) {
+                return {
+                  ...eq,
+                  countInStock: result.remainingStock,
+                  status: result.remainingStock > 0 ? "AVAILABLE" : "OUT_OF_STOCK",
+                };
+              }
+              return eq;
+            });
+          }
         } else if (name === "escalate_to_manager") {
           payload.loan = {
             loanId: result.loanId || result.data?.loanId,

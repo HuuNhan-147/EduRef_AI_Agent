@@ -16,14 +16,16 @@ const auditLogSchema = new mongoose.Schema({
       'RETURN_INSPECTED',
       'TOOL_INVOCATION',
       'LOAN_CREATED',
-      'MAINTENANCE_COMPLETED'
+      'MAINTENANCE_COMPLETED',
+      'LOAN_ROLLED_BACK',
+      'BGK_AUTHORITY_DECISION'
     ],
     required: true
   },
   
   actor: {
     type: String,
-    enum: ['AI_AGENT', 'MANAGER', 'STOREKEEPER', 'ADMIN', 'SYSTEM', 'EMPLOYEE'],
+    enum: ['AI_AGENT', 'MANAGER', 'STOREKEEPER', 'ADMIN', 'SYSTEM', 'EMPLOYEE', 'BGK_JUDGE'],
     required: true
   },
   actorId: { type: String, default: 'SYSTEM_AGENT' },
@@ -31,7 +33,22 @@ const auditLogSchema = new mongoose.Schema({
   // Quyết định phát ra
   decision: {
     type: String,
-    enum: ['AUTO_APPROVED', 'ESCALATED_MANAGER', 'APPROVED', 'REJECTED', 'EXECUTED', 'PENDING', 'COMPLETED', 'CANCELLED'],
+    enum: [
+      'AUTO_APPROVED',
+      'ESCALATED_MANAGER',
+      'APPROVED',
+      'REJECTED',
+      'EXECUTED',
+      'PENDING',
+      'COMPLETED',
+      'CANCELLED',
+      'ROLLED_BACK',
+      'BGK_APPROVED',
+      'BGK_REJECTED',
+      'VERIFY_FAILED',
+      'ASK_CLARIFICATION',
+      'ESCALATED_BGK_PENDING'
+    ],
     required: true
   },
   
