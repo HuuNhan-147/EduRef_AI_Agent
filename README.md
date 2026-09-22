@@ -48,23 +48,23 @@ EduRef AI giải quyết triệt để bài toán **The Escalation Referee** b�
 
 ```mermaid
 graph TD
-    User([👨‍🎓 Sinh viên nộp đơn]) --> Agent[🤖 AI Agent Orchestrator]
-    Agent --> Vision[👁️ Multimodal Vision OCR]
-    Agent --> Policy[⚖️ Deterministic Policy Engine]
+    User["👨‍🎓 Sinh viên nộp đơn"] --> Agent["🤖 AI Agent Orchestrator"]
+    Agent --> Vision["👁️ Multimodal Vision OCR"]
+    Agent --> Policy["⚖️ Deterministic Policy Engine"]
     
-    Policy --> Decisions{Quyết Định Trọng Tài}
-    Decisions -->|Thỏa 100% & Thuộc quyền AI| AUTO[✅ AUTO: Tự động cấp phê duyệt < 1s]
-    Decisions -->|Ảnh mờ / Thiếu dữ liệu| ASK[❓ ASK: Đặt câu hỏi truy hồi thông minh]
-    Decisions -->|Vượt thẩm quyền / Ngoại lệ| ESCALATE[🚨 ESCALATE: Chuyển tiếp Trưởng Khoa + Tóm tắt hồ sơ]
-    Decisions -->|Vi phạm điều cấm quy chế| REJECT[❌ REJECT: Từ chối + Viện dẫn Điều khoản]
+    Policy --> Decisions{"Quyết Định Trọng Tài"}
+    Decisions -->|"Thỏa 100% & Thuộc quyền AI"| AUTO["✅ AUTO: Tự động phê duyệt trong 1 giây"]
+    Decisions -->|"Ảnh mờ hoặc Thiếu dữ liệu"| ASK["❓ ASK: Đặt câu hỏi truy hồi thông minh"]
+    Decisions -->|"Vượt thẩm quyền hoặc Ngoại lệ"| ESCALATE["🚨 ESCALATE: Chuyển tiếp Trưởng Khoa & Tóm tắt hồ sơ"]
+    Decisions -->|"Vi phạm điều cấm quy chế"| REJECT["❌ REJECT: Từ chối & Viện dẫn Điều khoản"]
     
-    AUTO --> Audit[(⛓️ Cryptographic Audit Ledger SHA-256)]
+    AUTO --> Audit["⛓️ Cryptographic Audit Ledger SHA-256"]
     ESCALATE --> Audit
     REJECT --> Audit
 ```
 
 ### 1. Tự Động Hóa Thường Quy Tốc Độ Cao (Autonomous Routine)
-* Thẩm định và duyệt tự động các hồ sơ hợp lệ trong **$< 1.0$ giây**.
+* Thẩm định và duyệt tự động các hồ sơ hợp lệ trong **dưới 1.0 giây**.
 * Tự động sinh mã xác thực và cấp quyết định tức thì, cắt giảm **80%** khối lượng công việc hành chính của Phòng Đào tạo.
 
 ### 2. Trọng Tài Điều Phối 3 Cấp Độ (3-Tier Escalation Referee)
@@ -89,6 +89,7 @@ graph TD
 | **Frontend** | React 18, Vite, TailwindCSS | Giao diện Single Page tương tác cao, thiết kế Responsive hiện đại |
 | **Realtime Stream** | Socket.IO Client / Server | Hiển thị Live Terminal log suy nghĩ của AI theo thời gian thực |
 | **Backend Core** | Node.js (ES Modules), Express | Kiến trúc Modular Clean Architecture, phân tầng Handler độc lập |
+| **Distributed Agent** | **WebMCP Protocol & Adapter** | Giao thức Web Model Context Protocol, cơ chế **Dual-Path Fallback** (Client Edge & Server) |
 | **Database & ORM** | PostgreSQL, Prisma ORM | Quản lý dữ liệu quan hệ với Type-safe Schema & Migration |
 | **AI & LLM Engine**| Google Gemini Flash / Pro Multimodal | Gọi Tool Function Calling, Vision OCR bóc tách văn bằng, Streaming |
 | **Security & Audit** | SHA-256 Ledger, JWT Auth, RBAC | Phân quyền 4 vai trò (Student, Staff, Dean, Admin), Sổ cái kiểm toán |

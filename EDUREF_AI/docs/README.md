@@ -21,3 +21,4 @@ Bộ tài liệu được xây dựng hoàn toàn dựa trên **MÃ NGUỒN TH�
 10. [**10_DATABASE.md**](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/docs/10_DATABASE.md): Lược đồ cơ sở dữ liệu PostgreSQL (Prisma ORM), sơ đồ thực thể quan hệ ERD và cấu trúc các cột JSONB.
 11. [**11_SECURITY.md**](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/docs/11_SECURITY.md): Báo cáo an toàn và bảo mật, phân loại các lỗ hổng (Bypass auth, Race condition, Fallback mock) và phương án khắc phục.
 12. [**12_TECHNICAL_DEBT.md**](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/docs/12_TECHNICAL_DEBT.md): Danh mục nợ kỹ thuật và kế hoạch hành động 5 trụ cột cho Sprint 2.
+13. [**13_WEBMCP.md**](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/docs/13_WEBMCP.md): Kiến trúc tác tử phân tán và giao thức WebMCP (Hybrid Client-Server Agent), cơ chế chịu lỗi Dual-Path Fallback và ranh giới bảo mật Zero-Trust Client.
