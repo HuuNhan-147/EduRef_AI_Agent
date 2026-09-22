@@ -502,14 +502,14 @@ export default function StaffEscalationPage() {
                         fileName: certs.b1?.fileName || 'HUTECH_Chung_Chi_Tieng_Anh_B1.png',
                         fileUrl: certs.b1?.previewUrl || '/demo_certs/hutech_b1_english.png',
                         documentType: 'B1_ENGLISH_CERT',
-                        verificationStatus: 'VERIFIED',
+                        verificationStatus: 'PENDING',
                       },
                       {
                         id: 'doc_teamwork',
                         fileName: certs.teamwork?.fileName || 'HUTECH_Chung_Chi_Ky_Nang_Nhom.png',
                         fileUrl: certs.teamwork?.previewUrl || '/demo_certs/hutech_teamwork_skills.png',
                         documentType: 'TEAMWORK_SKILLS_CERT',
-                        verificationStatus: 'VERIFIED',
+                        verificationStatus: 'PENDING',
                       },
                     ];
                   }
@@ -532,7 +532,7 @@ export default function StaffEscalationPage() {
                                   ? 'text-emerald-700 bg-emerald-100'
                                   : 'text-amber-700 bg-amber-100'
                               }`}>
-                                {doc.verificationStatus || 'VERIFIED'}
+                                {doc.verificationStatus || 'PENDING'}
                               </span>
                               {doc.documentType && (
                                 <span className="text-[10px] text-slate-400 font-mono">

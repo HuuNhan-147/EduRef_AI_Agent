@@ -88,7 +88,7 @@ export default function TopNavbar({
             <div className="flex items-center gap-2">
               <span className="font-bold text-base tracking-tight text-white">EduRef AI</span>
               <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold tracking-wider uppercase bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                Track 2 Option A
+                VNG · Đề A
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-normal hidden lg:block">

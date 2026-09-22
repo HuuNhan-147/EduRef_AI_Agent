@@ -51,7 +51,8 @@ export default function StudentWorkspacePage({
     try {
       const res = await api.post('/agent/verify-90s');
       if (res.data?.success) {
-        setVerifyFeedback(`✓ Đã hoàn thành 5 ca test: ${res.data.summary?.passedTests || 5}/5 ĐẠT (100% Deterministic)`);
+        const status = res.data.allPassed ? 'ĐẠT' : 'CHƯA ĐẠT';
+        setVerifyFeedback(`Đã hoàn thành ${res.data.totalCases} ca: ${res.data.passedCases}/${res.data.totalCases} ${status}; AUTO=${res.data.autoCount}, ESCALATE=${res.data.escalationCount}.`);
       } else {
         setVerifyFeedback(`Hoàn tất chạy test: ${res.data?.message || 'Xem chi tiết trong terminal'}`);
       }
