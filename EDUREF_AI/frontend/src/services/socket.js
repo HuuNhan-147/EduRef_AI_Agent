@@ -8,8 +8,10 @@ export const SOCKET_URL = import.meta.env.VITE_SOCKET_URL || 'http://localhost:5
 let socketInstance = null;
 
 export const getSocket = () => {
+  const currentToken = localStorage.getItem('eduref_token');
   if (!socketInstance) {
     socketInstance = io(SOCKET_URL, {
+      auth: { token: currentToken },
       withCredentials: true,
       transports: ['websocket', 'polling'],
       reconnectionAttempts: 5,
@@ -21,8 +23,25 @@ export const getSocket = () => {
     });
 
     socketInstance.on('disconnect', (reason) => {
-      console.warn('🔴 [Socket.IO] Mất kết nối EduRef Backend:', reason);
+      // Ngắt kết nối chủ động là một phần bình thường của việc thay JWT khi
+      // chuyển vai trò; chỉ cảnh báo với các sự cố kết nối thực sự.
+      if (reason === 'io client disconnect') {
+        console.info('🔄 [Socket.IO] Đang kết nối lại với phiên mới.');
+      } else {
+        console.warn('🔴 [Socket.IO] Mất kết nối EduRef Backend:', reason);
+      }
     });
+
+    window.addEventListener('eduref-auth-changed', () => {
+      const token = localStorage.getItem('eduref_token');
+      if (socketInstance && socketInstance.auth?.token !== token) {
+        socketInstance.auth = { token };
+        socketInstance.disconnect().connect();
+      }
+    });
+  } else if (socketInstance.auth?.token !== currentToken) {
+    socketInstance.auth = { token: currentToken };
+    socketInstance.disconnect().connect();
   }
 
   return socketInstance;

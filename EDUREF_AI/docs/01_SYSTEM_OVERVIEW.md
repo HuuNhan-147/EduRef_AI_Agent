@@ -75,7 +75,7 @@ Hệ thống được tổ chức thành 4 tầng kiến trúc phân tách nghi�
                                │ Prisma ORM
 ┌──────────────────────────────▼──────────────────────────────┐
 │ 4. TẦNG DỮ LIỆU & LƯU TRỮ (PERSISTENCE LAYER)               │
-│ - PostgreSQL (eduref_db)                                     │
+│ - Supabase PostgreSQL (Prisma + Supavisor)                    │
 │ - Tables: Student, StudentRequest, RequestDocument, AuditLog│
 │ - Metadata: RequestType, Requirement, Policy, AuthorityRule │
 └─────────────────────────────────────────────────────────────┘

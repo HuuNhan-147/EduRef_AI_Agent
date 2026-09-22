@@ -49,6 +49,9 @@ export class ToolResolver {
       case 'run_verify_90s':
         return await verifyTools.run_verify_90s();
 
+      case 'run_general_verify':
+        return await verifyTools.run_general_verify();
+
       default:
         throw new Error(`Công cụ không được hỗ trợ: ${toolName}`);
     }

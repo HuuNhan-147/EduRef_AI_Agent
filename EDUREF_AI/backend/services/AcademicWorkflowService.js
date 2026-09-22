@@ -1,5 +1,9 @@
 import prisma from '../config/prisma.js';
 import AuditLogService from './AuditLogService.js';
+import {
+  evaluateStudentConfirmation,
+  TRACK_A_DECISION,
+} from './StudentConfirmationDecisionService.js';
 
 class AcademicWorkflowService {
   // =========================================================================
@@ -100,6 +104,11 @@ class AcademicWorkflowService {
       });
       if (!requestType) throw new Error(`Loại thủ tục [${requestTypeCode}] không hợp lệ.`);
 
+      const finalInputData = {
+        ...inputData,
+        purpose: purpose || inputData.purpose || null,
+      };
+
       // Duplicate Guard: Chặn tạo đơn mới nếu đã có đơn đang xử lý cùng loại
       const existingRequest = await prisma.studentRequest.findFirst({
         where: {
@@ -110,26 +119,39 @@ class AcademicWorkflowService {
         orderBy: { createdAt: 'desc' },
       });
       if (existingRequest) {
+        const refreshedRequest = await prisma.studentRequest.update({
+          where: { id: existingRequest.id },
+          data: {
+            inputData: finalInputData,
+            status: 'PENDING',
+            decision: 'PENDING_EVALUATION',
+            escalationReason: null,
+          },
+        });
+
+        await AuditLogService.recordLog({
+          requestId: existingRequest.id,
+          actorType: 'AI_AGENT',
+          action: 'REFRESH_ACTIVE_REQUEST_INPUT',
+          decision: 'PENDING',
+          reason: 'Cập nhật dữ liệu mới nhất vào hồ sơ đang xử lý thay vì dùng lại đầu vào cũ',
+          inputSnapshot: finalInputData,
+        });
+
         return {
           success: true,
-          requestId: existingRequest.id,
-          requestCode: existingRequest.requestCode,
+          requestId: refreshedRequest.id,
+          requestCode: refreshedRequest.requestCode,
           requestType: requestType.code,
           requestTypeName: requestType.name,
-          status: existingRequest.status,
+          status: refreshedRequest.status,
           isDuplicate: true,
-          message: `Sinh viên đã có đơn [${existingRequest.requestCode}] đang trong quá trình xử lý (${existingRequest.status}). Tiếp tục với đơn hiện có.`,
+          message: `Đã cập nhật dữ liệu mới nhất và tiếp tục xử lý đơn [${refreshedRequest.requestCode}].`,
         };
       }
 
       const randomSuffix = Math.floor(100000 + Math.random() * 900000);
       const requestCode = `ST-${randomSuffix}`;
-
-      // Hợp nhất dữ liệu đầu vào
-      const finalInputData = {
-        ...inputData,
-        purpose: purpose || inputData.purpose || null,
-      };
 
       const newRequest = await prisma.studentRequest.create({
         data: {
@@ -258,6 +280,11 @@ class AcademicWorkflowService {
       const missing = [];
 
       for (const req of requirements) {
+        if (!req.isRequired) {
+          passed.push({ code: req.code, name: req.name, status: 'OPTIONAL' });
+          continue;
+        }
+
         let isSatisfied = false;
 
         if (req.code === 'REQ_PURPOSE') {
@@ -331,6 +358,37 @@ class AcademicWorkflowService {
 
       const student = request.student;
       const inputData = request.inputData || {};
+
+      if (request.requestType.code === 'STUDENT_CONFIRMATION') {
+        const policyResult = evaluateStudentConfirmation({ student, inputData });
+        const decision = policyResult.decision === TRACK_A_DECISION.AUTO_APPROVE
+          ? 'PASS'
+          : policyResult.decision === TRACK_A_DECISION.AUTO_REJECT
+            ? 'FAIL'
+            : policyResult.decision === TRACK_A_DECISION.ASK_CLARIFICATION
+              ? 'NEEDS_INFO'
+              : 'ESCALATE';
+
+        await AuditLogService.recordLog({
+          requestId: request.id,
+          actorType: 'AI_AGENT',
+          action: 'EVALUATE_POLICY',
+          decision,
+          reason: policyResult.reason,
+          inputSnapshot: policyResult,
+        });
+
+        return {
+          ...policyResult,
+          policyDecision: policyResult.decision,
+          decision,
+          requiredRole: policyResult.targetRole || null,
+          violations: decision === 'FAIL' ? [{ rule: policyResult.rule, reason: policyResult.reason }] : [],
+          matchedRules: decision === 'PASS' ? [policyResult.rule] : [],
+          message: policyResult.reason,
+        };
+      }
+
       const violations = [];
       const matchedRules = [];
 
@@ -409,6 +467,28 @@ class AcademicWorkflowService {
       if (!request) return { allowed: false, error: 'Không tìm thấy đơn.' };
 
       const inputData = request.inputData || {};
+
+      if (request.requestType.code === 'STUDENT_CONFIRMATION') {
+        const policyResult = evaluateStudentConfirmation({ student: request.student, inputData });
+        if (policyResult.decision === TRACK_A_DECISION.AUTO_APPROVE) {
+          return {
+            allowed: true,
+            action: 'AUTO_APPROVE',
+            requiredRole: 'AI_AGENT',
+            classification: policyResult.classification,
+            reason: policyResult.reason,
+          };
+        }
+
+        return {
+          allowed: false,
+          action: policyResult.decision === TRACK_A_DECISION.ASK_CLARIFICATION ? 'ASK_CLARIFICATION' : 'ESCALATE',
+          requiredRole: policyResult.requiredRole || 'STAFF',
+          classification: policyResult.classification,
+          reason: policyResult.reason,
+          actionableQuestion: policyResult.actionableQuestion,
+        };
+      }
 
       // Chốt chặn chống ép quyền: Nếu user tự nhận có quyền, AI từ chối tự duyệt
       if (inputData.userClaimedOverride === true) {
@@ -492,17 +572,8 @@ class AcademicWorkflowService {
       // Tạo mã QR chứng thực số
       const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=EDUREF_VERIFIED_${request.requestCode}_${request.student.studentCode}`;
 
-      const updated = await prisma.studentRequest.update({
-        where: { id: request.id },
-        data: {
-          status: 'APPROVED',
-          decision: 'ROUTINE_AUTO_APPROVED',
-          qrCodeUrl,
-        },
-      });
-
       // Ghi log Audit với chữ ký SHA-256
-      const auditLog = await AuditLogService.recordLog({
+      const auditLog = await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType: 'AI_AGENT',
         action: 'PROCESS_REQUEST_AUTO_APPROVE',
@@ -511,14 +582,17 @@ class AcademicWorkflowService {
         inputSnapshot: request.inputData,
         beforeState,
         afterState: { status: 'APPROVED', qrCodeUrl },
-      });
-
-      if (auditLog?.sha256Hash) {
-        await prisma.studentRequest.update({
+      }, async (tx, log) => {
+        await tx.studentRequest.update({
           where: { id: request.id },
-          data: { sha256Proof: auditLog.sha256Hash },
+          data: {
+            status: 'APPROVED',
+            decision: 'ROUTINE_AUTO_APPROVED',
+            qrCodeUrl,
+            sha256Proof: log.sha256Hash,
+          },
         });
-      }
+      });
 
       return {
         success: true,
@@ -548,22 +622,22 @@ class AcademicWorkflowService {
 
       if (!request) return { success: false, error: 'Không tìm thấy đơn.' };
 
-      await prisma.studentRequest.update({
-        where: { id: request.id },
-        data: {
-          status: 'WAITING_STUDENT',
-          decision: 'ASK_CLARIFICATION',
-          escalationReason: question,
-        },
-      });
-
-      await AuditLogService.recordLog({
+      await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType: 'AI_AGENT',
         action: 'ASK_STUDENT',
         decision: 'ASK_CLARIFICATION',
         reason: question,
         inputSnapshot: { question },
+      }, async (tx) => {
+        await tx.studentRequest.update({
+          where: { id: request.id },
+          data: {
+            status: 'WAITING_STUDENT',
+            decision: 'ASK_CLARIFICATION',
+            escalationReason: question,
+          },
+        });
       });
 
       return {
@@ -601,23 +675,23 @@ class AcademicWorkflowService {
         escalatedAt: new Date().toISOString(),
       };
 
-      await prisma.studentRequest.update({
-        where: { id: request.id },
-        data: {
-          status: 'ESCALATED',
-          decision: 'ESCALATED_PENDING',
-          escalationReason: reason,
-          contextCapsule,
-        },
-      });
-
-      await AuditLogService.recordLog({
+      await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType: 'AI_AGENT',
         action: 'ESCALATE_REQUEST',
         decision: 'ESCALATED_PENDING',
         reason,
         inputSnapshot: contextCapsule,
+      }, async (tx) => {
+        await tx.studentRequest.update({
+          where: { id: request.id },
+          data: {
+            status: 'ESCALATED',
+            decision: 'ESCALATED_PENDING',
+            escalationReason: reason,
+            contextCapsule,
+          },
+        });
       });
 
       return {
@@ -666,8 +740,9 @@ class AcademicWorkflowService {
         return { success: false, error: `Hồ sơ [${request.requestCode}] đã bị từ chối trước đó.` };
       }
 
-      // State Guard: Cán bộ chỉ được duyệt đơn khi AI đã chuyển tiếp (ESCALATED) hoặc đang chờ bổ sung (WAITING_STUDENT)
-      if (!['ESCALATED', 'WAITING_STUDENT'].includes(request.status)) {
+      // State Guard: Cán bộ chỉ được quyết định hồ sơ đã được AI chuyển tiếp.
+      // WAITING_STUDENT chưa đủ dữ kiện nên tuyệt đối không được duyệt tắt.
+      if (request.status !== 'ESCALATED') {
         return {
           success: false,
           error: `Hồ sơ [${request.requestCode}] đang ở trạng thái [${request.status}] — chưa được AI thẩm định chuyển tiếp lên thẩm quyền con người.`,
@@ -697,18 +772,7 @@ class AcademicWorkflowService {
       // Bảo toàn lý do vượt quyền ban đầu của AI (AI Escalation Reason)
       const preservedEscalationReason = existingCapsule.reason || request.escalationReason || 'Thủ tục thuộc thẩm quyền phê duyệt của Cán bộ / Trưởng khoa';
 
-      await prisma.studentRequest.update({
-        where: { id: request.id },
-        data: {
-          status: newStatus,
-          decision: approved ? 'STAFF_MANUAL_APPROVED' : 'STAFF_MANUAL_REJECTED',
-          qrCodeUrl,
-          escalationReason: preservedEscalationReason,
-          contextCapsule: updatedCapsule,
-        },
-      });
-
-      const auditLog = await AuditLogService.recordLog({
+      const auditLog = await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType,
         action: approved ? 'STAFF_APPROVE_REQUEST' : 'STAFF_REJECT_REQUEST',
@@ -717,6 +781,18 @@ class AcademicWorkflowService {
         inputSnapshot: { requestId, decision, reviewerNote, staffName },
         beforeState,
         afterState: { status: newStatus, qrCodeUrl },
+      }, async (tx, log) => {
+        await tx.studentRequest.update({
+          where: { id: request.id },
+          data: {
+            status: newStatus,
+            decision: approved ? 'STAFF_MANUAL_APPROVED' : 'STAFF_MANUAL_REJECTED',
+            qrCodeUrl,
+            sha256Proof: log.sha256Hash,
+            escalationReason: preservedEscalationReason,
+            contextCapsule: updatedCapsule,
+          },
+        });
       });
 
       return {
@@ -763,17 +839,7 @@ class AcademicWorkflowService {
 
       const beforeState = { status: request.status, qrCodeUrl: request.qrCodeUrl };
 
-      await prisma.studentRequest.update({
-        where: { id: request.id },
-        data: {
-          status: 'CANCELLED',
-          decision: 'HUMAN_OVERRIDE_CANCELLED',
-          qrCodeUrl: null,
-          escalationReason: `Hoàn tác / Can thiệp ghi đè bởi [${staffName}]: ${reason}`,
-        },
-      });
-
-      const auditLog = await AuditLogService.recordLog({
+      const auditLog = await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType,
         action: 'HUMAN_OVERRIDE_ROLLBACK',
@@ -782,6 +848,17 @@ class AcademicWorkflowService {
         inputSnapshot: { searchTarget, reason, staffName },
         beforeState,
         afterState: { status: 'CANCELLED', qrCodeUrl: null },
+      }, async (tx, log) => {
+        await tx.studentRequest.update({
+          where: { id: request.id },
+          data: {
+            status: 'CANCELLED',
+            decision: 'HUMAN_OVERRIDE_CANCELLED',
+            qrCodeUrl: null,
+            sha256Proof: log.sha256Hash,
+            escalationReason: `Hoàn tác / Can thiệp ghi đè bởi [${staffName}]: ${reason}`,
+          },
+        });
       });
 
       return {

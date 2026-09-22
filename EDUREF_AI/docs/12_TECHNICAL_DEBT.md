@@ -1,4 +1,6 @@
 # 12. NỢ KỸ THUẬT & KẾ HOẠCH HÀNH ĐỘNG SPRINT 2 (TECHNICAL DEBT & ACTION PLAN)
+> Lưu ý cập nhật 2026-09-22: bypass auth, route rollback không bảo vệ, vision fallback hợp lệ giả và audit mutation không nguyên tử đã được xử lý trên nhánh `fix/vng-track-a-compliance`. Nội dung bên dưới là lịch sử audit; trạng thái hiện tại xem `11_SECURITY.md`.
+
 **Dự án:** EduRef AI — The Academic Escalation Referee  
 **Kỳ đánh giá:** Sau Sprint 1 — Định hướng Sprint 2
 

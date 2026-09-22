@@ -146,10 +146,10 @@ export default function AppSidebar({ activeTab, setActiveTab, userRole = 'STUDEN
       <div className="p-3 border-t border-slate-100 bg-slate-50/60">
         <div className="px-2 py-1 text-[11px] text-slate-500 flex items-center justify-between">
           <span>Bounded Autonomy</span>
-          <span className="font-mono text-[10px] text-emerald-600 font-bold">100% ACID</span>
+          <span className="font-mono text-[10px] text-emerald-600 font-bold">AUDIT-LINKED</span>
         </div>
         <div className="px-2 text-[10px] text-slate-400 truncate">
-          MLAI Hackathon 2026 — Track 2
+          MLAI Hackathon 2026 — VNG Đề A
         </div>
       </div>
     </aside>

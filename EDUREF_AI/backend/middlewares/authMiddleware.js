@@ -9,7 +9,11 @@ import jwt from 'jsonwebtoken';
  */
 export const authenticateToken = (req, res, next) => {
   const authHeader = req.headers.authorization;
-  const jwtSecret = process.env.JWT_SECRET || 'eduref_secret_key_2026';
+  const jwtSecret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'eduref_local_demo_secret_change_me');
+
+  if (!jwtSecret) {
+    return res.status(500).json({ success: false, message: 'Máy chủ chưa cấu hình JWT_SECRET.' });
+  }
 
   // 1. Trường hợp có Bearer Token chính thức
   if (authHeader && authHeader.startsWith('Bearer ')) {

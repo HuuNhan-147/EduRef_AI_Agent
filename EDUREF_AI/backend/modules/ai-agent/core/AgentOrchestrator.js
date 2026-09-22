@@ -6,6 +6,8 @@ import AgentTerminalLogger from './AgentTerminalLogger.js';
 import { resolveContext } from '../memory/ContextResolver.js';
 import { conversationMemory } from '../memory/ConversationMemory.js';
 import certificateVisionService from '../../../services/CertificateVisionService.js';
+import AuditLogService from '../../../services/AuditLogService.js';
+import { describeToolOutcome } from './toolOutcome.js';
 
 export class AgentOrchestrator {
   constructor(socket = null, sessionId = null) {
@@ -38,6 +40,7 @@ export class AgentOrchestrator {
 
       if (certsToVerify.length > 0) {
         let visionInspectionFailed = false;
+        let visionManualReviewRequired = false;
         let visionRejectMessage = '';
 
         for (const cert of certsToVerify) {
@@ -61,6 +64,12 @@ export class AgentOrchestrator {
             meta: visionResult,
           });
 
+          if (visionResult.requiresManualReview || visionResult.imageQuality === 'ERROR') {
+            visionManualReviewRequired = true;
+            visionRejectMessage = visionResult.feedback || `Dịch vụ giám định ảnh chưa thể kết luận chứng chỉ "${cert.name}". Cán bộ PĐT có xác minh thủ công chứng chỉ này không?`;
+            break;
+          }
+
           // Kiểm tra xem số hiệu có bị che khuất/bôi đen hoặc ảnh mờ không
           if (!visionResult.isValid || visionResult.imageQuality === 'BLURRY' || !visionResult.extractedData?.certNumber || !visionResult.extractedData?.bookNumber) {
             visionInspectionFailed = true;
@@ -74,6 +83,38 @@ export class AgentOrchestrator {
             visionRejectMessage = `Họ tên in trên chứng chỉ ("${visionResult.extractedName || 'người khác'}") không trùng khớp với sinh viên nộp đơn ("${studentName}").`;
             break;
           }
+        }
+
+        if (visionManualReviewRequired) {
+          const actionableQuestion = `${visionRejectMessage} Cán bộ PĐT có xác minh thủ công và quyết định tiếp nhận minh chứng này không?`;
+          this.logger.log({
+            step: 'DECISION_FINAL',
+            message: 'Quyết định cuối: [ESCALATE_TO_STAFF] - Dịch vụ thị giác không đủ bằng chứng để tự kết luận',
+            type: 'decision',
+          });
+          const reply = `Hệ thống chưa thể tự xác minh ảnh chứng chỉ nên đã dừng tự động hóa. ${actionableQuestion}`;
+          await AuditLogService.recordLog({
+            actorType: 'AI_AGENT',
+            action: 'VISION_SERVICE_MANUAL_REVIEW',
+            decision: 'ESCALATE_TO_STAFF',
+            reason: visionRejectMessage,
+            inputSnapshot: { actionableQuestion, sessionId: this.sessionId },
+            decisionTimeMs: Date.now() - startTime,
+          });
+          if (onChunk) onChunk(reply);
+          return {
+            reply,
+            decision: 'ESCALATE_TO_STAFF',
+            toolResult: {
+              decision: 'ESCALATE_TO_STAFF',
+              classification: 'BEYOND_AUTHORITY',
+              status: 'ESCALATED',
+              actionableQuestion,
+              message: reply,
+            },
+            sessionId: this.sessionId,
+            totalDuration: Date.now() - startTime,
+          };
         }
 
         if (visionInspectionFailed) {
@@ -177,7 +218,7 @@ export class AgentOrchestrator {
 
         this.logger.log({
           step: 'TOOL_OBSERVATION',
-          message: `Kết quả từ [${toolName}]: Quyết định=${toolResult.decision || (toolResult.success ? 'SUCCESS' : toolResult.found ? 'FOUND' : 'FAILED')}`,
+          message: `Kết quả từ [${toolName}]: Trạng thái=${describeToolOutcome(toolResult)}`,
           type: 'tool_result',
           meta: toolResult,
         });

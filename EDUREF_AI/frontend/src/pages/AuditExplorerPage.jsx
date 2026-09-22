@@ -134,7 +134,7 @@ export default function AuditExplorerPage() {
                   : 'bg-rose-200/80 text-rose-900'
               }`}
             >
-              {chainVerification.chainValid ? '100% TOÀN VẸN (SECURE)' : 'ĐỨT GÃY CHUỖI KHỐI'}
+              {chainVerification.chainValid ? 'CHUỖI BĂM HỢP LỆ' : 'ĐỨT GÃY CHUỖI BĂM'}
             </span>
           </div>
         )}

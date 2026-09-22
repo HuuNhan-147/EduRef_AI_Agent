@@ -7,11 +7,12 @@ const router = express.Router();
 /**
  * GET /api/petitions (Lấy danh sách đơn phiếu sinh viên)
  */
-router.get('/', async (req, res) => {
+router.get('/', authenticateToken, async (req, res) => {
   try {
     const { status, limit = 50 } = req.query;
     const where = {};
     if (status) where.status = status;
+    if (req.user?.role === 'STUDENT') where.studentId = req.user.id;
 
     const petitions = await prisma.studentRequest.findMany({
       where,
@@ -40,9 +41,9 @@ router.get('/', async (req, res) => {
 /**
  * POST /api/petitions (Nộp hồ sơ đơn mới trực tiếp từ biểu mẫu sinh viên)
  */
-router.post('/', async (req, res) => {
+router.post('/', authenticateToken, async (req, res) => {
   try {
-    let studentCode = req.body.studentCode;
+    let studentCode = req.user?.role === 'STUDENT' ? req.user.studentCode : req.body.studentCode;
     let requestCode = req.body.requestCode || req.body.requestTypeCode;
     let inputData = {};
 
@@ -78,7 +79,7 @@ router.post('/', async (req, res) => {
           documentType: 'B1_ENGLISH_CERT',
           fileName: certs.b1.fileName || 'HUTECH_Chung_Chi_Tieng_Anh_B1.png',
           fileUrl: certs.b1.previewUrl || '/public/demo_certs/hutech_b1_english.png',
-          verificationStatus: 'VERIFIED',
+          verificationStatus: 'PENDING',
           extractedData: certs.b1.extractedData || null,
         });
       }
@@ -87,7 +88,7 @@ router.post('/', async (req, res) => {
           documentType: 'TEAMWORK_CERT',
           fileName: certs.teamwork.fileName || 'HUTECH_Chung_Chi_Ky_Nang_Nhom.png',
           fileUrl: certs.teamwork.previewUrl || '/public/demo_certs/hutech_teamwork_skills.png',
-          verificationStatus: 'VERIFIED',
+          verificationStatus: 'PENDING',
           extractedData: certs.teamwork.extractedData || null,
         });
       }
@@ -132,7 +133,7 @@ router.get('/types', async (req, res) => {
 /**
  * GET /api/petitions/students (Lấy danh sách sinh viên phục vụ test)
  */
-router.get('/students', async (req, res) => {
+router.get('/students', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const students = await prisma.student.findMany({
       include: { department: true },
@@ -148,7 +149,7 @@ router.get('/students', async (req, res) => {
 /**
  * GET /api/petitions/:id (Lấy chi tiết một đơn phiếu)
  */
-router.get('/:id', async (req, res) => {
+router.get('/:id', authenticateToken, async (req, res) => {
   try {
     const petition = await prisma.studentRequest.findUnique({
       where: { id: req.params.id },
@@ -162,6 +163,9 @@ router.get('/:id', async (req, res) => {
 
     if (!petition) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ đơn.' });
+    }
+    if (req.user?.role === 'STUDENT' && petition.studentId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền xem hồ sơ của sinh viên khác.' });
     }
 
     res.json({ success: true, data: petition });
@@ -249,7 +253,7 @@ router.post('/:id/rollback', authenticateToken, requireStaffOrDean, async (req, 
 /**
  * POST /api/petitions/:id/documents (Đính kèm tài liệu vào đơn)
  */
-router.post('/:id/documents', async (req, res) => {
+router.post('/:id/documents', authenticateToken, async (req, res) => {
   try {
     const { documentType = 'ATTACHMENT', fileName = 'document.pdf', fileUrl = '' } = req.body;
     const petition = await prisma.studentRequest.findUnique({
@@ -259,6 +263,9 @@ router.post('/:id/documents', async (req, res) => {
     if (!petition) {
       return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ đơn.' });
     }
+    if (req.user?.role === 'STUDENT' && petition.studentId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền cập nhật hồ sơ của sinh viên khác.' });
+    }
 
     const doc = await prisma.requestDocument.create({
       data: {
@@ -266,7 +273,7 @@ router.post('/:id/documents', async (req, res) => {
         documentType,
         fileName,
         fileUrl: fileUrl || `https://storage.eduref.edu.vn/${fileName}`,
-        verificationStatus: 'VERIFIED',
+        verificationStatus: 'PENDING',
       },
     });
 
@@ -279,7 +286,7 @@ router.post('/:id/documents', async (req, res) => {
 /**
  * POST /api/petitions/ocr-certificate (Giám định và bóc tách chứng chỉ tốt nghiệp bằng Gemini Vision)
  */
-router.post('/ocr-certificate', async (req, res) => {
+router.post('/ocr-certificate', authenticateToken, async (req, res) => {
   try {
     const { imageBase64, expectedType = 'B1', studentName = 'Cao Hữu Nhân' } = req.body;
     const { default: certificateVisionService } = await import('../services/CertificateVisionService.js');
@@ -299,9 +306,14 @@ router.post('/ocr-certificate', async (req, res) => {
 /**
  * POST /api/petitions/:id/resume (Tiếp tục xử lý sau khi sinh viên bổ sung)
  */
-router.post('/:id/resume', async (req, res) => {
+router.post('/:id/resume', authenticateToken, async (req, res) => {
   try {
     const { additionalData = {}, newDocuments = [] } = req.body;
+    const ownedRequest = await prisma.studentRequest.findUnique({ where: { id: req.params.id } });
+    if (!ownedRequest) return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ đơn.' });
+    if (req.user?.role === 'STUDENT' && ownedRequest.studentId !== req.user.id) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền tiếp tục hồ sơ của sinh viên khác.' });
+    }
     const { default: petitionWorkflowCore } = await import('../modules/petition-core/PetitionWorkflowCore.js');
 
     const result = await petitionWorkflowCore.resumePetitionWorkflow({
@@ -319,7 +331,7 @@ router.post('/:id/resume', async (req, res) => {
 /**
  * GET /api/petitions/stats/metrics (Bộ chỉ số định lượng phục vụ Sprint 2 Dashboard)
  */
-router.get('/stats/metrics', async (req, res) => {
+router.get('/stats/metrics', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const totalRequests = await prisma.studentRequest.count();
     const approvedRequests = await prisma.studentRequest.count({ where: { status: 'APPROVED' } });
@@ -328,8 +340,11 @@ router.get('/stats/metrics', async (req, res) => {
     const rejectedRequests = await prisma.studentRequest.count({ where: { status: 'REJECTED' } });
     const cancelledRequests = await prisma.studentRequest.count({ where: { status: 'CANCELLED' } });
 
-    // Tỷ lệ tự động hóa ca thường quy
-    const automationRate = totalRequests > 0 ? ((approvedRequests / totalRequests) * 100).toFixed(1) : '100.0';
+    const automationRate = totalRequests > 0 ? ((approvedRequests / totalRequests) * 100).toFixed(1) : null;
+    const processingTime = await prisma.auditLog.aggregate({
+      where: { decisionTimeMs: { not: null } },
+      _avg: { decisionTimeMs: true },
+    });
 
     res.json({
       success: true,
@@ -341,10 +356,12 @@ router.get('/stats/metrics', async (req, res) => {
         rejected: rejectedRequests,
         cancelled: cancelledRequests,
         metrics: {
-          routineAutomationRate: `${automationRate}%`,
-          missedEscalationRate: '0.0%',
-          falseEscalationRate: '1.2%',
-          avgProcessingTimeMs: 818,
+          routineAutomationRate: automationRate === null ? null : `${automationRate}%`,
+          missedEscalationRate: null,
+          falseEscalationRate: null,
+          avgProcessingTimeMs: processingTime._avg.decisionTimeMs,
+          measurementStatus: 'PARTIAL',
+          note: 'Missed/false escalation cần tập dữ liệu độc lập có nhãn; hệ thống không công bố số giả khi chưa đo.',
         },
       },
     });

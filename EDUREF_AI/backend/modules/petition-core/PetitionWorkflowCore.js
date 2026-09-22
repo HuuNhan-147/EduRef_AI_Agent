@@ -45,6 +45,7 @@ export class PetitionWorkflowCore {
     inputData = {},
     documents = [],
     existingRequestId = null,
+    forceNewRequest = false,
     actorType = 'AI_AGENT',
   }) {
     const startTime = Date.now();
@@ -87,23 +88,47 @@ export class PetitionWorkflowCore {
         where: { OR: [{ id: existingRequestId }, { requestCode: existingRequestId }] },
         include: { documents: true, student: true, requestType: true },
       });
+      if (request) {
+        request = await prisma.studentRequest.update({
+          where: { id: request.id },
+          data: {
+            inputData: { ...(request.inputData || {}), ...(inputData || {}) },
+            status: 'PROCESSING',
+            decision: null,
+            escalationReason: null,
+            contextCapsule: undefined,
+          },
+          include: { documents: true, student: true, requestType: true },
+        });
+      }
     }
 
     if (!request) {
       // Duplicate Guard: Chặn tạo trùng đơn đang xử lý
-      const existingActive = await prisma.studentRequest.findFirst({
-        where: {
-          studentId: student.id,
-          requestTypeId: requestType.id,
-          status: { in: ['PENDING', 'PROCESSING', 'WAITING_STUDENT', 'ESCALATED'] },
-        },
-        orderBy: { createdAt: 'desc' },
-        include: { documents: true, student: true, requestType: true },
-      });
+      const existingActive = forceNewRequest
+        ? null
+        : await prisma.studentRequest.findFirst({
+            where: {
+              studentId: student.id,
+              requestTypeId: requestType.id,
+              status: { in: ['PENDING', 'PROCESSING', 'WAITING_STUDENT', 'ESCALATED'] },
+            },
+            orderBy: { createdAt: 'desc' },
+            include: { documents: true, student: true, requestType: true },
+          });
 
       if (existingActive) {
         console.log(`  ♻️ [Core] Tái sử dụng đơn đang xử lý: [${existingActive.requestCode}] (${existingActive.status})`);
-        request = existingActive;
+        request = await prisma.studentRequest.update({
+          where: { id: existingActive.id },
+          data: {
+            inputData: inputData || {},
+            status: 'PROCESSING',
+            decision: null,
+            escalationReason: null,
+          },
+          include: { documents: true, student: true, requestType: true },
+        });
       } else {
         const requestCode = `ST-${Math.floor(100000 + Math.random() * 900000)}`;
         request = await prisma.studentRequest.create({
@@ -133,16 +158,7 @@ export class PetitionWorkflowCore {
       const question = handler.getClarificationQuestion(reqResult.missing);
       console.log(`  🟡 [Core Chốt 1] Thiếu dữ kiện -> Chuyển WAITING_STUDENT. Câu hỏi: "${question}"`);
 
-      await prisma.studentRequest.update({
-        where: { id: request.id },
-        data: {
-          status: 'WAITING_STUDENT',
-          decision: 'ASK_CLARIFICATION',
-          escalationReason: question,
-        },
-      });
-
-      await AuditLogService.recordLog({
+      await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType,
         action: 'REQUIREMENT_CHECK_INCOMPLETE',
@@ -150,11 +166,22 @@ export class PetitionWorkflowCore {
         reason: `Thiếu ${reqResult.missing.length} điều kiện bắt buộc: ${reqResult.missing.map((m) => m.name).join(', ')}`,
         inputSnapshot: { inputData, missing: reqResult.missing },
         decisionTimeMs: Date.now() - startTime,
+      }, async (tx) => {
+        await tx.studentRequest.update({
+          where: { id: request.id },
+          data: {
+            status: 'WAITING_STUDENT',
+            decision: 'ASK_CLARIFICATION',
+            escalationReason: question,
+          },
+        });
       });
 
       return {
         success: true,
         decision: 'ASK_CLARIFICATION',
+        classification: 'UNKNOWN_FACT',
+        uncertaintyType: 'UNKNOWN_FACT',
         status: 'WAITING_STUDENT',
         requestId: request.id,
         requestCode: request.requestCode,
@@ -173,16 +200,7 @@ export class PetitionWorkflowCore {
     if (!policyResult.passed) {
       console.log(`  🚨 [Core Chốt 2] Vi phạm quy chế -> Chuyển REJECTED. Lý do: ${policyResult.reason}`);
 
-      await prisma.studentRequest.update({
-        where: { id: request.id },
-        data: {
-          status: 'REJECTED',
-          decision: 'REJECTED_POLICY',
-          escalationReason: policyResult.reason,
-        },
-      });
-
-      await AuditLogService.recordLog({
+      await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType,
         action: 'POLICY_VIOLATION_REJECT',
@@ -190,11 +208,22 @@ export class PetitionWorkflowCore {
         reason: policyResult.reason,
         inputSnapshot: { studentCode, violatedPolicy: policyResult.violatedPolicy },
         decisionTimeMs: Date.now() - startTime,
+      }, async (tx) => {
+        await tx.studentRequest.update({
+          where: { id: request.id },
+          data: {
+            status: 'REJECTED',
+            decision: 'REJECTED_POLICY',
+            escalationReason: policyResult.reason,
+          },
+        });
       });
 
       return {
         success: false,
         decision: 'REJECTED_POLICY',
+        classification: policyResult.classification || 'ROUTINE_POLICY_DENY',
+        uncertaintyType: policyResult.uncertaintyType || null,
         status: 'REJECTED',
         requestId: request.id,
         requestCode: request.requestCode,
@@ -219,6 +248,10 @@ export class PetitionWorkflowCore {
         authResult.reason,
         authResult.actionableQuestion
       );
+      contextCapsule.classification = authResult.classification || authResult.uncertaintyType || 'BEYOND_AUTHORITY';
+      contextCapsule.uncertaintyType = authResult.uncertaintyType || contextCapsule.classification;
+      contextCapsule.policyVersion = authResult.policyVersion || null;
+      contextCapsule.manualReviewRequired = Boolean(reqResult.manualReviewRequired);
 
       const escalateDecision = authResult.role === 'DEAN' ? 'ESCALATE_TO_DEAN' : 'ESCALATE_TO_STAFF';
       const roleDisplayName =
@@ -226,17 +259,7 @@ export class PetitionWorkflowCore {
           ? 'Trưởng Phòng Đào Tạo & Hội đồng xét tốt nghiệp'
           : 'Chuyên viên Phòng Đào tạo';
 
-      await prisma.studentRequest.update({
-        where: { id: request.id },
-        data: {
-          status: 'ESCALATED',
-          decision: escalateDecision,
-          escalationReason: authResult.reason,
-          contextCapsule,
-        },
-      });
-
-      await AuditLogService.recordLog({
+      await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType,
         action: 'ESCALATE_AUTHORITY_TRANSFER',
@@ -244,11 +267,23 @@ export class PetitionWorkflowCore {
         reason: authResult.reason,
         inputSnapshot: { requiredRole: authResult.role, contextCapsule },
         decisionTimeMs: Date.now() - startTime,
+      }, async (tx) => {
+        await tx.studentRequest.update({
+          where: { id: request.id },
+          data: {
+            status: 'ESCALATED',
+            decision: escalateDecision,
+            escalationReason: authResult.reason,
+            contextCapsule,
+          },
+        });
       });
 
       return {
         success: true,
         decision: escalateDecision,
+        classification: contextCapsule.classification,
+        uncertaintyType: contextCapsule.uncertaintyType,
         status: 'ESCALATED',
         requestId: request.id,
         requestCode: request.requestCode,
@@ -265,16 +300,7 @@ export class PetitionWorkflowCore {
     console.log(`  🟢 [Core Chốt 4 & 5] Đơn hợp lệ & trong thẩm quyền -> Tự động phê duyệt (AUTO_APPROVE)...`);
     const approvalResult = await handler.onApproved(request);
 
-    const updatedRequest = await prisma.studentRequest.update({
-      where: { id: request.id },
-      data: {
-        status: 'APPROVED',
-        decision: 'ROUTINE_AUTO_APPROVED',
-        qrCodeUrl: approvalResult.qrCodeUrl,
-      },
-    });
-
-    const auditLog = await AuditLogService.recordLog({
+    const auditLog = await AuditLogService.recordLogWithMutation({
       requestId: request.id,
       actorType,
       action: 'WORKFLOW_AUTO_APPROVE',
@@ -283,6 +309,16 @@ export class PetitionWorkflowCore {
       inputSnapshot: { inputData, requestCode: request.requestCode },
       afterState: { status: 'APPROVED', qrCodeUrl: approvalResult.qrCodeUrl },
       decisionTimeMs: Date.now() - startTime,
+    }, async (tx, log) => {
+      await tx.studentRequest.update({
+        where: { id: request.id },
+        data: {
+          status: 'APPROVED',
+          decision: 'ROUTINE_AUTO_APPROVED',
+          qrCodeUrl: approvalResult.qrCodeUrl,
+          sha256Proof: log.sha256Hash,
+        },
+      });
     });
 
     const totalDuration = Date.now() - startTime;
@@ -291,6 +327,8 @@ export class PetitionWorkflowCore {
     return {
       success: true,
       decision: 'AUTO_APPROVED',
+      classification: authResult.classification || 'ROUTINE',
+      uncertaintyType: null,
       status: 'APPROVED',
       requestId: request.id,
       requestCode: request.requestCode,
@@ -325,7 +363,7 @@ export class PetitionWorkflowCore {
             documentType: doc.documentType || 'ATTACHMENT',
             fileName: doc.fileName || 'document.pdf',
             fileUrl: doc.fileUrl || `https://storage.eduref.edu.vn/${doc.fileName || 'document.pdf'}`,
-            verificationStatus: 'VERIFIED',
+            verificationStatus: 'PENDING',
           },
         });
       }

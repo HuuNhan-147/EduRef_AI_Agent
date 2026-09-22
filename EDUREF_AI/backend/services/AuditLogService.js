@@ -37,20 +37,38 @@ class AuditLogService {
 
   // Hàng đợi tuần tự hóa (Sequential Mutex Queue) để triệt tiêu Race Condition đứt chuỗi băm
   static _writeQueue = Promise.resolve();
+  static _lastTimestampMs = 0;
 
   /**
    * Ghi nhận một sự kiện kiểm toán có mã băm nối tiếp vào Database (Đảm bảo an toàn luồng)
    */
   static async recordLog(params) {
-    return new Promise((resolve) => {
-      this._writeQueue = this._writeQueue
-        .then(() => this._executeRecordLog(params))
-        .then(resolve)
-        .catch((err) => {
-          console.error('❌ [AuditLogService] Lỗi hàng đợi ghi log:', err);
-          resolve(null);
-        });
+    const writeTask = this._writeQueue.then(() => this._executeRecordLog(params));
+    // Giữ queue hoạt động sau lỗi, nhưng trả lỗi về đúng caller để không thể
+    // công bố một quyết định đã được audit khi bản ghi thực tế không tồn tại.
+    this._writeQueue = writeTask.catch((error) => {
+      console.error('❌ [AuditLogService] Lỗi hàng đợi ghi log:', error);
     });
+    return writeTask;
+  }
+
+  /**
+   * Ghi audit và mutation nghiệp vụ trong cùng một transaction DB.
+   * Dùng cho các quyết định cuối (approve/reject/escalate) để trạng thái và
+   * bằng chứng không thể lệch nhau khi một trong hai thao tác thất bại.
+   */
+  static async recordLogWithMutation(params, mutation) {
+    const writeTask = this._writeQueue.then(() =>
+      prisma.$transaction(async (tx) => {
+        const auditLog = await this._executeRecordLog(params, tx);
+        await mutation(tx, auditLog);
+        return auditLog;
+      })
+    );
+    this._writeQueue = writeTask.catch((error) => {
+      console.error('❌ [AuditLogService] Lỗi transaction audit/mutation:', error);
+    });
+    return writeTask;
   }
 
   /**
@@ -70,16 +88,19 @@ class AuditLogService {
     beforeState = null,
     afterState = null,
     decisionTimeMs = 0,
-  }) {
+  }, db = prisma) {
     try {
       // 1. Lấy bản ghi kiểm toán gần nhất để lấy previousHash
-      const lastLog = await prisma.auditLog.findFirst({
+      const lastLog = await db.auditLog.findFirst({
         orderBy: { createdAt: 'desc' },
-        select: { sha256Hash: true },
+        select: { sha256Hash: true, createdAt: true },
       });
 
       const previousHash = lastLog?.sha256Hash || 'GENESIS_HASH_EDUREF_2026';
-      const timestamp = new Date();
+      const lastStoredTimestampMs = lastLog?.createdAt ? new Date(lastLog.createdAt).getTime() : 0;
+      const timestampMs = Math.max(Date.now(), this._lastTimestampMs + 1, lastStoredTimestampMs + 1);
+      this._lastTimestampMs = timestampMs;
+      const timestamp = new Date(timestampMs);
 
       // 2. Tính toán mã băm SHA-256 cho bản ghi mới
       const sha256Hash = this.calculateHash({
@@ -93,7 +114,7 @@ class AuditLogService {
       });
 
       // 3. Lưu vào PostgreSQL qua Prisma
-      const newLog = await prisma.auditLog.create({
+      const newLog = await db.auditLog.create({
         data: {
           requestId,
           actorType,
@@ -117,7 +138,7 @@ class AuditLogService {
       return newLog;
     } catch (error) {
       console.error('❌ [AuditLogService] Lỗi khi ghi nhận audit log:', error);
-      return null;
+      throw error;
     }
   }
 

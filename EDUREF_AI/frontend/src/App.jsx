@@ -14,9 +14,10 @@ import api, { switchRoleAuth, DEMO_ACCOUNTS } from './services/api';
 import getSocket from './services/socket';
 
 export default function App() {
-  // Tài khoản hiện tại được chọn (mặc định Sinh viên ACTIVE Nguyễn Văn An)
+  // Tài khoản hiện tại được chọn (mặc định sinh viên ACTIVE Cao Hữu Nhân)
   const [currentAccountKey, setCurrentAccountKey] = useState('STUDENT_ACTIVE');
-  const currentAccount = DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
+  const [authStatus, setAuthStatus] = useState('loading');
+  const [authError, setAuthError] = useState('');
 
   // Tab đang hoạt động
   const [activeTab, setActiveTab] = useState('STUDENT_ASSISTANT');
@@ -44,13 +45,28 @@ export default function App() {
     setTimeout(() => setToast(null), 4000);
   };
 
-  // Khởi tạo Auth ban đầu
+  const initializeDemoSession = async () => {
+    setAuthStatus('loading');
+    setAuthError('');
+    const user = await switchRoleAuth('STUDENT_ACTIVE');
+    if (!user) {
+      setAuthStatus('error');
+      setAuthError('Không thể khởi tạo phiên demo. Kiểm tra backend và ALLOW_DEMO_ROLE_SWITCH.');
+      return;
+    }
+    setCurrentAccountKey('STUDENT_ACTIVE');
+    setAuthStatus('ready');
+  };
+
+  // Chỉ render ứng dụng sau khi phiên JWT demo đã sẵn sàng. Điều này ngăn
+  // các component con gọi API bằng một phiên chưa xác thực khi trang vừa mở.
   useEffect(() => {
-    switchRoleAuth(currentAccountKey);
+    initializeDemoSession();
   }, []);
 
   // Lắng nghe Socket.IO
   useEffect(() => {
+    if (authStatus !== 'ready') return undefined;
     const socket = getSocket();
 
     const onConnect = () => {
@@ -86,7 +102,7 @@ export default function App() {
       socket.off('petition_escalated', onEscalated);
       socket.off('petition_status_updated', onStatusUpdated);
     };
-  }, []);
+  }, [authStatus]);
 
   // Lấy số lượng đơn ESCALATED
   const fetchPendingCount = async () => {
@@ -101,13 +117,17 @@ export default function App() {
   };
 
   useEffect(() => {
-    fetchPendingCount();
-  }, [currentAccountKey]);
+    if (authStatus === 'ready') fetchPendingCount();
+  }, [currentAccountKey, authStatus]);
 
   // Xử lý đổi vai trò
   const handleRoleChange = async (newAccountKey) => {
+    const authenticatedUser = await switchRoleAuth(newAccountKey);
+    if (!authenticatedUser) {
+      showToast('Không thể chuyển vai trò demo. Vui lòng kiểm tra cấu hình backend.', 'warning');
+      return;
+    }
     setCurrentAccountKey(newAccountKey);
-    await switchRoleAuth(newAccountKey);
 
     const account = DEMO_ACCOUNTS[newAccountKey];
     if (account) {
@@ -120,6 +140,27 @@ export default function App() {
       }
     }
   };
+
+  if (authStatus !== 'ready') {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-100">
+        <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 text-center shadow-xl">
+          <div className="mx-auto mb-4 h-10 w-10 animate-pulse rounded-lg bg-blue-600" />
+          <h1 className="text-lg font-bold">EduRef AI · VNG Đề A</h1>
+          {authStatus === 'loading' ? (
+            <p className="mt-2 text-sm text-slate-400">Đang khởi tạo phiên kiểm thử an toàn…</p>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-rose-300">{authError}</p>
+              <button onClick={initializeDemoSession} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
+                Thử kết nối lại
+              </button>
+            </>
+          )}
+        </div>
+      </div>
+    );
+  }
 
   // Mở modal biểu mẫu động
   const handleOpenDynamicForm = (type) => {

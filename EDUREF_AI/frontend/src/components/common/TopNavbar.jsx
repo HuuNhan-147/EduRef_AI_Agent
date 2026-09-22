@@ -28,10 +28,15 @@ export default function TopNavbar({
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const currentAccount = DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
-  const isStaff = currentAccount.type === 'STAFF';
+  const isStaff = ['STAFF', 'DEAN'].includes(currentAccount.type);
 
   // Danh mục Navigation Tabs theo vai trò
   const studentNavItems = [
+    {
+      id: 'VERIFY_HARNESS',
+      label: 'Verify Track A',
+      icon: Zap,
+    },
     {
       id: 'STUDENT_ASSISTANT',
       label: 'Trợ lý Học vụ AI',
@@ -50,6 +55,11 @@ export default function TopNavbar({
   ];
 
   const staffNavItems = [
+    {
+      id: 'VERIFY_HARNESS',
+      label: 'Verify Track A',
+      icon: Zap,
+    },
     {
       id: 'STAFF_ESCALATION',
       label: 'Escalation Hub',
@@ -88,7 +98,7 @@ export default function TopNavbar({
             <div className="flex items-center gap-2">
               <span className="font-bold text-base tracking-tight text-white">EduRef AI</span>
               <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold tracking-wider uppercase bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                Track 2 Option A
+                VNG · Đề A
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-normal hidden lg:block">
@@ -137,7 +147,7 @@ export default function TopNavbar({
             {socketConnected ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-slate-300">Live Socket ({import.meta.env.VITE_PORT || '5000'})</span>
+                <span className="text-slate-300">Live Socket</span>
               </>
             ) : (
               <>

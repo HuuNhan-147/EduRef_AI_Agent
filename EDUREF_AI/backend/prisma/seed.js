@@ -1,9 +1,16 @@
+import 'dotenv/config';
 import { PrismaClient } from '@prisma/client';
 import bcrypt from 'bcryptjs';
 
 const prisma = new PrismaClient();
 
 async function main() {
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('Seed demo bị chặn trong môi trường production.');
+  }
+  if (process.env.ALLOW_DESTRUCTIVE_SEED !== 'true') {
+    throw new Error('Seed này xóa dữ liệu hiện có. Chỉ trên DB demo rỗng/disposable, đặt ALLOW_DESTRUCTIVE_SEED=true rồi chạy lại.');
+  }
   console.log('🌱 [EduRef Seed] Bắt đầu nạp dữ liệu chuẩn cho EduRef AI (Chỉ 2 thủ tục thực tế)...');
 
   // 1. Xóa dữ liệu cũ theo thứ tự phụ thuộc
@@ -128,25 +135,25 @@ async function main() {
           {
             code: 'REQ_ID_CARD',
             name: 'Số CMND/CCCD',
-            isRequired: true,
-            description: 'Số căn cước công dân hoặc CMND 12 số của sinh viên.',
+            isRequired: false,
+            description: 'Dữ liệu bổ sung khi biểu mẫu nghiệp vụ yêu cầu; danh tính chính lấy từ phiên đăng nhập.',
           },
           {
             code: 'REQ_ID_DATE',
             name: 'Ngày cấp CMND/CCCD',
-            isRequired: true,
+            isRequired: false,
             description: 'Ngày cấp ghi trên thẻ CCCD.',
           },
           {
             code: 'REQ_ID_PLACE',
             name: 'Nơi cấp CMND/CCCD',
-            isRequired: true,
+            isRequired: false,
             description: 'Cơ quan cấp (ví dụ: Cục Cảnh sát QLHC về TTXH).',
           },
           {
             code: 'REQ_PHONE',
             name: 'Điện thoại liên hệ',
-            isRequired: true,
+            isRequired: false,
             description: 'Số điện thoại di động đang hoạt động.',
           },
           {
@@ -158,7 +165,7 @@ async function main() {
           {
             code: 'REQ_CAMPUS',
             name: 'Chọn cơ sở nhận giấy',
-            isRequired: true,
+            isRequired: false,
             description: 'Trụ sở chính (A-01.01) hoặc Cơ sở E (E1-01.08).',
           },
         ],

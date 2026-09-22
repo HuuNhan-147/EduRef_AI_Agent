@@ -123,7 +123,7 @@ export const petitionTools = {
       }
 
       // Case 2: Vi phạm quy chế đào tạo -> Từ chối thẳng
-      if (evalResult.decision === 'OUT_OF_POLICY') {
+      if (evalResult.decision === 'EXPLICIT_POLICY_DENY') {
         await AuditLogService.recordLog({
           actorType: 'AI_AGENT',
           action: 'REJECT_POLICY',
@@ -314,7 +314,7 @@ export const petitionTools = {
       if (!approved && request.status === 'REJECTED') {
         return { success: false, message: `Hồ sơ [${request.requestCode}] đã bị từ chối trước đó.` };
       }
-      if (!['ESCALATED', 'WAITING_STUDENT'].includes(request.status)) {
+      if (request.status !== 'ESCALATED') {
         return {
           success: false,
           message: `Hồ sơ [${request.requestCode}] đang ở trạng thái [${request.status}] — chưa được AI thẩm định chuyển tiếp lên thẩm quyền con người.`,
@@ -327,16 +327,7 @@ export const petitionTools = {
         ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=EDUREF_STAFF_APPROVED_${request.requestCode}`
         : null;
 
-      const updated = await prisma.studentRequest.update({
-        where: { id: requestId },
-        data: {
-          status: newStatus,
-          decision: approved ? 'STAFF_APPROVED_EXCEPTION' : 'STAFF_REJECTED',
-          qrCodeUrl,
-        },
-      });
-
-      await AuditLogService.recordLog({
+      const auditLog = await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType: 'STAFF',
         action: approved ? 'STAFF_APPROVE' : 'STAFF_REJECT',
@@ -346,12 +337,23 @@ export const petitionTools = {
         beforeState,
         afterState: { status: newStatus, qrCodeUrl },
         decisionTimeMs: Date.now() - startTime,
+      }, async (tx, log) => {
+        await tx.studentRequest.update({
+          where: { id: requestId },
+          data: {
+            status: newStatus,
+            decision: approved ? 'STAFF_APPROVED_EXCEPTION' : 'STAFF_REJECTED',
+            qrCodeUrl,
+            sha256Proof: log.sha256Hash,
+          },
+        });
       });
 
       return {
         success: true,
         requestCode: request.requestCode,
         status: newStatus,
+        sha256Proof: auditLog.sha256Hash,
         message: approved
           ? `Cán bộ đã phê duyệt ngoại lệ cho hồ sơ [${request.requestCode}].`
           : `Cán bộ đã bác bỏ yêu cầu [${request.requestCode}].`,

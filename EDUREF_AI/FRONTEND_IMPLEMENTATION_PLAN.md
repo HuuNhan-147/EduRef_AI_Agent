@@ -1,6 +1,8 @@
 # EDUREF AI FRONTEND IMPLEMENTATION PLAN
 ## Kiến Trúc & Kế Hoạch Triển Khai Giao Diện Cổng Dịch Vụ Học Vụ Tự Hành (The Academic Escalation Referee)
 
+> Tài liệu kế hoạch lịch sử. Frontend hiện đã nằm trong `EDUREF_AI/frontend`; Verify dùng `/verify-general`, `/verify-90s` và `/verify-custom-prompt`. Kết quả thực tế không được điền sẵn trước khi chạy.
+
 > **Dự án:** EduRef AI — Autonomous Student Petition & Academic Escalation Referee  
 > **Cuộc thi:** MLAI Hackathon 2026 — Track 2 Option A: The Escalation Referee  
 > **Vai trò:** Senior Frontend Architect + Product Designer + React Engineer  
