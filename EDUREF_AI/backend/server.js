@@ -3,6 +3,7 @@ import express from 'express';
 import http from 'http';
 import { Server } from 'socket.io';
 import cors from 'cors';
+import jwt from 'jsonwebtoken';
 
 import prisma from './config/prisma.js';
 import agentRoutes from './routes/agentRoutes.js';
@@ -15,9 +16,11 @@ import { agentTerminalLogger } from './modules/ai-agent/core/AgentTerminalLogger
 // Global error handlers để tránh crash tiến trình
 process.on('uncaughtException', (err) => {
   console.error('💥 [Uncaught Exception]:', err.message);
+  process.exit(1);
 });
 process.on('unhandledRejection', (reason) => {
   console.error('💥 [Unhandled Rejection]:', reason);
+  process.exit(1);
 });
 
 const app = express();
@@ -38,6 +41,18 @@ const io = new Server(server, {
     credentials: true,
   },
   transports: ['websocket', 'polling'],
+});
+
+io.use((socket, next) => {
+  const secret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'eduref_local_demo_secret_change_me');
+  const token = socket.handshake.auth?.token;
+  if (!secret || !token) return next(new Error('AUTH_REQUIRED'));
+  try {
+    socket.user = jwt.verify(token, secret);
+    return next();
+  } catch (_error) {
+    return next(new Error('AUTH_INVALID'));
+  }
 });
 
 // Gắn io vào AgentTerminalLogger để broadcast log thời gian thực về tất cả client
@@ -73,7 +88,7 @@ app.get('/health', async (req, res) => {
     res.json({
       status: 'healthy',
       service: 'EduRef AI Backend',
-      database: 'PostgreSQL (Prisma)',
+      database: 'Supabase PostgreSQL (Prisma)',
       totalStudents: studentCount,
       timestamp: new Date().toISOString(),
     });
@@ -87,7 +102,7 @@ io.on('connection', (socket) => {
   console.log('🟢 [Socket.IO] Client đã kết nối:', socket.id);
 
   socket.on('client_send_message', async (data) => {
-    const { message, studentCode, currentUser: clientUser, sessionId = `sess_${socket.id}`, attachments, inputData } = data || {};
+    const { message, sessionId = `sess_${socket.id}`, attachments, inputData } = data || {};
 
     if (!message) {
       socket.emit('agent_error', { message: 'Tin nhắn không được để trống.' });
@@ -96,12 +111,12 @@ io.on('connection', (socket) => {
 
     try {
       // 1. Tự động nạp ngữ cảnh người dùng thực tế từ Database
-      let userContext = clientUser || {};
-      const codeToFind = studentCode || clientUser?.code || clientUser?.studentCode || '2280602154';
+      let userContext = {};
+      const codeToFind = socket.user?.studentCode;
 
-      if (clientUser?.type === 'STAFF' || clientUser?.role === 'STAFF' || clientUser?.role === 'DEAN') {
-        const staffUser = await prisma.user.findFirst({
-          where: { role: clientUser.role || 'STAFF' },
+      if (['STAFF', 'DEAN', 'ADMIN'].includes(socket.user?.role)) {
+        const staffUser = await prisma.user.findUnique({
+          where: { id: socket.user.id },
         });
         if (staffUser) {
           userContext = {
@@ -112,7 +127,7 @@ io.on('connection', (socket) => {
             type: 'STAFF',
           };
         }
-      } else {
+      } else if (socket.user?.role === 'STUDENT' && codeToFind) {
         const student = await prisma.student.findUnique({
           where: { studentCode: String(codeToFind).trim() },
           include: { department: true },
@@ -130,6 +145,10 @@ io.on('connection', (socket) => {
             type: 'STUDENT',
           };
         }
+      }
+
+      if (!userContext.role) {
+        throw new Error('Không xác định được danh tính hợp lệ của phiên Socket.IO.');
       }
 
       // 2. Gọi AI Agent với callback streaming từng chunk text kèm attachments
@@ -175,6 +194,6 @@ server.listen(PORT, () => {
   console.log(`=======================================================`);
   console.log(`🚀 EduRef AI Backend đang chạy tại: http://localhost:${PORT}`);
   console.log(`📡 Socket.IO sẵn sàng đón nhận kết nối`);
-  console.log(`🗄️  Cơ sở dữ liệu: PostgreSQL (eduref_db via Prisma)`);
+  console.log(`🗄️  Cơ sở dữ liệu: Supabase PostgreSQL qua Prisma`);
   console.log(`=======================================================`);
 });

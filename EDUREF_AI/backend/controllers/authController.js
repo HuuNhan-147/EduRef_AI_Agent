@@ -5,10 +5,18 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
 
+function getJwtSecret() {
+  if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
+  if (process.env.NODE_ENV === 'production') {
+    throw new Error('JWT_SECRET bắt buộc phải được cấu hình trong môi trường production.');
+  }
+  return 'eduref_local_demo_secret_change_me';
+}
+
 export const login = async (req, res) => {
   try {
     const { studentCode, username, password } = req.body;
-    const jwtSecret = process.env.JWT_SECRET || 'eduref_secret_key_2026';
+    const jwtSecret = getJwtSecret();
 
     // 1. Luồng đăng nhập cho Sinh viên (bằng MSSV)
     if (studentCode) {
@@ -52,6 +60,9 @@ export const login = async (req, res) => {
 
     // 2. Luồng đăng nhập cho Cán bộ PĐT / Trưởng phòng (bằng Username + Password)
     if (username) {
+      if (!password) {
+        return res.status(400).json({ success: false, message: 'Vui lòng nhập mật khẩu.' });
+      }
       const user = await prisma.user.findUnique({
         where: { username: String(username).trim() },
       });
@@ -59,16 +70,13 @@ export const login = async (req, res) => {
       if (!user) {
         return res.status(401).json({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác.' });
       }
+      if (!user.active) {
+        return res.status(403).json({ success: false, message: 'Tài khoản cán bộ đã bị vô hiệu hóa.' });
+      }
 
-      if (password) {
-        let isMatch = await bcrypt.compare(password, user.passwordHash);
-        // Fail-safe cho tài khoản demo PĐT nếu dùng password123 hoặc 123456
-        if (!isMatch && (password === 'password123' || password === '123456')) {
-          isMatch = true;
-        }
-        if (!isMatch) {
-          return res.status(401).json({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác.' });
-        }
+      const isMatch = await bcrypt.compare(password, user.passwordHash);
+      if (!isMatch) {
+        return res.status(401).json({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác.' });
       }
 
       const token = jwt.sign(
@@ -161,7 +169,7 @@ export const getMe = async (req, res) => {
     }
 
     const token = authHeader.split(' ')[1];
-    const decoded = jwt.verify(token, process.env.JWT_SECRET || 'eduref_secret_key_2026');
+    const decoded = jwt.verify(token, getJwtSecret());
 
     res.json({ success: true, user: decoded });
   } catch (error) {

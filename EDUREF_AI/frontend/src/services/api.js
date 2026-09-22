@@ -89,6 +89,7 @@ export const switchRoleAuth = async (accountKey) => {
       localStorage.setItem('eduref_token', res.data.token);
       localStorage.setItem('eduref_user', JSON.stringify(res.data.user));
       localStorage.setItem('eduref_role_key', accountKey);
+      window.dispatchEvent(new Event('eduref-auth-changed'));
       return res.data.user;
     }
   } catch (err) {
