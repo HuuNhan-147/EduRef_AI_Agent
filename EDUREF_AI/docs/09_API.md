@@ -106,7 +106,8 @@
   ```
 
 ### 2.8. `GET /api/petitions/stats/metrics`
-- **Mục đích:** Lấy các chỉ số thống kê hiệu quả tự động hóa (Automation Rate, Missed Escalation Rate, False Escalation Rate, Latency).
+- **Mục đích:** Lấy số đếm, automation rate và latency đã quan sát. Hai tỷ lệ missed/false escalation trả `null` cho đến khi có tập độc lập có nhãn.
+- **Auth:** JWT role STAFF/DEAN/ADMIN.
 
 ---
 
@@ -114,19 +115,26 @@
 
 ### 3.1. `POST /api/agent/chat`
 - **Mục đích:** Gọi AI Agent dạng HTTP REST (Fallback khi không dùng Socket.IO).
+- **Auth:** Bearer JWT bắt buộc. Danh tính lấy từ token/database; `studentCode` hoặc role do client tự khai không được tin cậy.
 - **Request Body:**
   ```json
   {
     "message": "Cho em xin giấy xác nhận sinh viên để làm vé xe buýt",
-    "studentCode": "2280602154",
     "sessionId": "sess_12345"
   }
   ```
 
 ### 3.2. `POST /api/agent/verify-90s`
-- **Mục đích:** Kích hoạt bộ chạy kiểm thử 5 Test Cases tự hành trong 90 giây.
+- **Mục đích:** Chạy 5 ca Track A với phân bố bắt buộc 3 AUTO + 2 ESCALATE.
 
-### 3.3. `GET /api/agent/terminal-logs`
+### 3.3. `POST /api/agent/verify-general`
+- **Mục đích:** Chạy bộ Verify tổng quát 4 ca, trả PASS/FAIL và timestamp.
+
+### 3.4. `POST /api/agent/verify-custom-prompt`
+- **Mục đích:** Chạy ca mới do giám khảo nhập qua cùng policy engine.
+- **Body:** `{ "prompt": "...", "studentCode": "..." }`; `studentCode` là tùy chọn trong môi trường demo.
+
+### 3.5. `GET /api/agent/terminal-logs`
 - **Mục đích:** Lấy lịch sử dòng lệnh suy luận gần nhất của AI Agent (dùng cho Live Terminal Console).
 
 ---

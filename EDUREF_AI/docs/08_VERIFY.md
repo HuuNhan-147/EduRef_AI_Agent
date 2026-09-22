@@ -1,48 +1,61 @@
-# 08. BỘ CHẠY KIỂM THỬ TỰ HÀNH 90S (VERIFY HARNESS COCKPIT)
-**Dự án:** EduRef AI — The Academic Escalation Referee  
-**Module:** `backend/modules/ai-agent/tools/actions/verifyTools.js`, `frontend/src/pages/VerifyHarnessPage.jsx`
+# Verify Harness — VNG Track A
 
----
+Verify là đường kiểm chứng độc lập, gọi thẳng policy/workflow backend và không phụ thuộc câu trả lời sinh văn bản của LLM. Màn hình không hiển thị kết quả thực tế, tỷ lệ đạt hay bằng chứng SHA-256 trước khi chạy.
 
-## 1. MỤC ĐÍCH & Ý NGHĨA TRÌNH DIỄN (BGK 90-SECOND DEMO)
+## Hai chế độ bắt buộc
 
-Trong khuôn khổ cuộc thi Hackathon, Ban Giám Khảo chỉ có 90 giây đến 2 phút để đánh giá một dự án. **Verify Harness Cockpit** được thiết kế như một bảng điều khiển trung tâm:
-- **Thiết kế 1 màn hình không cuộn (Full-Fill No-Scroll Cockpit):** Toàn bộ 5 test cases, kết quả phán quyết, thời gian thực thi, lời phản hồi của AI và Live Terminal Console đều hiển thị trọn vẹn trong một màn hình.
-- **Thực thi thật 100% (Real Backend Execution):** Không sử dụng fake result, không dùng `setTimeout` giả lập độ trễ. Từng ca kiểm thử được gửi trực tiếp tới `PetitionWorkflowCore`, truy vấn PostgreSQL và ghi nhận AuditLog thật.
+### General Verify — 4 ca
 
----
+Endpoint: `POST /api/agent/verify-general`
 
-## 2. MA TRẬN 5 TEST CASES CHUẨN TRACK 2 OPTION A
+| Ca | Nhóm | Kỳ vọng |
+|---|---|---|
+| G-01 | Routine | `AUTO_APPROVED` |
+| G-02 | Unknown fact | `ASK_CLARIFICATION` |
+| G-03 | Explicit policy deny | `REJECTED_POLICY` |
+| G-04 | Beyond authority | `ESCALATE_TO_STAFF` |
 
-| Mã Case | Thủ tục | Tình huống kiểm thử | Mục đích kiểm tra năng lực | Quyết định kỳ vọng | Quyết định thực tế | Thời gian thực thi | Kết quả |
-|---|---|---|---|---|---|---|---|
-| **TC-01** | `STUDENT_CONFIRMATION` | Xin giấy XNSV làm vé tháng xe buýt liên tuyến | **Tự hành thường quy (Routine Autonomy):** Sinh viên ACTIVE, nợ phí $\le$ 10M, cấp ngay mã chứng thực ST-XXXXXX và QR | `AUTO_APPROVED` | `AUTO_APPROVED` | ~45ms | ✅ **ĐẠT** |
-| **TC-02** | `STUDENT_CONFIRMATION` | "Cho em xin cái giấy xác nhận" (Không nêu mục đích) | **Ranh giới dữ kiện thiếu (Missing Info):** Phát hiện thiếu `REQ_PURPOSE`, không đoán mò, dừng lại hỏi sinh viên | `ASK_CLARIFICATION` | `ASK_CLARIFICATION` | ~25ms | ✅ **ĐẠT** |
-| **TC-03** | `STUDENT_CONFIRMATION` | Sinh viên đã có quyết định buộc thôi học (`DROPPED`) xin giấy XNSV | **Thực thi quy chế cứng (Hard Policy):** Chặn đứng và từ chối dứt khoát kèm viện dẫn Điều 3 Quy chế đào tạo | `REJECTED_POLICY` | `REJECTED_POLICY` | ~20ms | ✅ **ĐẠT** |
-| **TC-04** | `GRADUATION_ASSESSMENT` | Nộp đơn xét tốt nghiệp nhưng ảnh chứng chỉ bị bôi đen / mờ số hiệu | **Giám định thị giác (Multimodal Vision):** Đọc ảnh scan, phát hiện vùng số hiệu bị che khuất, bắt lỗi yêu cầu nộp lại | `ASK_CLARIFICATION` | `ASK_CLARIFICATION` | ~850ms | ✅ **ĐẠT** |
-| **TC-05** | `GRADUATION_ASSESSMENT` | Đủ 2 chứng chỉ HUTECH thật (B1 & Kỹ năng nhóm), nợ phí = 0đ, GPA = 3.52 | **Phân cấp thẩm quyền (Bounded Autonomy & HITL):** Dù hồ sơ hoàn hảo, AI KHÔNG TỰ DUYỆT mà đóng gói Context Capsule chuyển DEAN | `ESCALATE_TO_DEAN` | `ESCALATE_TO_DEAN` | ~120ms | ✅ **ĐẠT** |
+### Track A Escalation Verify — 5 ca
 
----
+Endpoint: `POST /api/agent/verify-90s`
 
-## 3. TÍCH HỢP LIVE TERMINAL CONSOLE THỜI GIAN THỰC
+Bộ này luôn có đúng 5 ca trên cùng thủ tục `STUDENT_CONFIRMATION`: đúng 3 ca thường quy tự hoàn tất và đúng 2 ca chuyển tiếp.
 
-Khi bộ kiểm thử chạy:
-1. `verifyTools.run_verify_90s()` liên tục đẩy các sự kiện reasoning, tool invocation và decision qua `agentTerminalLogger`.
-2. `server.js` phát event `agent_terminal_log` qua Socket.IO.
-3. Component `LiveTerminalConsole.jsx` trên frontend hiển thị dòng lệnh dạng hacker/terminal với các mã màu trực quan:
-   - `CYAN`: Bắt đầu yêu cầu (`REQUEST`, `START`)
-   - `AMBER`: Phân tích quy chế và suy luận (`REASONING`, `THOUGHT`)
-   - `YELLOW`: Kích hoạt công cụ (`TOOL_CALL`)
-   - `GREEN`: Kết quả quan sát từ công cụ (`TOOL_RESULT`)
-   - `MAGENTA`: Quyết định cuối cùng (`DECISION`, `COMPLETE`)
-   - `RED`: Báo lỗi hoặc vi phạm quy chế (`ERROR`)
+| Ca | Nhóm | Kỳ vọng |
+|---|---|---|
+| A-01 | Routine — vé xe buýt | `AUTO_APPROVED` |
+| A-02 | Routine — học bổng | `AUTO_APPROVED` |
+| A-03 | Routine — vay vốn | `AUTO_APPROVED` |
+| A-04 | Outside policy | `ESCALATE_TO_STAFF` |
+| A-05 | Beyond authority | `ESCALATE_TO_STAFF` |
 
----
+Mỗi ca chuyển tiếp phải có `actionableQuestion`. Toàn bộ ca trả `startedAt`, `completedAt`, `durationMs`, quyết định kỳ vọng/thực tế và PASS/FAIL. `distributionPassed` chỉ đúng khi phân bố thực tế là 3 AUTO + 2 ESCALATE.
 
-## 4. BỘ CHỈ SỐ ĐỊNH LƯỢNG HỌC VỤ (METRICS DASHBOARD)
+## Ca mới do giám khảo nhập
 
-Hệ thống cung cấp API `GET /api/petitions/stats/metrics` để tính toán các chỉ số tự động hóa:
-- **Tỷ lệ tự động hóa ca thường quy (Routine Automation Rate):** $\ge 95\%$
-- **Tỷ lệ vượt thẩm quyền bị bỏ sót (Missed Escalation Rate):** $0.0\%$ (Tuyệt đối không để lọt ca vượt thẩm quyền nào mà AI tự duyệt nhầm)
-- **Tỷ lệ chuyển tiếp nhầm (False Escalation Rate):** $< 2.0\%$ (Hạn chế tối đa việc làm phiền cán bộ với các đơn thường quy)
-- **Thời gian xử lý trung bình:** $< 100ms$ đối với ca thường quy và $< 1.5s$ đối với ca có giám định thị giác đa phương thức.
+Endpoint: `POST /api/agent/verify-custom-prompt`
+
+```json
+{
+  "prompt": "Em cần giấy xác nhận sinh viên để bảo lãnh hợp đồng thuê nhà"
+}
+```
+
+Prompt được bóc tách thành input có cấu trúc rồi chạy qua cùng `StudentConfirmationDecisionService` và `PetitionWorkflowCore`; không có nhánh demo riêng.
+
+## Chạy kiểm tra tại máy
+
+```bash
+cd backend
+npm test
+npx prisma validate
+
+cd ../frontend
+npm run build
+```
+
+Unit test kiểm tra bộ 15 ca, phân bố Track A 3/2 và yêu cầu câu hỏi hành động cho mọi ca ngoài policy/vượt thẩm quyền.
+
+## Quy tắc báo cáo số liệu
+
+Không công bố `missedEscalationRate` hoặc `falseEscalationRate` khi chưa chạy trên tập độc lập có nhãn. API metrics trả `null` cho hai trường này cùng `measurementStatus: PARTIAL`, thay vì dùng số điền sẵn.

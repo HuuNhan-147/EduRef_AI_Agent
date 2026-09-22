@@ -1,7 +1,10 @@
 # 10. MÔ HÌNH DỮ LIỆU & LƯỢC ĐỒ CƠ SỞ DỮ LIỆU (DATABASE SCHEMA)
-**Dự án:** EduRef AI — The Academic Escalation Referee  
-**Hệ quản trị CSDL:** PostgreSQL 15+ (kết nối qua Prisma ORM)  
+**Dự án:** EduRef AI — The Academic Escalation Referee
+
+**Hệ quản trị CSDL:** Supabase PostgreSQL (kết nối qua Prisma ORM và Supavisor)
 **File định nghĩa:** `backend/prisma/schema.prisma`
+
+Runtime dùng `DATABASE_URL` từ Transaction pooler; migration dùng `DIRECT_URL` từ Session pooler qua script `npm run db:deploy`. Không đưa hai URL này vào frontend hoặc Git.
 
 ---
 

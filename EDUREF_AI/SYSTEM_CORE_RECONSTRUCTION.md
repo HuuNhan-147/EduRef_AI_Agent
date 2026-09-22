@@ -1,6 +1,8 @@
 # TÀI LIỆU KIỂM TOÁN VÀ TÁI THIẾT HỆ THỐNG LÕI
 # (SYSTEM CORE RECONSTRUCTION DOCUMENT)
 
+> Tài liệu lịch sử trước đợt chuẩn hóa Track A. Các đường dẫn `DA_IELS_NEW`, nhận định frontend chưa có, demo auth fallback và kết quả Verify 100% không còn là nguồn chân lý. Xem `docs/14_TRACK_A_POLICY.md`, `docs/08_VERIFY.md` và `RUNBOOK.md`.
+
 > **Dự án:** EduRef AI — Autonomous Student Petition & Academic Escalation Referee  
 > **Cuộc thi:** MLAI Hackathon 2026 — Track 2 Option A: The Escalation Referee  
 > **Người thực hiện:** Senior Software Architect (Antigravity Agent)  
