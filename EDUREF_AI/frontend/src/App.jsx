@@ -230,24 +230,32 @@ export default function App() {
           </div>
 
           {activeTab === 'MY_PETITIONS' && (
-            <MyPetitionsPage
-              currentAccountKey={currentAccountKey}
-              onSwitchTab={setActiveTab}
-            />
+            <div className="flex-1 h-full overflow-y-auto w-full">
+              <MyPetitionsPage
+                currentAccountKey={currentAccountKey}
+                onSwitchTab={setActiveTab}
+              />
+            </div>
           )}
 
           {activeTab === 'STAFF_ESCALATION' && (
-            <StaffEscalationPage
-              currentAccountKey={currentAccountKey}
-            />
+            <div className="flex-1 h-full overflow-y-auto w-full">
+              <StaffEscalationPage
+                currentAccountKey={currentAccountKey}
+              />
+            </div>
           )}
 
           {activeTab === 'VERIFY_HARNESS' && (
-            <VerifyHarnessPage />
+            <div className="flex-1 h-full overflow-y-auto w-full">
+              <VerifyHarnessPage />
+            </div>
           )}
 
           {activeTab === 'AUDIT_EXPLORER' && (
-            <AuditExplorerPage />
+            <div className="flex-1 h-full overflow-y-auto w-full">
+              <AuditExplorerPage />
+            </div>
           )}
         </main>
       </div>

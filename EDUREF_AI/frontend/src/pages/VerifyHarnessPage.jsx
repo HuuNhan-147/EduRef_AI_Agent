@@ -95,8 +95,8 @@ export default function VerifyHarnessPage() {
     || customResult?.data?.contextCapsule?.actionableQuestion;
 
   return (
-    <div className="min-h-[calc(100vh-4rem)] bg-slate-100 p-3 text-slate-900">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-3">
+    <div className="w-full min-h-full bg-slate-100 p-4 pb-24 text-slate-900">
+      <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
         <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
