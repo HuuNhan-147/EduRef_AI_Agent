@@ -72,6 +72,8 @@ export class GeminiStreamClient {
         let fullText = '';
         const originalParts = [];
         const decoder = new StringDecoder('utf8');
+        const apiStartTime = Date.now();
+        let ttfb = null;
 
         return await new Promise((resolve, reject) => {
           let buffer = '';
@@ -91,6 +93,9 @@ export class GeminiStreamClient {
           };
 
           response.data.on('data', (chunk) => {
+            if (ttfb === null) {
+              ttfb = Date.now() - apiStartTime;
+            }
             buffer += decoder.write(chunk);
             let lines = buffer.split('\n');
             buffer = lines.pop() || '';
@@ -126,9 +131,18 @@ export class GeminiStreamClient {
               } catch (e) {}
             }
 
+            const totalDuration = Date.now() - apiStartTime;
+            const hasTool = originalParts.some((p) => p.functionCall);
+            console.log(
+              `⚡ [LLM Performance] Model: ${activeModel} | Key: ${maskedKey} | TTFB: ${ttfb || totalDuration}ms | Tổng: ${totalDuration}ms | Kiểu: ${hasTool ? '🔧 Tool Calling' : '💬 Text Stream'}`
+            );
+
             resolve({
               text: fullText,
               parts: originalParts,
+              duration: totalDuration,
+              ttfb: ttfb || totalDuration,
+              model: activeModel,
             });
           });
 

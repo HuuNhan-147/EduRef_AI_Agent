@@ -22,6 +22,7 @@ export class AgentOrchestrator {
    */
   async run({ message, currentUser = null, conversationHistory = [], onChunk = null, attachments = null, inputData = null }) {
     const startTime = Date.now();
+    const perfTimeline = [];
     this.logger.log({
       step: 'START',
       message: `Nhận yêu cầu: "${message}"`,
@@ -51,15 +52,18 @@ export class AgentOrchestrator {
           });
 
           const studentName = currentUser?.fullName || currentUser?.name || 'Cao Hữu Nhân';
+          const visionStart = Date.now();
           const visionResult = await certificateVisionService.verifyCertificate({
             imageBase64: cert.previewUrl,
             expectedType: cert.type,
             studentName,
           });
+          const visionDuration = Date.now() - visionStart;
+          perfTimeline.push({ name: `Vision OCR: [${cert.name}]`, duration: visionDuration, type: 'VISION' });
 
           this.logger.log({
             step: 'VISION_RESULT',
-            message: `Kết quả thị giác máy tính [${cert.name}]: Chất lượng=${visionResult.imageQuality}, Hợp lệ=${visionResult.isValid}, Số hiệu=${visionResult.extractedData?.certNumber || 'BỊ CHE KHUẤT/KHÔNG ĐỌC ĐƯỢC'}`,
+            message: `Kết quả thị giác máy tính [${cert.name}]: Chất lượng=${visionResult.imageQuality}, Hợp lệ=${visionResult.isValid}, Số hiệu=${visionResult.extractedData?.certNumber || 'BỊ CHE KHUẤT/KHÔNG ĐỌC ĐƯỢC'} (${visionDuration}ms)`,
             type: visionResult.isValid ? 'info' : 'error',
             meta: visionResult,
           });
@@ -142,6 +146,7 @@ export class AgentOrchestrator {
         }
       }
       // 0. Chuẩn hóa tiếng lóng học vụ và đại từ chỉ định ngữ cảnh
+      const prepStart = Date.now();
       const resolvedMessage = resolveContext(message, this.sessionId);
       if (resolvedMessage !== message) {
         this.logger.log({
@@ -163,6 +168,9 @@ export class AgentOrchestrator {
       // 1. Chuẩn bị System Prompt & Khai báo Tools
       const systemInstruction = PromptEngine.buildSystemInstruction({ currentUser });
       const functionDeclarations = ToolRegistry.getDeclarations();
+
+      const prepDuration = Date.now() - prepStart;
+      perfTimeline.push({ name: 'Tiền xử lý (Context & Prompt)', duration: prepDuration, type: 'PREP' });
 
       // 2. Định dạng nội dung hội thoại chuẩn Gemini (đảm bảo xen kẽ user - model)
       const contents = [
@@ -188,14 +196,23 @@ export class AgentOrchestrator {
       while (stepCount < maxSteps) {
         stepCount++;
 
+        const llmStart = Date.now();
         const stepResult = await this.geminiClient.streamGenerateContent(
           contents,
           functionDeclarations,
           systemInstruction,
           onChunk
         );
+        const llmDuration = Date.now() - llmStart;
 
         const functionCallPart = stepResult.parts?.find((p) => p.functionCall);
+
+        perfTimeline.push({
+          name: `Vòng ${stepCount}: Gemini LLM (${functionCallPart ? 'Tool: ' + functionCallPart.functionCall.name : 'Sinh câu trả lời'})`,
+          duration: llmDuration,
+          ttfb: stepResult.ttfb,
+          type: 'LLM',
+        });
 
         if (!functionCallPart) {
           finalReplyText = stepResult.text || '';
@@ -213,12 +230,20 @@ export class AgentOrchestrator {
         });
 
         // Điều phối thực thi qua ToolResolver
+        const toolStart = Date.now();
         const toolResult = await ToolResolver.resolve(toolName, toolArgs);
+        const toolDuration = Date.now() - toolStart;
         lastToolResult = toolResult;
+
+        perfTimeline.push({
+          name: `Vòng ${stepCount}: Chạy Tool [${toolName}]`,
+          duration: toolDuration,
+          type: 'TOOL',
+        });
 
         this.logger.log({
           step: 'TOOL_OBSERVATION',
-          message: `Kết quả từ [${toolName}]: Trạng thái=${describeToolOutcome(toolResult)}`,
+          message: `Kết quả từ [${toolName}]: Trạng thái=${describeToolOutcome(toolResult)} (${toolDuration}ms)`,
           type: 'tool_result',
           meta: toolResult,
         });
@@ -252,6 +277,24 @@ export class AgentOrchestrator {
       }
 
       const totalDuration = Date.now() - startTime;
+
+      // In bảng thống kê hiệu năng chi tiết ra Terminal
+      console.log('\n┌────────────────────────────────────────────────────────────────────────────────────────┐');
+      console.log('│ ⏱️  EDUREF AI — BẢNG PHÂN TÍCH HIỆU NĂNG THỜI GIAN THỰC (PERFORMANCE TIMELINE)         │');
+      console.log('├──────────────────────────────────────────────────────┬──────────────┬──────────────────┤');
+      console.log('│ Phân đoạn xử lý                                      │ Thời gian    │ Tỷ trọng (%)     │');
+      console.log('├──────────────────────────────────────────────────────┼──────────────┼──────────────────┤');
+      perfTimeline.forEach((item) => {
+        const pct = totalDuration > 0 ? ((item.duration / totalDuration) * 100).toFixed(1) : '0.0';
+        const namePad = item.name.padEnd(52, ' ').slice(0, 52);
+        const timePad = `${item.duration} ms`.padStart(12, ' ');
+        const pctPad = `${pct}%`.padStart(10, ' ');
+        console.log(`│ ${namePad} │ ${timePad} │ ${pctPad}       │`);
+      });
+      console.log('├──────────────────────────────────────────────────────┼──────────────┼──────────────────┤');
+      const totalPad = `${totalDuration} ms (~${(totalDuration / 1000).toFixed(2)}s)`.padStart(12, ' ');
+      console.log(`│ 🎯 TỔNG THỜI GIAN TOÀN TRÌNH                         │ ${totalPad} │     100.0%       │`);
+      console.log('└──────────────────────────────────────────────────────┴──────────────┴──────────────────┘\n');
 
       // Lưu câu trả lời trợ lý vào bộ nhớ phiên
       conversationMemory.saveAssistantMessage(this.sessionId, finalReplyText);
