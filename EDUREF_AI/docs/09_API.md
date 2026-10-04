@@ -68,10 +68,10 @@
     "success": true,
     "data": {
       "requestCode": "ST-819234",
-      "status": "APPROVED",
-      "decision": "AUTO_APPROVED",
-      "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/...",
-      "sha256Proof": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      "status": "ESCALATED",
+      "decision": "ESCALATE_TO_STAFF",
+      "requiredRole": "STAFF",
+      "message": "Yêu cầu đã được tiếp nhận và chuyển tới Chuyên viên Phòng Đào tạo để quyết định."
     }
   }
   ```
@@ -88,21 +88,29 @@
   ```
 - **Response Success (200):** Cấp mã QR chứng thực của Cán bộ và lưu `reviewerNote` vào `contextCapsule`.
 
-### 2.5. `POST /api/petitions/:id/reject`
+### 2.5. `POST /api/petitions/:id/claim`
+
+- **Mục đích:** Cán bộ nhận quyền xử lý một hồ sơ trước khi quyết định, tránh nhiều người thao tác chồng chéo.
+
+### 2.6. `POST /api/petitions/:id/escalate-to-dean`
+
+- **Mục đích:** Chuyên viên chuyển hồ sơ vượt thẩm quyền lên Trưởng Phòng Đào tạo; lý do chuyển cấp là bắt buộc.
+
+### 2.7. `POST /api/petitions/:id/reject`
 - **Mục đích:** Cán bộ từ chối hồ sơ kèm lý do bắt buộc.
 - **Request Body:**
   ```json
   { "reason": "Chứng chỉ tiếng Anh hết thời hạn hiệu lực." }
   ```
 
-### 2.6. `POST /api/petitions/:id/rollback`
+### 2.8. `POST /api/petitions/:id/rollback`
 - **Mục đích:** Con người can thiệp dừng khẩn cấp (Human Override), vô hiệu hóa mã QR và chuyển trạng thái sang `CANCELLED`.
 - **Request Body:**
   ```json
   { "reason": "Phát hiện khai báo sai lệch số hiệu văn bằng gốc." }
   ```
 
-### 2.7. `POST /api/petitions/:id/resume`
+### 2.9. `POST /api/petitions/:id/resume`
 - **Mục đích:** Sinh viên bổ sung dữ liệu/chứng từ sau khi bị hỏi làm rõ (`WAITING_STUDENT`).
 - **Request Body:**
   ```json
@@ -112,8 +120,8 @@
   }
   ```
 
-### 2.8. `GET /api/petitions/stats/metrics`
-- **Mục đích:** Lấy số đếm, automation rate và latency đã quan sát. Hai tỷ lệ missed/false escalation trả `null` cho đến khi có tập độc lập có nhãn.
+### 2.10. `GET /api/petitions/stats/metrics`
+- **Mục đích:** Lấy số đếm, tỷ lệ hồ sơ đã được con người giải quyết, tỷ lệ đang chờ người duyệt và latency đã quan sát. Hai tỷ lệ missed/false escalation trả `null` cho đến khi có tập độc lập có nhãn.
 - **Auth:** JWT role STAFF/DEAN/ADMIN.
 
 ---
@@ -123,6 +131,8 @@
 ### 3.1. `POST /api/agent/chat`
 - **Mục đích:** Gọi AI Agent dạng HTTP REST (Fallback khi không dùng Socket.IO).
 - **Auth:** Bearer JWT bắt buộc. Danh tính lấy từ token/database; `studentCode` hoặc role do client tự khai không được tin cậy.
+- **Vai trò STUDENT:** Chỉ thu thập và kiểm tra trường dữ liệu. Kết quả có `decision: ASK_CLARIFICATION` với `intakeDraft.ready: false`, `decision: DRAFT_READY` với `intakeDraft.ready: true`, hoặc `ANSWERED` cho câu hỏi. Không kết quả nào của chat tự tạo hồ sơ. Client gửi `inputData.draftFields` khi bổ sung và `inputData.formFields` khi dùng biểu mẫu.
+- **Nộp thật:** Sau khi sinh viên xác nhận bản nháp, gọi `POST /api/petitions` với `requestTypeCode: STUDENT_CONFIRMATION` và `formData` có `purpose`; server kiểm tra lại dữ liệu rồi mới tạo hồ sơ. Nếu đã có hồ sơ đang hoạt động cùng loại, server trả 409 và không ghi đè hồ sơ cũ.
 - **Request Body:**
   ```json
   {
@@ -132,7 +142,7 @@
   ```
 
 ### 3.2. `POST /api/agent/verify-90s`
-- **Mục đích:** Chạy 5 ca Track A với phân bố bắt buộc 3 AUTO + 2 ESCALATE.
+- **Mục đích:** Chạy 5 ca Track A và xác minh 5/5 ca được chuyển đúng con người quyết định.
 
 ### 3.3. `POST /api/agent/verify-general`
 - **Mục đích:** Chạy bộ Verify tổng quát 4 ca, trả PASS/FAIL và timestamp.
@@ -143,6 +153,7 @@
 
 ### 3.5. `GET /api/agent/terminal-logs`
 - **Mục đích:** Lấy lịch sử dòng lệnh suy luận gần nhất của AI Agent (dùng cho Live Terminal Console).
+- **Auth:** Chỉ role STAFF/DEAN/ADMIN. Sinh viên chỉ nhận các mốc tiến trình công khai, không nhận log kỹ thuật.
 
 ---
 

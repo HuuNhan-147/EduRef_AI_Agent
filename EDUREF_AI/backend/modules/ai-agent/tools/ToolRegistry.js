@@ -117,7 +117,7 @@ export class ToolRegistry {
             },
             action: {
               type: 'STRING',
-              description: 'Hành động muốn thực hiện (mặc định AUTO_APPROVE)',
+              description: 'Hành động dự kiến; hệ thống luôn kiểm tra và chuyển con người quyết định',
             },
           },
           required: ['requestId'],
@@ -128,7 +128,7 @@ export class ToolRegistry {
       {
         name: 'process_request',
         description:
-          'Thực thi phê duyệt tự động đối với đơn thường quy hợp lệ (Backend tự động re-check 100% trước khi cấp QR Code).',
+          'Kiểm tra lại hồ sơ và chuyển tới cán bộ có thẩm quyền. Công cụ không tự phê duyệt hoặc từ chối đơn.',
         parameters: {
           type: 'OBJECT',
           properties: {

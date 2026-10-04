@@ -10,15 +10,14 @@ const defaultStudent = {
   tuitionDebt: 0,
 };
 
-test('Track A fixture has exactly 3 routine auto cases and 2 escalation cases', () => {
+test('Track A fixture routes every complete case to human review', () => {
   assert.equal(TRACK_A_VERIFY_CASES.length, 5);
-  assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision === 'AUTO_APPROVED').length, 3);
-  assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision.startsWith('ESCALATE_')).length, 2);
+  assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision.startsWith('ESCALATE_')).length, 5);
 });
 
-test('General Verify fixture has 4 cases and includes a deny or escalation', () => {
+test('General Verify fixture has 4 cases and never delegates final decisions to AI', () => {
   assert.equal(GENERAL_VERIFY_CASES.length, 4);
-  assert.ok(GENERAL_VERIFY_CASES.some((item) => ['REJECTED_POLICY', 'ESCALATE_TO_STAFF'].includes(item.expectedDecision)));
+  assert.equal(GENERAL_VERIFY_CASES.some((item) => ['AUTO_APPROVED', 'REJECTED_POLICY'].includes(item.expectedDecision)), false);
 });
 
 test('15-case dataset is executable against the canonical policy', () => {

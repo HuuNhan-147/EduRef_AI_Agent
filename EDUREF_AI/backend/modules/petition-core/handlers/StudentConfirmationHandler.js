@@ -1,11 +1,10 @@
 // backend/modules/petition-core/handlers/StudentConfirmationHandler.js
-// Handler xử lý: Giấy Xác Nhận Sinh Viên (Thủ tục DV-01) - Cổng AUTO
+// Handler xử lý: Giấy Xác Nhận Sinh Viên (Thủ tục DV-01) - Cổng Human Review
 
 import { BasePetitionHandler } from '../BasePetitionHandler.js';
 import {
   evaluateStudentConfirmation,
   TRACK_A_CLASSIFICATION,
-  TRACK_A_DECISION,
 } from '../../../services/StudentConfirmationDecisionService.js';
 
 export class StudentConfirmationHandler extends BasePetitionHandler {
@@ -74,18 +73,6 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
 
   async evaluatePolicies(student, request) {
     const evaluation = evaluateStudentConfirmation({ student, inputData: request.inputData || {} });
-    if (evaluation.decision === TRACK_A_DECISION.AUTO_REJECT) {
-      return {
-        passed: false,
-        classification: evaluation.classification,
-        uncertaintyType: evaluation.uncertaintyType,
-        violatedPolicy: { code: 'STUDENT_CONFIRMATION_EXPLICIT_DENY', name: 'Điều kiện cấp giấy xác nhận' },
-        reason: evaluation.reason,
-        userMessage: evaluation.userMessage,
-        policyVersion: evaluation.policyVersion,
-      };
-    }
-
     return {
       passed: true,
       classification: evaluation.classification,
@@ -95,37 +82,20 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
     };
   }
 
-  /**
-   * Phân cấp thẩm quyền:
-   * Thủ tục thường quy -> Tác tử AI được toàn quyền tự động duyệt (AUTO_APPROVE)
-   */
+  /** Phòng Đào tạo giữ quyền quyết định cuối cùng cho mọi hồ sơ. */
   async checkAuthority(request, student, context = {}) {
     const evaluation = evaluateStudentConfirmation({
       student,
       inputData: context.inputData || request.inputData || {},
     });
 
-    if (
-      evaluation.classification === TRACK_A_CLASSIFICATION.OUTSIDE_POLICY ||
-      evaluation.classification === TRACK_A_CLASSIFICATION.BEYOND_AUTHORITY
-    ) {
-      return {
-        role: 'STAFF',
-        action: 'STAFF_REVIEW',
-        classification: evaluation.classification,
-        uncertaintyType: evaluation.uncertaintyType,
-        reason: evaluation.reason,
-        actionableQuestion: evaluation.actionableQuestion,
-        policyVersion: evaluation.policyVersion,
-      };
-    }
-
     return {
-      role: 'AI_AGENT',
-      action: 'AUTO_APPROVE',
-      classification: TRACK_A_CLASSIFICATION.ROUTINE,
-      uncertaintyType: null,
+      role: 'STAFF',
+      action: 'STAFF_REVIEW',
+      classification: evaluation.classification || TRACK_A_CLASSIFICATION.ROUTINE,
+      uncertaintyType: evaluation.uncertaintyType,
       reason: evaluation.reason,
+      actionableQuestion: evaluation.actionableQuestion || 'Cán bộ Phòng Đào tạo kiểm tra hồ sơ và đưa ra quyết định cuối cùng?',
       policyVersion: evaluation.policyVersion,
     };
   }

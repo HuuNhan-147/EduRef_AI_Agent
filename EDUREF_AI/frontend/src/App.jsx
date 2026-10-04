@@ -1,89 +1,99 @@
-// src/App.jsx
-// Shell giao diện trung tâm EduRef AI kết nối toàn bộ hệ thống Học vụ Tự hành
-
-import React, { useState, useEffect } from 'react';
+import { lazy, Suspense, useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import TopNavbar from './components/common/TopNavbar';
-import AppSidebar from './components/common/AppSidebar';
-import StudentWorkspacePage from './pages/StudentWorkspacePage';
-import StaffEscalationPage from './pages/StaffEscalationPage';
-import VerifyHarnessPage from './pages/VerifyHarnessPage';
-import AuditExplorerPage from './pages/AuditExplorerPage';
-import MyPetitionsPage from './pages/MyPetitionsPage';
 import DynamicPetitionModal from './components/forms/DynamicPetitionModal';
-import api, { switchRoleAuth, DEMO_ACCOUNTS } from './services/api';
+import StudentWorkspacePage from './pages/StudentWorkspacePage';
+import api, { DEMO_ACCOUNTS, switchRoleAuth, UI_PREVIEW_MODE } from './services/api';
 import getSocket from './services/socket';
 
+const MyPetitionsPage = lazy(() => import('./pages/MyPetitionsPage'));
+const StaffEscalationPage = lazy(() => import('./pages/StaffEscalationPage'));
+const VerifyHarnessPage = lazy(() => import('./pages/VerifyHarnessPage'));
+const AuditExplorerPage = lazy(() => import('./pages/AuditExplorerPage'));
+
+const INITIAL_ACCOUNT = 'STUDENT_ACTIVE';
+
+function PageLoader() {
+  return (
+    <div className="grid min-h-[40vh] place-items-center" role="status">
+      <div className="flex items-center gap-3 text-sm text-text-muted">
+        <span className="h-2.5 w-2.5 animate-pulse rounded-full bg-accent" />
+        Đang mở không gian làm việc…
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
-  // Tài khoản hiện tại được chọn (mặc định sinh viên ACTIVE Cao Hữu Nhân)
-  const [currentAccountKey, setCurrentAccountKey] = useState('STUDENT_ACTIVE');
+  const [theme, setTheme] = useState(() => localStorage.getItem('eduref_theme') === 'light' ? 'light' : 'dark');
+  const [currentAccountKey, setCurrentAccountKey] = useState(INITIAL_ACCOUNT);
   const [authStatus, setAuthStatus] = useState('loading');
   const [authError, setAuthError] = useState('');
-
-  // Tab đang hoạt động
   const [activeTab, setActiveTab] = useState('STUDENT_ASSISTANT');
-
-  // Trạng thái Socket.IO
   const [socketConnected, setSocketConnected] = useState(false);
-
-  // Số lượng đơn chờ cán bộ xử lý (ESCALATED) để hiển thị trên Sidebar
   const [pendingCount, setPendingCount] = useState(0);
-
-  // Dynamic Petition Form Modal state
-  const [dynamicModal, setDynamicModal] = useState({
-    isOpen: false,
-    petitionType: null,
-  });
-
-  // Prompt tự động truyền vào Student Workspace Chat khi nộp từ Modal
+  const [dynamicModal, setDynamicModal] = useState({ isOpen: false, petitionType: null });
   const [externalPrompt, setExternalPrompt] = useState(null);
-
-  // Toast notification
   const [toast, setToast] = useState(null);
+  const toastTimerRef = useRef(null);
 
-  const showToast = (message, type = 'info') => {
+  useLayoutEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f7f9fc' : '#070a12');
+    localStorage.setItem('eduref_theme', theme);
+  }, [theme]);
+
+  const showToast = useCallback((message, type = 'info') => {
+    window.clearTimeout(toastTimerRef.current);
     setToast({ message, type });
-    setTimeout(() => setToast(null), 4000);
-  };
-
-  const initializeDemoSession = async () => {
-    setAuthStatus('loading');
-    setAuthError('');
-    const user = await switchRoleAuth('STUDENT_ACTIVE');
-    if (!user) {
-      setAuthStatus('error');
-      setAuthError('Không thể khởi tạo phiên demo. Kiểm tra backend và ALLOW_DEMO_ROLE_SWITCH.');
-      return;
-    }
-    setCurrentAccountKey('STUDENT_ACTIVE');
-    setAuthStatus('ready');
-  };
-
-  // Chỉ render ứng dụng sau khi phiên JWT demo đã sẵn sàng. Điều này ngăn
-  // các component con gọi API bằng một phiên chưa xác thực khi trang vừa mở.
-  useEffect(() => {
-    initializeDemoSession();
+    toastTimerRef.current = window.setTimeout(() => setToast(null), 4000);
   }, []);
 
-  // Lắng nghe Socket.IO
+  useEffect(() => () => window.clearTimeout(toastTimerRef.current), []);
+
+  const initializeDemoSession = useCallback(async () => {
+    setAuthStatus('loading');
+    setAuthError('');
+    const user = await switchRoleAuth(INITIAL_ACCOUNT);
+
+    if (!user) {
+      setAuthStatus('error');
+      setAuthError('Không thể khởi tạo phiên demo. Hãy kiểm tra backend và cấu hình ALLOW_DEMO_ROLE_SWITCH.');
+      return;
+    }
+
+    setCurrentAccountKey(INITIAL_ACCOUNT);
+    setAuthStatus('ready');
+  }, []);
+
+  useEffect(() => {
+    initializeDemoSession();
+  }, [initializeDemoSession]);
+
+  const fetchPendingCount = useCallback(async () => {
+    try {
+      const response = await api.get('/petitions?status=ESCALATED');
+      if (response.data?.success) setPendingCount((response.data.data || []).length);
+    } catch {
+      // Badge này chỉ là thông tin phụ; lỗi sẽ không chặn tác vụ chính.
+    }
+  }, []);
+
+  useEffect(() => {
+    if (authStatus === 'ready') fetchPendingCount();
+  }, [authStatus, currentAccountKey, fetchPendingCount]);
+
   useEffect(() => {
     if (authStatus !== 'ready') return undefined;
     const socket = getSocket();
 
-    const onConnect = () => {
-      setSocketConnected(true);
-    };
-
-    const onDisconnect = () => {
-      setSocketConnected(false);
-    };
-
+    const onConnect = () => setSocketConnected(true);
+    const onDisconnect = () => setSocketConnected(false);
     const onEscalated = (data) => {
-      setPendingCount((prev) => prev + 1);
-      showToast(`Đơn ${data.requestCode || ''} đã được AI chuyển tiếp lên Cán bộ PĐT thẩm định!`, 'warning');
+      setPendingCount((count) => count + 1);
+      showToast(`Hồ sơ ${data.requestCode || ''} cần cán bộ thẩm định.`, 'warning');
     };
-
     const onStatusUpdated = (data) => {
-      showToast(`Hồ sơ ${data.requestCode || ''} vừa được cập nhật trạng thái: ${data.status}`, 'success');
+      showToast(`Hồ sơ ${data.requestCode || ''} đã chuyển sang ${data.status}.`, 'success');
       fetchPendingCount();
     };
 
@@ -91,10 +101,7 @@ export default function App() {
     socket.on('disconnect', onDisconnect);
     socket.on('petition_escalated', onEscalated);
     socket.on('petition_status_updated', onStatusUpdated);
-
-    if (socket.connected) {
-      setSocketConnected(true);
-    }
+    setSocketConnected(socket.connected);
 
     return () => {
       socket.off('connect', onConnect);
@@ -102,92 +109,56 @@ export default function App() {
       socket.off('petition_escalated', onEscalated);
       socket.off('petition_status_updated', onStatusUpdated);
     };
-  }, [authStatus]);
+  }, [authStatus, fetchPendingCount, showToast]);
 
-  // Lấy số lượng đơn ESCALATED
-  const fetchPendingCount = async () => {
-    try {
-      const res = await api.get('/petitions?status=ESCALATED');
-      if (res.data?.success) {
-        setPendingCount((res.data.data || []).length);
-      }
-    } catch {
-      // Bỏ qua nếu lỗi mạng
-    }
-  };
-
-  useEffect(() => {
-    if (authStatus === 'ready') fetchPendingCount();
-  }, [currentAccountKey, authStatus]);
-
-  // Xử lý đổi vai trò
   const handleRoleChange = async (newAccountKey) => {
     const authenticatedUser = await switchRoleAuth(newAccountKey);
     if (!authenticatedUser) {
-      showToast('Không thể chuyển vai trò demo. Vui lòng kiểm tra cấu hình backend.', 'warning');
+      showToast('Không thể chuyển tài khoản demo. Hãy kiểm tra cấu hình backend.', 'warning');
       return;
     }
-    setCurrentAccountKey(newAccountKey);
 
     const account = DEMO_ACCOUNTS[newAccountKey];
-    if (account) {
-      if (account.type === 'STAFF' || account.type === 'DEAN') {
-        setActiveTab('STAFF_ESCALATION');
-        showToast(`Đã chuyển sang vai trò: ${account.name} (${account.role})`, 'info');
-      } else {
-        setActiveTab('STUDENT_ASSISTANT');
-        showToast(`Đã chuyển sang góc nhìn Sinh viên: ${account.name} (${account.code})`, 'info');
-      }
-    }
+    setCurrentAccountKey(newAccountKey);
+    setActiveTab(['STAFF', 'DEAN'].includes(account?.type) ? 'STAFF_ESCALATION' : 'STUDENT_ASSISTANT');
+    showToast(`Đang sử dụng tài khoản ${account?.name || newAccountKey}.`);
   };
 
-  if (authStatus !== 'ready') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-100">
-        <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 text-center shadow-xl">
-          <div className="mx-auto mb-4 h-10 w-10 animate-pulse rounded-lg bg-blue-600" />
-          <h1 className="text-lg font-bold">EduRef AI · VNG Đề A</h1>
-          {authStatus === 'loading' ? (
-            <p className="mt-2 text-sm text-slate-400">Đang khởi tạo phiên kiểm thử an toàn…</p>
-          ) : (
-            <>
-              <p className="mt-2 text-sm text-rose-300">{authError}</p>
-              <button onClick={initializeDemoSession} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
-                Thử kết nối lại
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // Mở modal biểu mẫu động
-  const handleOpenDynamicForm = (type) => {
-    setDynamicModal({
-      isOpen: true,
-      petitionType: type,
-    });
-  };
-
-  // Nộp nội dung từ modal vào khung chat của AI kèm dữ liệu/ảnh đính kèm
   const handleSubmitToChat = (promptText, extraData = {}) => {
     setActiveTab('STUDENT_ASSISTANT');
     setExternalPrompt(typeof promptText === 'string' ? { text: promptText, ...extraData } : promptText);
   };
 
-  // Nộp đơn trực tiếp thành công từ modal
-  const handlePetitionCreated = (petition) => {
-    showToast(`Đã tạo hồ sơ ${petition.requestCode} thành công!`, 'success');
-    setActiveTab('MY_PETITIONS');
-    fetchPendingCount();
-  };
+  if (authStatus !== 'ready') {
+    return (
+      <div className="grid min-h-dvh place-items-center bg-canvas px-4 text-text-primary">
+        <section className="ui-panel w-full max-w-md p-6 text-center" aria-live="polite">
+          <div className="mx-auto mb-4 grid h-11 w-11 place-items-center rounded-xl bg-accent/15">
+            <span className="h-3 w-3 animate-pulse rounded-full bg-accent" />
+          </div>
+          <h1 className="text-lg font-semibold">EduRef AI</h1>
+          {authStatus === 'loading' ? (
+            <p className="mt-2 text-sm text-text-muted">Đang khởi tạo phiên làm việc an toàn…</p>
+          ) : (
+            <>
+              <p className="mt-2 text-sm text-danger">{authError}</p>
+              <button type="button" onClick={initializeDemoSession} className="ui-button-primary mt-5">
+                Thử kết nối lại
+              </button>
+            </>
+          )}
+        </section>
+      </div>
+    );
+  }
+
+  const currentAccount = DEMO_ACCOUNTS[currentAccountKey];
 
   return (
-    <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans select-none text-slate-800">
-      
-      {/* 1. Header trên cùng: Brand EduRef AI + Top Navigation Tabs + 1-Click Role Switcher */}
+    <div className="app-shell flex h-dvh min-h-[640px] flex-col overflow-hidden bg-canvas text-text-primary">
       <TopNavbar
+        theme={theme}
+        onToggleTheme={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
         currentAccountKey={currentAccountKey}
         onRoleChange={handleRoleChange}
         socketConnected={socketConnected}
@@ -196,79 +167,75 @@ export default function App() {
         pendingCount={pendingCount}
       />
 
-      {/* 2. Phần thân: Toàn bộ 100% chiều rộng màn hình cho nội dung chính */}
-      <div className="flex-1 flex overflow-hidden">
-        
-        {/* Màn hình chính */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 relative">
-          
-          {/* Toast Notification Floating */}
-          {toast && (
-            <div
-              className={`absolute top-4 right-4 z-50 px-4 py-2.5 rounded-lg shadow-lg border text-xs font-semibold flex items-center gap-2 animate-slide-in transition-all ${
-                toast.type === 'warning'
-                  ? 'bg-amber-50 text-amber-900 border-amber-300'
-                  : toast.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
-                  : 'bg-blue-50 text-blue-900 border-blue-300'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-current"></span>
-              <span>{toast.message}</span>
-            </div>
-          )}
+      {UI_PREVIEW_MODE && (
+        <div className="pointer-events-none fixed bottom-3 left-3 z-[90] max-w-[calc(100vw-1.5rem)] rounded-lg border border-warning/30 bg-[#241c0f]/95 px-3 py-2 text-[11px] text-amber-100 shadow-panel backdrop-blur sm:bottom-4 sm:left-4" role="status">
+          UI Preview · Dữ liệu mô phỏng, không phải kết quả backend thật.
+        </div>
+      )}
 
-          {/* 1. Trang Trợ lý AI Sinh viên: Giữ nguyên trạng thái (Keep-Alive) để không bị mất chat/terminal khi đổi vai trò hoặc chuyển tab */}
-          <div className={`flex-1 h-full overflow-hidden ${activeTab === 'STUDENT_ASSISTANT' ? 'flex' : 'hidden'}`}>
+      <main className="relative min-h-0 flex-1 overflow-hidden">
+        {toast && (
+          <div
+            role="status"
+            aria-live="polite"
+            className={`absolute right-4 top-4 z-50 flex max-w-sm items-start gap-2 rounded-xl border px-4 py-3 text-sm shadow-panel animate-fade-up ${
+              toast.type === 'warning'
+                ? 'border-warning/30 bg-[#241c0f] text-amber-100'
+                : toast.type === 'success'
+                  ? 'border-success/30 bg-[#10221c] text-emerald-100'
+                  : 'border-accent/30 bg-[#101c35] text-blue-100'
+            }`}
+          >
+            <span className="mt-1 h-2 w-2 shrink-0 rounded-full bg-current" />
+            {toast.message}
+          </div>
+        )}
+
+        {currentAccount?.type === 'STUDENT' && (
+          <div className={activeTab === 'STUDENT_ASSISTANT' ? 'h-full' : 'hidden'}>
             <StudentWorkspacePage
+              key={currentAccountKey}
               currentAccountKey={currentAccountKey}
-              onOpenDynamicForm={handleOpenDynamicForm}
+              onOpenDynamicForm={(petitionType) => setDynamicModal({ isOpen: true, petitionType })}
               externalPrompt={externalPrompt}
               onClearExternalPrompt={() => setExternalPrompt(null)}
-              onSwitchTab={setActiveTab}
             />
           </div>
+        )}
 
+        <Suspense fallback={<PageLoader />}>
           {activeTab === 'MY_PETITIONS' && (
-            <div className="flex-1 h-full overflow-y-auto w-full">
-              <MyPetitionsPage
-                currentAccountKey={currentAccountKey}
-                onSwitchTab={setActiveTab}
-              />
+            <div className="h-full overflow-y-auto">
+              <MyPetitionsPage userRole={currentAccount?.type} onSwitchTab={setActiveTab} />
             </div>
           )}
-
           {activeTab === 'STAFF_ESCALATION' && (
-            <div className="flex-1 h-full overflow-y-auto w-full">
-              <StaffEscalationPage
-                currentAccountKey={currentAccountKey}
-              />
+            <div className="h-full overflow-y-auto">
+              <StaffEscalationPage currentAccountKey={currentAccountKey} />
             </div>
           )}
-
           {activeTab === 'VERIFY_HARNESS' && (
-            <div className="flex-1 h-full overflow-y-auto w-full">
-              <VerifyHarnessPage />
+            <div className="h-full overflow-y-auto">
+              <VerifyHarnessPage userRole={currentAccount?.type} />
             </div>
           )}
-
           {activeTab === 'AUDIT_EXPLORER' && (
-            <div className="flex-1 h-full overflow-y-auto w-full">
-              <AuditExplorerPage />
+            <div className="h-full overflow-y-auto">
+              <AuditExplorerPage userRole={currentAccount?.type} />
             </div>
           )}
-        </main>
-      </div>
+        </Suspense>
+      </main>
 
-      {/* 3. Modal nộp đơn học vụ sinh động */}
-      <DynamicPetitionModal
-        isOpen={dynamicModal.isOpen}
-        onClose={() => setDynamicModal({ isOpen: false, petitionType: null })}
-        petitionType={dynamicModal.petitionType}
-        currentAccountKey={currentAccountKey}
-        onSubmitToChat={handleSubmitToChat}
-        onPetitionCreated={handlePetitionCreated}
-      />
+      {currentAccount?.type === 'STUDENT' && (
+        <DynamicPetitionModal
+          isOpen={dynamicModal.isOpen}
+          onClose={() => setDynamicModal({ isOpen: false, petitionType: null })}
+          petitionType={dynamicModal.petitionType}
+          currentAccountKey={currentAccountKey}
+          onSubmitToChat={handleSubmitToChat}
+        />
+      )}
     </div>
   );
 }

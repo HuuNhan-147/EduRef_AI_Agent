@@ -1,222 +1,189 @@
-// src/components/common/TopNavbar.jsx
-// Thanh tiêu đề chuẩn mực hành chính đại học: Tích hợp Top Navigation Tabs & 1-Click Role Switcher
-
-import React, { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
-  ShieldCheck,
-  UserCheck,
-  ChevronDown,
+  AlertTriangle,
   Check,
-  Wifi,
-  WifiOff,
-  School,
-  MessageSquare,
+  ChevronDown,
+  FileCheck2,
   FileText,
-  AlertOctagon,
-  CheckCircle,
-  Zap
+  GraduationCap,
+  MessageSquare,
+  Moon,
+  ShieldCheck,
+  Sun,
 } from 'lucide-react';
 import { DEMO_ACCOUNTS } from '../../services/api';
+import { cn } from '../../lib/ui';
+
+const STUDENT_NAV = [
+  { id: 'STUDENT_ASSISTANT', label: 'Trợ lý AI', icon: MessageSquare },
+  { id: 'MY_PETITIONS', label: 'Hồ sơ của tôi', icon: FileText },
+];
+
+const STAFF_NAV = [
+  { id: 'STAFF_ESCALATION', label: 'Hàng đợi của tôi', icon: AlertTriangle, hasCount: true },
+  { id: 'MY_PETITIONS', label: 'Hồ sơ phụ trách', icon: FileText },
+  { id: 'AUDIT_EXPLORER', label: 'Nhật ký xử lý', icon: ShieldCheck },
+];
+
+const DEAN_NAV = [
+  { id: 'STAFF_ESCALATION', label: 'Trung tâm điều phối', icon: AlertTriangle, hasCount: true },
+  { id: 'MY_PETITIONS', label: 'Toàn bộ hồ sơ', icon: FileText },
+  { id: 'AUDIT_EXPLORER', label: 'Giám sát & nhật ký', icon: ShieldCheck },
+  { id: 'VERIFY_HARNESS', label: 'Kiểm thử', icon: FileCheck2 },
+];
 
 export default function TopNavbar({
   currentAccountKey,
   onRoleChange,
   socketConnected,
-  activeTab = 'STUDENT_ASSISTANT',
+  activeTab,
   setActiveTab,
-  pendingCount = 0
+  pendingCount = 0,
+  theme,
+  onToggleTheme,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
+  const menuRef = useRef(null);
   const currentAccount = DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
   const isStaff = ['STAFF', 'DEAN'].includes(currentAccount.type);
+  const navItems = currentAccount.type === 'DEAN' ? DEAN_NAV : isStaff ? STAFF_NAV : STUDENT_NAV;
 
-  // Danh mục Navigation Tabs theo vai trò
-  const studentNavItems = [
-    {
-      id: 'VERIFY_HARNESS',
-      label: 'Verify Track A',
-      icon: Zap,
-    },
-    {
-      id: 'STUDENT_ASSISTANT',
-      label: 'Trợ lý Học vụ AI',
-      icon: MessageSquare,
-    },
-    {
-      id: 'MY_PETITIONS',
-      label: 'Hồ sơ & Đơn của tôi',
-      icon: FileText,
-    },
-    {
-      id: 'AUDIT_EXPLORER',
-      label: 'Kiểm toán SHA-256',
-      icon: ShieldCheck,
-    },
-  ];
+  useEffect(() => {
+    if (!dropdownOpen) return undefined;
 
-  const staffNavItems = [
-    {
-      id: 'VERIFY_HARNESS',
-      label: 'Verify Track A',
-      icon: Zap,
-    },
-    {
-      id: 'STAFF_ESCALATION',
-      label: 'Escalation Hub',
-      icon: AlertOctagon,
-      count: pendingCount,
-    },
-    {
-      id: 'STUDENT_ASSISTANT',
-      label: 'Góc nhìn Sinh viên',
-      icon: MessageSquare,
-    },
-    {
-      id: 'MY_PETITIONS',
-      label: 'Quản lý Đơn toàn trường',
-      icon: FileText,
-    },
-    {
-      id: 'AUDIT_EXPLORER',
-      label: 'Kiểm toán SHA-256',
-      icon: ShieldCheck,
-    },
-  ];
+    const closeOnOutsideClick = (event) => {
+      if (!menuRef.current?.contains(event.target)) setDropdownOpen(false);
+    };
+    const closeOnEscape = (event) => {
+      if (event.key === 'Escape') setDropdownOpen(false);
+    };
 
-  const navItems = isStaff ? staffNavItems : studentNavItems;
+    document.addEventListener('pointerdown', closeOnOutsideClick);
+    document.addEventListener('keydown', closeOnEscape);
+    return () => {
+      document.removeEventListener('pointerdown', closeOnOutsideClick);
+      document.removeEventListener('keydown', closeOnEscape);
+    };
+  }, [dropdownOpen]);
 
   return (
-    <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md select-none">
-      <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
-        
-        {/* Khối Nhận Diện Thương Hiệu Hành Chính */}
-        <div className="flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-xs">
-            <School className="w-5 h-5" />
+    <header className="z-40 shrink-0 border-b border-border bg-canvas/95 backdrop-blur">
+      <div className="flex h-16 items-center gap-3 px-3 sm:px-5 lg:px-7">
+        <button
+          type="button"
+          onClick={() => setActiveTab(isStaff ? 'STAFF_ESCALATION' : 'STUDENT_ASSISTANT')}
+          className="flex shrink-0 items-center gap-2.5 rounded-lg text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-focus"
+          aria-label={isStaff ? 'Mở không gian Phòng Đào tạo' : 'Mở Trợ lý AI'}
+        >
+          <span className="grid h-9 w-9 place-items-center rounded-xl bg-accent text-white shadow-lg shadow-blue-950/40">
+            <GraduationCap className="h-5 w-5" aria-hidden="true" />
+          </span>
+          <span className="hidden sm:block">
+            <span className="block text-sm font-semibold tracking-tight">EduRef AI</span>
+            <span className="block text-[11px] text-text-muted">{isStaff ? 'Không gian Phòng Đào tạo' : 'Không gian sinh viên'}</span>
+          </span>
+        </button>
+
+        <nav className="min-w-0 flex-1 overflow-x-auto" aria-label="Điều hướng chính">
+          <div className="mx-auto flex w-max items-center gap-1 rounded-xl bg-surface-muted p-1">
+            {navItems.map((item) => {
+              const Icon = item.icon;
+              const isActive = activeTab === item.id;
+              return (
+                <button
+                  key={item.id}
+                  type="button"
+                  onClick={() => setActiveTab(item.id)}
+                  aria-current={isActive ? 'page' : undefined}
+                  aria-label={item.label}
+                  className={cn(
+                    'flex min-h-10 shrink-0 items-center gap-2 rounded-lg px-3 text-xs font-medium transition-colors',
+                    isActive
+                      ? 'bg-surface-elevated text-text-primary shadow-sm'
+                      : 'text-text-muted hover:bg-surface hover:text-text-primary',
+                  )}
+                >
+                  <Icon className="h-4 w-4" aria-hidden="true" />
+                  <span className="hidden md:inline">{item.label}</span>
+                  {item.hasCount && pendingCount > 0 && (
+                    <span className="min-w-5 rounded-full bg-danger px-1.5 py-0.5 text-center text-[10px] font-semibold text-white">
+                      {pendingCount > 99 ? '99+' : pendingCount}
+                    </span>
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-tight text-white">EduRef AI</span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold tracking-wider uppercase bg-blue-500/20 text-blue-300 border border-blue-400/30">
-                VNG · Đề A
-              </span>
-            </div>
-            <p className="text-[11px] text-slate-400 font-normal hidden lg:block">
-              Trường ĐH HUTECH — Cổng Dịch Vụ Học Vụ Tự Hành
-            </p>
-          </div>
-        </div>
-
-        {/* ========================================================================= */}
-        {/* KHỐI NAVIGATION TABS NGANG (Đưa 4 mục từ Sidebar lên đây) */}
-        {/* ========================================================================= */}
-        <nav className="flex items-center gap-1.5 overflow-x-auto py-1">
-          {navItems.map((item) => {
-            const Icon = item.icon;
-            const isActive = activeTab === item.id;
-
-            return (
-              <button
-                key={item.id}
-                onClick={() => setActiveTab && setActiveTab(item.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all shrink-0 ${
-                  isActive
-                    ? 'bg-blue-600 text-white shadow-xs border border-blue-500'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
-                }`}
-              >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
-                <span>{item.label}</span>
-
-                {/* Badge số lượng đơn chờ nếu có */}
-                {item.count > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse">
-                    {item.count}
-                  </span>
-                )}
-              </button>
-            );
-          })}
         </nav>
 
-        {/* Khối Trạng Thái Kết Nối & 1-Click Role Switcher */}
-        <div className="flex items-center gap-3 shrink-0">
-          
-          {/* Socket.IO Connection Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono">
-            {socketConnected ? (
-              <>
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-slate-300">Live Socket</span>
-              </>
-            ) : (
-              <>
-                <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-                <span className="text-slate-400">Disconnected</span>
-              </>
-            )}
-          </div>
+        <div className="flex shrink-0 items-center gap-2">
+          <button type="button" onClick={onToggleTheme} className="ui-icon-button" aria-label={theme === 'dark' ? 'Bật giao diện sáng' : 'Bật giao diện tối'} title={theme === 'dark' ? 'Giao diện sáng' : 'Giao diện tối'}>
+            {theme === 'dark' ? <Sun className="h-4 w-4" aria-hidden="true" /> : <Moon className="h-4 w-4" aria-hidden="true" />}
+          </button>
+          <span
+            className="hidden items-center gap-2 rounded-full border border-border px-2.5 py-1.5 text-[11px] text-text-muted lg:flex"
+            title={socketConnected ? 'Kênh cập nhật thời gian thực đang hoạt động' : 'Mất kết nối thời gian thực'}
+          >
+            <span className={cn('h-2 w-2 rounded-full', socketConnected ? 'bg-success' : 'bg-danger')} />
+            {socketConnected ? 'Trực tuyến' : 'Ngoại tuyến'}
+          </span>
 
-          {/* 1-Click Role Switcher Dropdown */}
-          <div className="relative">
+          <div className="relative" ref={menuRef}>
             <button
-              onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700 transition-colors text-left cursor-pointer"
+              type="button"
+              onClick={() => setDropdownOpen((open) => !open)}
+              aria-expanded={dropdownOpen}
+              aria-haspopup="menu"
+              aria-label={`Đổi tài khoản. Hiện tại: ${currentAccount.name}`}
+              className="flex min-h-11 items-center gap-2 rounded-xl border border-border bg-surface px-2.5 text-left transition-colors hover:bg-surface-elevated"
             >
-              <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-blue-400 border border-slate-600">
+              <span className="grid h-7 w-7 place-items-center rounded-full bg-accent/15 text-[11px] font-semibold text-blue-200">
                 {currentAccount.type === 'STUDENT' ? 'SV' : 'CB'}
-              </div>
-              <div className="hidden xl:block">
-                <div className="text-xs font-medium text-white flex items-center gap-1.5">
-                  {currentAccount.name}
-                  <span className="text-[10px] text-slate-400">({currentAccount.code})</span>
-                </div>
-                <div className="text-[10px] text-slate-400 font-normal">
-                  {currentAccount.tag}
-                </div>
-              </div>
-              <ChevronDown className="w-4 h-4 text-slate-400" />
+              </span>
+              <span className="hidden max-w-36 xl:block">
+                <span className="block truncate text-xs font-medium">{currentAccount.name}</span>
+                <span className="block truncate text-[10px] text-text-muted">{currentAccount.tag}</span>
+              </span>
+              <ChevronDown className={cn('h-4 w-4 text-text-muted transition-transform', dropdownOpen && 'rotate-180')} />
             </button>
 
-            {/* Dropdown Menu */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white text-slate-900 shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Chuyển vai trò thử nghiệm (1-Click Switch)
-                </div>
-                
-                <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
-                  {Object.entries(DEMO_ACCOUNTS).map(([key, acc]) => {
+              <div
+                role="menu"
+                aria-label="Chọn tài khoản demo"
+                className="absolute right-0 mt-2 w-[min(22rem,calc(100vw-1.5rem))] overflow-hidden rounded-xl border border-border bg-surface-elevated p-2 shadow-panel animate-fade-up"
+              >
+                <p className="px-2 pb-2 pt-1 text-[11px] font-medium uppercase tracking-[0.16em] text-text-subtle">
+                  Tài khoản kiểm thử
+                </p>
+                <div className="max-h-[min(28rem,70vh)] space-y-1 overflow-y-auto">
+                  {Object.entries(DEMO_ACCOUNTS).map(([key, account]) => {
                     const isSelected = key === currentAccountKey;
                     return (
                       <button
                         key={key}
+                        type="button"
+                        role="menuitemradio"
+                        aria-checked={isSelected}
                         onClick={() => {
                           onRoleChange(key);
                           setDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-2.5 flex items-start justify-between gap-2 hover:bg-blue-50 transition-colors ${
-                          isSelected ? 'bg-blue-50/70' : ''
-                        }`}
-                      >
-                        <div className="space-y-0.5">
-                          <div className="text-xs font-semibold text-slate-900 flex items-center gap-1.5">
-                            <span>{acc.name}</span>
-                            <span className="text-[10px] text-slate-400 font-mono">
-                              ({acc.code})
-                            </span>
-                          </div>
-                          <div className="text-[11px] text-slate-500">
-                            {acc.role || acc.class} — {acc.faculty || 'Phòng Đào Tạo'}
-                          </div>
-                          <div className="text-[10px] text-blue-600 font-medium">
-                            {acc.tag}
-                          </div>
-                        </div>
-
-                        {isSelected && (
-                          <Check className="w-4 h-4 text-blue-600 shrink-0 mt-1" />
+                        className={cn(
+                          'flex w-full items-start justify-between gap-3 rounded-lg px-3 py-2.5 text-left transition-colors',
+                          isSelected ? 'bg-accent/15' : 'hover:bg-surface-muted',
                         )}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-sm font-medium text-text-primary">
+                            {account.name} <span className="font-mono text-xs text-text-subtle">· {account.code}</span>
+                          </span>
+                          <span className="mt-0.5 block text-xs text-text-muted">
+                            {account.role || account.class} · {account.faculty || 'Phòng Đào tạo'}
+                          </span>
+                          <span className="mt-1 block text-[11px] text-blue-300">{account.tag}</span>
+                        </span>
+                        {isSelected && <Check className="mt-1 h-4 w-4 shrink-0 text-accent" aria-hidden="true" />}
                       </button>
                     );
                   })}
@@ -224,9 +191,7 @@ export default function TopNavbar({
               </div>
             )}
           </div>
-
         </div>
-
       </div>
     </header>
   );

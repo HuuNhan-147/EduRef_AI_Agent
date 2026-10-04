@@ -55,10 +55,10 @@ class AgentTerminalLoggerManager {
     const prefix = prefixMap[logEntry.type] || prefixMap[step] || '👉';
     console.log(`[${timestamp}] ${prefix} [${logEntry.step}] ${logText}`);
 
-    // 3. Broadcast thời gian thực tới TẤT CẢ web client qua Socket.IO
+    // Nhật ký kỹ thuật chỉ được gửi tới các phòng dành cho cán bộ có thẩm quyền.
     if (this.io) {
       try {
-        this.io.emit('agent_terminal_log', logEntry);
+        this.io.to('role:STAFF').to('role:DEAN').to('role:ADMIN').emit('agent_terminal_log', logEntry);
       } catch (err) {
         console.warn('⚠️ [AgentTerminalLogger] Lỗi emit socket toàn cục:', err.message);
       }
@@ -75,7 +75,7 @@ class AgentTerminalLoggerManager {
     this.buffer = [];
     if (this.io) {
       try {
-        this.io.emit('agent_terminal_clear');
+        this.io.to('role:STAFF').to('role:DEAN').to('role:ADMIN').emit('agent_terminal_clear');
       } catch (err) {
         console.warn('⚠️ [AgentTerminalLogger] Lỗi emit clear:', err.message);
       }

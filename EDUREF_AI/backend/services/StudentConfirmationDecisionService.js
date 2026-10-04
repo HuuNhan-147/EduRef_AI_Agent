@@ -7,8 +7,6 @@ export const TRACK_A_CLASSIFICATION = Object.freeze({
 });
 
 export const TRACK_A_DECISION = Object.freeze({
-  AUTO_APPROVE: 'AUTO_APPROVED',
-  AUTO_REJECT: 'REJECTED_POLICY',
   ASK_CLARIFICATION: 'ASK_CLARIFICATION',
   ESCALATE_STAFF: 'ESCALATE_TO_STAFF',
 });
@@ -54,10 +52,12 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     return {
       classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
       uncertaintyType: null,
-      decision: TRACK_A_DECISION.AUTO_REJECT,
+      decision: TRACK_A_DECISION.ESCALATE_STAFF,
       rule: 'POL_STUDENT_ACTIVE',
+      targetRole: 'STAFF',
       reason: `Policy quy định rõ chỉ sinh viên ACTIVE được cấp giấy; trạng thái hiện tại là [${student?.status || 'UNKNOWN'}].`,
-      userMessage: 'Yêu cầu bị từ chối tự động vì người nộp không có trạng thái sinh viên đang học hợp lệ.',
+      userMessage: 'AI đã gắn cờ điều kiện chưa đạt và chuyển cán bộ xem xét; AI không tự từ chối hồ sơ.',
+      actionableQuestion: 'Cán bộ Phòng Đào tạo xác nhận hướng xử lý phù hợp cho hồ sơ có trạng thái học tập này?',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
@@ -66,10 +66,12 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     return {
       classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
       uncertaintyType: null,
-      decision: TRACK_A_DECISION.AUTO_REJECT,
+      decision: TRACK_A_DECISION.ESCALATE_STAFF,
       rule: 'POL_TUITION_DEBT_MAX_10M',
+      targetRole: 'STAFF',
       reason: `Policy quy định rõ ngưỡng nợ học phí tối đa là 10.000.000 VNĐ; hồ sơ hiện tại là ${Number(student.tuitionDebt).toLocaleString('vi-VN')} VNĐ.`,
-      userMessage: 'Yêu cầu bị từ chối tự động theo ngưỡng nợ học phí đã công bố trong policy.',
+      userMessage: 'AI đã gắn cờ nghĩa vụ tài chính và chuyển cán bộ xem xét; AI không tự từ chối hồ sơ.',
+      actionableQuestion: 'Cán bộ Phòng Đào tạo xác nhận hồ sơ cần bổ sung nghĩa vụ tài chính hay có hướng xử lý khác?',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
@@ -106,10 +108,12 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
   return {
     classification: TRACK_A_CLASSIFICATION.ROUTINE,
     uncertaintyType: null,
-    decision: TRACK_A_DECISION.AUTO_APPROVE,
+    decision: TRACK_A_DECISION.ESCALATE_STAFF,
     rule: `PURPOSE_${routinePurpose.code}`,
     purposeCode: routinePurpose.code,
-    reason: `Mục đích thuộc danh mục thường quy [${routinePurpose.code}], hồ sơ đủ dữ kiện và nằm trong thẩm quyền tự động.`,
+    targetRole: 'STAFF',
+    reason: `Mục đích thuộc danh mục thường quy [${routinePurpose.code}] và hồ sơ đã đủ dữ kiện để cán bộ xem xét.`,
+    actionableQuestion: 'Cán bộ Phòng Đào tạo kiểm tra thông tin đã được AI chuẩn bị và đưa ra quyết định cuối cùng?',
     policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
   };
 }

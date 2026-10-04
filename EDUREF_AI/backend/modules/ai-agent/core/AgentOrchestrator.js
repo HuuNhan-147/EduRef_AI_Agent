@@ -9,12 +9,53 @@ import certificateVisionService from '../../../services/CertificateVisionService
 import AuditLogService from '../../../services/AuditLogService.js';
 import { describeToolOutcome } from './toolOutcome.js';
 
+const PUBLIC_TOOL_LABELS = Object.freeze({
+  get_student_profile: ['CHECK_STUDENT_DATA', 'Đang kiểm tra thông tin sinh viên'],
+  get_student_requests: ['CHECK_HISTORY', 'Đang kiểm tra các yêu cầu gần đây'],
+  create_request: ['CREATE_REQUEST', 'Đang tạo hồ sơ yêu cầu'],
+  get_request: ['CHECK_REQUEST', 'Đang đọc thông tin hồ sơ'],
+  check_requirements: ['CHECK_REQUIREMENTS', 'Đang kiểm tra thông tin cần thiết'],
+  evaluate_policy: ['CHECK_POLICY', 'Đang đối chiếu quy định áp dụng'],
+  check_authority: ['CHECK_AUTHORITY', 'Đang xác định bộ phận có thẩm quyền'],
+  process_request: ['ROUTE_REQUEST', 'Đang chuẩn bị chuyển hồ sơ cho cán bộ'],
+  ask_student: ['WAITING_STUDENT', 'Đang chuẩn bị yêu cầu bổ sung'],
+  escalate_request: ['ROUTE_REQUEST', 'Đang chuyển hồ sơ đến bộ phận phụ trách'],
+  get_execution_trace: ['CHECK_HISTORY', 'Đang tổng hợp lịch sử xử lý'],
+});
+
 export class AgentOrchestrator {
-  constructor(socket = null, sessionId = null) {
+  constructor(socket = null, sessionId = null, { runId = null, onProgress = null, signal = null } = {}) {
     this.socket = socket;
     this.sessionId = sessionId || `sess_${Date.now()}`;
+    this.runId = runId || `run_${Date.now()}`;
+    this.onProgress = onProgress;
+    this.signal = signal;
+    this.progressSequence = 0;
     this.logger = new AgentTerminalLogger(socket, this.sessionId);
     this.geminiClient = new GeminiStreamClient();
+  }
+
+  emitProgress(phase, status, label, summary = '') {
+    const event = {
+      sessionId: this.sessionId,
+      runId: this.runId,
+      sequence: ++this.progressSequence,
+      phase,
+      status,
+      label,
+      summary,
+      timestamp: new Date().toISOString(),
+    };
+    this.onProgress?.(event);
+    return event;
+  }
+
+  throwIfCancelled() {
+    if (this.signal?.aborted) {
+      const error = new Error('Yêu cầu đã được người dùng dừng.');
+      error.name = 'AbortError';
+      throw error;
+    }
   }
 
   /**
@@ -23,6 +64,7 @@ export class AgentOrchestrator {
   async run({ message, currentUser = null, conversationHistory = [], onChunk = null, attachments = null, inputData = null }) {
     const startTime = Date.now();
     const perfTimeline = [];
+    this.emitProgress('UNDERSTAND_REQUEST', 'RUNNING', 'Đang đọc và xác định mục đích yêu cầu');
     this.logger.log({
       step: 'START',
       message: `Nhận yêu cầu: "${message}"`,
@@ -30,6 +72,7 @@ export class AgentOrchestrator {
     });
 
     try {
+      this.throwIfCancelled();
       // 0. Giám định Đa phương thức (Gemini Vision) nếu người dùng có gửi kèm ảnh chứng chỉ
       const certsToVerify = [];
       if (attachments?.b1?.previewUrl) {
@@ -45,6 +88,8 @@ export class AgentOrchestrator {
         let visionRejectMessage = '';
 
         for (const cert of certsToVerify) {
+          this.throwIfCancelled();
+          this.emitProgress('CHECK_DOCUMENTS', 'RUNNING', `Đang kiểm tra tài liệu ${cert.name}`);
           this.logger.log({
             step: 'MULTIMODAL_VISION',
             message: `👁️ [Gemini 2.0 Flash Vision] Đang giám định trực tiếp ảnh văn bằng "${cert.name}"...`,
@@ -58,6 +103,8 @@ export class AgentOrchestrator {
             expectedType: cert.type,
             studentName,
           });
+          this.throwIfCancelled();
+          this.emitProgress('CHECK_DOCUMENTS', 'COMPLETED', `Đã kiểm tra tài liệu ${cert.name}`, 'Kết quả kiểm tra đã được lưu để cán bộ đối chiếu.');
           const visionDuration = Date.now() - visionStart;
           perfTimeline.push({ name: `Vision OCR: [${cert.name}]`, duration: visionDuration, type: 'VISION' });
 
@@ -106,6 +153,7 @@ export class AgentOrchestrator {
             decisionTimeMs: Date.now() - startTime,
           });
           if (onChunk) onChunk(reply);
+          this.emitProgress('WAITING_HUMAN', 'COMPLETED', 'Đã chuyển tài liệu cần xác minh thủ công', 'AI không tự kết luận khi bằng chứng chưa đủ rõ.');
           return {
             reply,
             decision: 'ESCALATE_TO_STAFF',
@@ -130,6 +178,7 @@ export class AgentOrchestrator {
 
           const reply = `Chào bạn, hệ thống thẩm định AI phát hiện: ${visionRejectMessage}\n\nBạn vui lòng kiểm tra và cung cấp lại bản scan rõ nét, đầy đủ số hiệu pháp lý và chữ ký mộc đỏ để tiếp tục quy trình xét tốt nghiệp.`;
           if (onChunk) onChunk(reply);
+          this.emitProgress('WAITING_STUDENT', 'COMPLETED', 'Cần bạn bổ sung tài liệu rõ hơn', visionRejectMessage);
 
           return {
             reply,
@@ -171,6 +220,7 @@ export class AgentOrchestrator {
 
       const prepDuration = Date.now() - prepStart;
       perfTimeline.push({ name: 'Tiền xử lý (Context & Prompt)', duration: prepDuration, type: 'PREP' });
+      this.emitProgress('UNDERSTAND_REQUEST', 'COMPLETED', 'Đã hiểu yêu cầu và chuẩn bị ngữ cảnh', 'EduRef chỉ sử dụng dữ liệu thuộc phiên đã xác thực.');
 
       // 2. Định dạng nội dung hội thoại chuẩn Gemini (đảm bảo xen kẽ user - model)
       const contents = [
@@ -186,6 +236,7 @@ export class AgentOrchestrator {
         message: 'Tác tử đang phân tích ngôn ngữ tự nhiên và trích xuất thực thể...',
         type: 'thought',
       });
+      this.emitProgress('PLAN', 'RUNNING', 'Đang lập các bước kiểm tra phù hợp');
 
       // 3. Vòng lặp ReAct Đa bước Tự hành (Autonomous Multi-Step ReAct Loop)
       let stepCount = 0;
@@ -195,14 +246,17 @@ export class AgentOrchestrator {
 
       while (stepCount < maxSteps) {
         stepCount++;
+        this.throwIfCancelled();
 
         const llmStart = Date.now();
         const stepResult = await this.geminiClient.streamGenerateContent(
           contents,
           functionDeclarations,
           systemInstruction,
-          onChunk
+          onChunk,
+          { signal: this.signal }
         );
+        this.throwIfCancelled();
         const llmDuration = Date.now() - llmStart;
 
         const functionCallPart = stepResult.parts?.find((p) => p.functionCall);
@@ -216,11 +270,14 @@ export class AgentOrchestrator {
 
         if (!functionCallPart) {
           finalReplyText = stepResult.text || '';
+          this.emitProgress('PREPARE_RESPONSE', 'RUNNING', 'Đang hoàn thiện phản hồi cho bạn');
           break;
         }
 
         // Thực thi Function Call (Gọi Tool nghiệp vụ)
         const { name: toolName, args: toolArgs } = functionCallPart.functionCall;
+        const [publicPhase, publicLabel] = PUBLIC_TOOL_LABELS[toolName] || ['PROCESS', 'Đang thực hiện bước xử lý tiếp theo'];
+        this.emitProgress(publicPhase, 'RUNNING', publicLabel);
 
         this.logger.log({
           step: 'TOOL_INVOCATION',
@@ -232,6 +289,7 @@ export class AgentOrchestrator {
         // Điều phối thực thi qua ToolResolver
         const toolStart = Date.now();
         const toolResult = await ToolResolver.resolve(toolName, toolArgs);
+        this.throwIfCancelled();
         const toolDuration = Date.now() - toolStart;
         lastToolResult = toolResult;
 
@@ -247,6 +305,7 @@ export class AgentOrchestrator {
           type: 'tool_result',
           meta: toolResult,
         });
+        this.emitProgress(publicPhase, 'COMPLETED', publicLabel.replace(/^Đang /, 'Đã '), `Kết quả: ${describeToolOutcome(toolResult)}.`);
 
         // Bổ sung lịch sử gọi tool chuẩn Gemini 2.0 (bảo tồn thoughtSignature)
         contents.push({
@@ -319,15 +378,18 @@ export class AgentOrchestrator {
         type: 'decision',
         meta: { decision: lastToolResult?.decision, totalDuration },
       });
+      this.emitProgress('COMPLETED', 'COMPLETED', 'Đã hoàn tất phân tích và chuẩn bị kết quả', 'Quyết định nghiệp vụ cuối cùng thuộc về cán bộ có thẩm quyền.');
 
       return {
         reply: finalReplyText,
         toolResult: lastToolResult,
         decision: lastToolResult?.decision || 'PROCESSED',
         sessionId: this.sessionId,
+        runId: this.runId,
         totalDuration,
       };
     } catch (error) {
+      const cancelled = error?.name === 'AbortError' || this.signal?.aborted;
       console.error('❌ [AgentOrchestrator] Lỗi:', error);
       this.logger.log({
         step: 'ERROR',
@@ -335,10 +397,20 @@ export class AgentOrchestrator {
         type: 'error',
       });
 
+      this.emitProgress(
+        cancelled ? 'CANCELLED' : 'FAILED',
+        cancelled ? 'CANCELLED' : 'FAILED',
+        cancelled ? 'Đã dừng xử lý theo yêu cầu của bạn' : 'Chưa thể hoàn tất yêu cầu',
+        cancelled ? 'Không có bước xử lý mới nào được tiếp tục sau khi dừng.' : 'Bạn có thể kiểm tra kết nối và thử lại.',
+      );
+
       return {
-        reply: `Xin lỗi bạn, đã xảy ra lỗi trong quá trình thẩm định học vụ: ${error.message}`,
+        reply: cancelled ? '' : `Xin lỗi bạn, đã xảy ra lỗi trong quá trình thẩm định học vụ: ${error.message}`,
         error: error.message,
+        cancelled,
         sessionId: this.sessionId,
+        runId: this.runId,
+        totalDuration: Date.now() - startTime,
       };
     }
   }

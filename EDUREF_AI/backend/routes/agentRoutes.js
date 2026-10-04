@@ -2,8 +2,10 @@ import express from 'express';
 import prisma from '../config/prisma.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
 import { runAgent } from '../modules/ai-agent/index.js';
+import { runStudentIntake } from '../modules/ai-agent/StudentIntakeService.js';
 import verifyTools from '../modules/ai-agent/tools/actions/verifyTools.js';
-import petitionTools from '../modules/ai-agent/tools/actions/petitionTools.js';
+import AcademicWorkflowService from '../services/AcademicWorkflowService.js';
+import { randomUUID } from 'node:crypto';
 
 const router = express.Router();
 
@@ -59,15 +61,23 @@ router.post('/chat', authenticateToken, async (req, res) => {
       return res.status(403).json({ success: false, message: 'Không xác định được danh tính hợp lệ của phiên đăng nhập.' });
     }
 
-    const result = await runAgent({
+    const progressEvents = [];
+    const agentRunner = userContext.role === 'STUDENT' ? runStudentIntake : runAgent;
+    const result = await agentRunner({
       message,
       currentUser: userContext,
       sessionId,
+      runId: req.body.runId || `run_${randomUUID()}`,
       attachments,
       inputData,
+      onProgress: (event) => progressEvents.push(event),
     });
 
-    res.json({ success: true, data: result });
+    if (userContext.role === 'STUDENT' && result.error) {
+      return res.status(502).json({ success: false, message: result.reply });
+    }
+
+    res.json({ success: true, data: { ...result, progressEvents } });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -76,7 +86,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
 /**
  * POST /api/agent/verify-90s (Kích hoạt bộ chạy kiểm thử 5 Test Cases 90s cho BGK)
  */
-router.post('/verify-90s', authenticateToken, async (req, res) => {
+router.post('/verify-90s', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const result = await verifyTools.run_verify_90s();
     res.json(result);
@@ -88,7 +98,7 @@ router.post('/verify-90s', authenticateToken, async (req, res) => {
 /**
  * POST /api/agent/verify-general (Bộ Verify tổng quát 4 ca theo đề bài)
  */
-router.post('/verify-general', authenticateToken, async (req, res) => {
+router.post('/verify-general', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const result = await verifyTools.run_general_verify();
     res.json(result);
@@ -113,7 +123,7 @@ router.post('/verify-custom', authenticateToken, requireStaffOrDean, async (req,
 /**
  * POST /api/agent/verify-custom-prompt (Ca mới do giám khảo nhập bằng ngôn ngữ tự nhiên)
  */
-router.post('/verify-custom-prompt', authenticateToken, async (req, res) => {
+router.post('/verify-custom-prompt', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const { prompt, studentCode } = req.body;
     if (!prompt || !String(prompt).trim()) {
@@ -136,7 +146,14 @@ router.post('/rollback', authenticateToken, requireStaffOrDean, async (req, res)
       return res.status(400).json({ success: false, message: 'Thiếu requestCode.' });
     }
 
-    const result = await petitionTools.rollback_student_request({ requestCode, reason });
+    const result = await AcademicWorkflowService.rollbackRequest({
+      requestCode,
+      reason,
+      actorType: req.user.role,
+      actorId: req.user.id,
+      staffName: req.user.fullName || req.user.username || 'Cán bộ Phòng Đào tạo',
+    });
+    if (!result.success) return res.status(result.error?.includes('thẩm quyền') ? 403 : 409).json(result);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -153,7 +170,15 @@ router.post('/staff-confirm', authenticateToken, requireStaffOrDean, async (req,
       return res.status(400).json({ success: false, message: 'Thiếu requestId.' });
     }
 
-    const result = await petitionTools.staff_confirm_request({ requestId, reviewerNote, approved });
+    const result = await AcademicWorkflowService.staffDecision({
+      requestId,
+      decision: approved ? 'APPROVE' : 'REJECT',
+      reviewerNote,
+      actorType: req.user.role,
+      actorId: req.user.id,
+      staffName: req.user.fullName || req.user.username || 'Cán bộ Phòng Đào tạo',
+    });
+    if (!result.success) return res.status(result.error?.includes('quyền') ? 403 : 409).json(result);
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
@@ -163,7 +188,7 @@ router.post('/staff-confirm', authenticateToken, requireStaffOrDean, async (req,
 /**
  * GET /api/agent/terminal-logs (Lấy lịch sử reasoning terminal logs gần nhất)
  */
-router.get('/terminal-logs', authenticateToken, async (req, res) => {
+router.get('/terminal-logs', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
     const { agentTerminalLogger } = await import('../modules/ai-agent/core/AgentTerminalLogger.js');
     const limit = parseInt(req.query.limit, 10) || 150;

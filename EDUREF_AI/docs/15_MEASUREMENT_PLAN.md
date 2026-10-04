@@ -13,7 +13,8 @@ Các chỉ số `missed escalation` và `false escalation` chỉ có ý nghĩa t
 
 - Missed escalation rate = số ca cần chuyển tiếp nhưng bị auto / tổng số ca cần chuyển tiếp.
 - False escalation rate = số ca routine bị chuyển tiếp / tổng số ca routine.
-- Routine automation rate = số ca routine auto hoàn tất / tổng số ca routine hợp lệ.
+- Human resolved rate = số hồ sơ đã được cán bộ phê duyệt hoặc từ chối / tổng số hồ sơ.
+- Awaiting human review rate = số hồ sơ đang chờ cán bộ / tổng số hồ sơ.
 - Processing time dùng `decisionTimeMs` từ audit log, báo median và p95 bên cạnh trung bình.
 
 Khi chưa có tập độc lập, dashboard phải hiển thị “Chưa đo”, không suy ra 0% từ bộ Verify nội bộ.

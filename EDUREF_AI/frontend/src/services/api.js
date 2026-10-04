@@ -1,34 +1,33 @@
-// src/services/api.js
-// Client giao tiếp HTTP REST API tới Backend EduRef AI.
-
 import axios from 'axios';
+import { UI_PREVIEW_MODE } from './previewMode';
+
+export { UI_PREVIEW_MODE } from './previewMode';
 
 const isBrowser = typeof window !== 'undefined';
-const isLocal = isBrowser && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1');
+const isLocal = isBrowser && ['localhost', '127.0.0.1'].includes(window.location.hostname);
 
-export const API_BASE_URL = import.meta.env.VITE_API_URL 
+export const API_BASE_URL = import.meta.env.VITE_API_URL
   || (isLocal ? 'http://localhost:5000/api' : 'https://eduref-ai-agent-1.onrender.com/api');
 
-const api = axios.create({
+const apiConfig = {
   baseURL: API_BASE_URL,
-  headers: {
-    'Content-Type': 'application/json',
-  },
+  timeout: 120000,
+  headers: { 'Content-Type': 'application/json' },
+};
+
+if (UI_PREVIEW_MODE) {
+  const adapterPromise = import('./uiPreview').then(({ createUiPreviewAdapter }) => createUiPreviewAdapter());
+  apiConfig.adapter = (config) => adapterPromise.then((adapter) => adapter(config));
+}
+
+const api = axios.create(apiConfig);
+
+api.interceptors.request.use((config) => {
+  const token = localStorage.getItem('eduref_token');
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
 });
 
-// Tự động đính kèm Token JWT vào mọi Request
-api.interceptors.request.use(
-  (config) => {
-    const token = localStorage.getItem('eduref_token');
-    if (token) {
-      config.headers.Authorization = `Bearer ${token}`;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
-
-// Danh mục tài khoản Demo chuẩn phục vụ 1-Click Role Switcher cho BGK
 export const DEMO_ACCOUNTS = {
   STUDENT_ACTIVE: {
     type: 'STUDENT',
@@ -36,12 +35,11 @@ export const DEMO_ACCOUNTS = {
     name: 'Cao Hữu Nhân',
     role: 'STUDENT',
     class: '22DTHE4',
-    faculty: 'Khoa Công Nghệ Thông Tin',
+    faculty: 'Khoa Công nghệ Thông tin',
     birthDate: '26/07/2003',
     gender: 'Nam',
     major: 'Công nghệ thông tin',
-    tag: 'Sinh viên tiêu chuẩn (Hợp lệ)',
-    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    tag: 'Sinh viên tiêu chuẩn · hợp lệ',
     accountKey: 'STUDENT_ACTIVE',
   },
   STUDENT_DROPPED: {
@@ -49,8 +47,7 @@ export const DEMO_ACCOUNTS = {
     code: '2110002',
     name: 'Trần Thị Bình',
     role: 'STUDENT',
-    tag: 'Sinh viên thôi học (Test Sai quy chế)',
-    badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+    tag: 'Sinh viên thôi học · kiểm thử policy',
     accountKey: 'STUDENT_DROPPED',
   },
   STUDENT_DEBT: {
@@ -58,44 +55,44 @@ export const DEMO_ACCOUNTS = {
     code: '2110003',
     name: 'Lê Hoàng Cường',
     role: 'STUDENT',
-    tag: 'Sinh viên nợ phí 15M (Test Chặn nợ)',
-    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+    tag: 'Sinh viên còn công nợ · kiểm thử policy',
     accountKey: 'STUDENT_DEBT',
   },
   STAFF_DAOTAO: {
     type: 'STAFF',
     code: 'staff_daotao',
-    name: 'Thầy Trần Hữu Nghĩa (Chuyên viên PĐT)',
+    name: 'Thầy Trần Hữu Nghĩa',
     role: 'STAFF',
-    tag: 'Chuyên viên PĐT (STAFF Review)',
-    badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
+    tag: 'Chuyên viên Phòng Đào tạo',
     accountKey: 'STAFF_DAOTAO',
   },
   DEAN_DAOTAO: {
     type: 'DEAN',
     code: 'dean_daotao',
-    name: 'PGS.TS Nguyễn Văn Dũng (Trưởng PĐT)',
+    name: 'PGS.TS Nguyễn Văn Dũng',
     role: 'DEAN',
-    tag: 'Trưởng phòng Đào tạo (DEAN Approval)',
-    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+    tag: 'Trưởng Phòng Đào tạo',
     accountKey: 'DEAN_DAOTAO',
   },
 };
 
-/**
- * Hàm đăng nhập và đổi vai trò 1-Click
- */
 const roleSwitchRequests = new Map();
 let latestRoleSwitchRequest = 0;
 
 export const switchRoleAuth = (accountKey) => {
-  const acc = DEMO_ACCOUNTS[accountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
+  const account = DEMO_ACCOUNTS[accountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
+  if (UI_PREVIEW_MODE) {
+    return import('./uiPreview').then(({ setPreviewAccount }) => {
+      setPreviewAccount(accountKey);
+      return { ...account, preview: true };
+    });
+  }
   const requestId = ++latestRoleSwitchRequest;
   let request = roleSwitchRequests.get(accountKey);
 
   if (!request) {
     request = axios
-      .post(`${API_BASE_URL}/auth/demo-login`, { accountKey: acc.accountKey })
+      .post(`${API_BASE_URL}/auth/demo-login`, { accountKey: account.accountKey }, { timeout: 30000 })
       .finally(() => {
         if (roleSwitchRequests.get(accountKey) === request) roleSwitchRequests.delete(accountKey);
       });
@@ -103,20 +100,15 @@ export const switchRoleAuth = (accountKey) => {
   }
 
   return request
-    .then((res) => {
-      // Chỉ yêu cầu đổi vai trò mới nhất được quyền ghi JWT. Một request cũ
-      // hoàn tất muộn không thể ghi đè phiên mà người dùng vừa chọn.
-      if (requestId !== latestRoleSwitchRequest || !res.data.success || !res.data.token) return null;
-      localStorage.setItem('eduref_token', res.data.token);
-      localStorage.setItem('eduref_user', JSON.stringify(res.data.user));
+    .then((response) => {
+      if (requestId !== latestRoleSwitchRequest || !response.data.success || !response.data.token) return null;
+      localStorage.setItem('eduref_token', response.data.token);
+      localStorage.setItem('eduref_user', JSON.stringify(response.data.user));
       localStorage.setItem('eduref_role_key', accountKey);
       window.dispatchEvent(new Event('eduref-auth-changed'));
-      return res.data.user;
+      return response.data.user;
     })
-    .catch((err) => {
-      console.error('❌ Lỗi đăng nhập khi đổi vai trò:', err);
-      return null;
-    });
+    .catch(() => null);
 };
 
 export default api;

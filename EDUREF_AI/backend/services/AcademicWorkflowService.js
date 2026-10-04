@@ -361,13 +361,9 @@ class AcademicWorkflowService {
 
       if (request.requestType.code === 'STUDENT_CONFIRMATION') {
         const policyResult = evaluateStudentConfirmation({ student, inputData });
-        const decision = policyResult.decision === TRACK_A_DECISION.AUTO_APPROVE
-          ? 'PASS'
-          : policyResult.decision === TRACK_A_DECISION.AUTO_REJECT
-            ? 'FAIL'
-            : policyResult.decision === TRACK_A_DECISION.ASK_CLARIFICATION
-              ? 'NEEDS_INFO'
-              : 'ESCALATE';
+        const decision = policyResult.decision === TRACK_A_DECISION.ASK_CLARIFICATION
+          ? 'NEEDS_INFO'
+          : 'ESCALATE';
 
         await AuditLogService.recordLog({
           requestId: request.id,
@@ -454,7 +450,7 @@ class AcademicWorkflowService {
   /**
    * 7. check_authority: Kiểm tra quyền hạn của Tác tử AI (Bounded Autonomy)
    */
-  static async checkAuthority({ requestId, actor = 'AI_AGENT', action = 'AUTO_APPROVE' }) {
+  static async checkAuthority({ requestId, actor = 'AI_AGENT', action = 'ROUTE_TO_HUMAN' }) {
     try {
       const request = await prisma.studentRequest.findFirst({
         where: { OR: [{ id: requestId }, { requestCode: requestId }] },
@@ -470,23 +466,13 @@ class AcademicWorkflowService {
 
       if (request.requestType.code === 'STUDENT_CONFIRMATION') {
         const policyResult = evaluateStudentConfirmation({ student: request.student, inputData });
-        if (policyResult.decision === TRACK_A_DECISION.AUTO_APPROVE) {
-          return {
-            allowed: true,
-            action: 'AUTO_APPROVE',
-            requiredRole: 'AI_AGENT',
-            classification: policyResult.classification,
-            reason: policyResult.reason,
-          };
-        }
-
         return {
           allowed: false,
-          action: policyResult.decision === TRACK_A_DECISION.ASK_CLARIFICATION ? 'ASK_CLARIFICATION' : 'ESCALATE',
-          requiredRole: policyResult.requiredRole || 'STAFF',
+          action: policyResult.decision === TRACK_A_DECISION.ASK_CLARIFICATION ? 'ASK_CLARIFICATION' : 'STAFF_REVIEW',
+          requiredRole: 'STAFF',
           classification: policyResult.classification,
           reason: policyResult.reason,
-          actionableQuestion: policyResult.actionableQuestion,
+          actionableQuestion: policyResult.actionableQuestion || 'Cán bộ Phòng Đào tạo kiểm tra hồ sơ và đưa ra quyết định cuối cùng?',
         };
       }
 
@@ -500,30 +486,15 @@ class AcademicWorkflowService {
         };
       }
 
-      // Tra cứu authority_rules trong DB cho requestType này
+      // Tra cứu authority_rules để định tuyến đúng cấp con người.
       const rules = request.requestType.authorityRules;
-      const agentRule = rules.find((r) => r.role === 'AI_AGENT' && r.active);
-
-      // Nếu loại đơn chỉ cho phép STAFF hoặc DEAN
-      if (!agentRule || agentRule.action !== 'AUTO_APPROVE') {
-        const staffRule = rules.find((r) => r.role === 'STAFF');
-        const deanRule = rules.find((r) => r.role === 'DEAN');
-        const requiredRole = deanRule ? 'DEAN' : staffRule ? 'STAFF' : 'STAFF';
-
-        return {
-          allowed: false,
-          action: 'ESCALATE',
-          requiredRole,
-          reason: `HIGH_AUTHORITY_REQUIRED: Loại thủ tục [${request.requestType.name}] thuộc thẩm quyền phê duyệt của [${requiredRole}]. Tác tử AI không được tự động duyệt.`,
-        };
-      }
-
-      // Nếu agent có quyền tự duyệt
+      const deanRule = rules.find((rule) => rule.role === 'DEAN' && rule.active);
+      const requiredRole = deanRule ? 'DEAN' : 'STAFF';
       return {
-        allowed: true,
-        action: 'AUTO_APPROVE',
-        requiredRole: 'AI_AGENT',
-        reason: 'ROUTINE_AUTO: Đơn thuộc thẩm quyền tự xử lý của Tác tử AI.',
+        allowed: false,
+        action: requiredRole === 'DEAN' ? 'DEAN_APPROVAL' : 'STAFF_REVIEW',
+        requiredRole,
+        reason: `HUMAN_DECISION_REQUIRED: AI chỉ chuẩn bị và định tuyến hồ sơ [${request.requestType.name}]; cấp [${requiredRole}] quyết định.`,
       };
     } catch (error) {
       return { allowed: false, error: error.message };
@@ -534,9 +505,7 @@ class AcademicWorkflowService {
   // NHÓM E: ACTION / HUMAN-IN-THE-LOOP (HITL)
   // =========================================================================
 
-  /**
-   * 8. process_request: Thực thi duyệt tự động (Backend Security Re-check)
-   */
+  /** 8. process_request: Kiểm tra lại và chuyển hồ sơ cho con người quyết định. */
   static async processRequest(requestId) {
     try {
       const request = await prisma.studentRequest.findFirst({
@@ -551,61 +520,30 @@ class AcademicWorkflowService {
         throw new Error(`Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể xử lý lại.`);
       }
 
-      const beforeState = { status: request.status, qrCodeUrl: request.qrCodeUrl };
-
-      // Backend an toàn tự động re-check trước khi mutation
       const reqCheck = await this.checkRequirements(request.id);
       if (!reqCheck.complete) {
-        throw new Error(`Không thể duyệt đơn: Còn thiếu thông tin [${reqCheck.missing.map((m) => m.name).join(', ')}]`);
+        return await this.askStudent({
+          requestId: request.id,
+          question: `Vui lòng bổ sung: ${reqCheck.missing.map((item) => item.name).join(', ')}.`,
+        });
       }
 
       const policyCheck = await this.evaluatePolicy(request.id);
-      if (policyCheck.decision !== 'PASS') {
-        throw new Error(`Không thể duyệt đơn: Vi phạm quy chế đào tạo`);
-      }
-
       const authCheck = await this.checkAuthority({ requestId: request.id });
-      if (!authCheck.allowed) {
-        throw new Error(`Không thể duyệt đơn: Vượt thẩm quyền của Tác tử AI`);
-      }
+      const requiredRole = authCheck.requiredRole === 'DEAN' ? 'DEAN' : 'STAFF';
+      const policyFlag = policyCheck.decision === 'FAIL';
+      const reason = policyFlag
+        ? `AI phát hiện điều kiện cần cán bộ xem xét: ${policyCheck.message || 'Kết quả đối chiếu quy định chưa đạt.'}`
+        : authCheck.reason || 'AI đã chuẩn bị đủ thông tin để cán bộ xem xét.';
 
-      // Tạo mã QR chứng thực số
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=EDUREF_VERIFIED_${request.requestCode}_${request.student.studentCode}`;
-
-      // Ghi log Audit với chữ ký SHA-256
-      const auditLog = await AuditLogService.recordLogWithMutation({
+      return await this.escalateRequest({
         requestId: request.id,
-        actorType: 'AI_AGENT',
-        action: 'PROCESS_REQUEST_AUTO_APPROVE',
-        decision: 'APPROVED',
-        reason: 'Tác tử tự động phê duyệt thành công sau khi vượt qua tất cả các chốt chặn',
-        inputSnapshot: request.inputData,
-        beforeState,
-        afterState: { status: 'APPROVED', qrCodeUrl },
-      }, async (tx, log) => {
-        await tx.studentRequest.update({
-          where: { id: request.id },
-          data: {
-            status: 'APPROVED',
-            decision: 'ROUTINE_AUTO_APPROVED',
-            qrCodeUrl,
-            sha256Proof: log.sha256Hash,
-          },
-        });
+        reason,
+        actionableQuestion: policyFlag
+          ? 'Cán bộ xác nhận hướng xử lý cho điều kiện được AI gắn cờ?'
+          : 'Cán bộ kiểm tra thông tin đã chuẩn bị và đưa ra quyết định cuối cùng?',
+        requiredRole,
       });
-
-      return {
-        success: true,
-        status: 'APPROVED',
-        decision: 'AUTO_APPROVED',
-        requestCode: request.requestCode,
-        studentName: request.student.fullName,
-        studentCode: request.student.studentCode,
-        requestTypeName: request.requestType.name,
-        qrCodeUrl,
-        sha256Proof: auditLog?.sha256Hash,
-        message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công. Mã QR chứng thực số đã sẵn sàng.`,
-      };
     } catch (error) {
       return { success: false, error: error.message };
     }
@@ -672,14 +610,18 @@ class AcademicWorkflowService {
         reason,
         actionableQuestion,
         requiredRole,
+        targetUnit: 'ACADEMIC_AFFAIRS',
+        aiRecommendation: 'READY_FOR_HUMAN_REVIEW',
         escalatedAt: new Date().toISOString(),
       };
+
+      const escalationDecision = requiredRole === 'DEAN' ? 'ESCALATE_TO_DEAN' : 'ESCALATE_TO_STAFF';
 
       await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType: 'AI_AGENT',
         action: 'ESCALATE_REQUEST',
-        decision: 'ESCALATED_PENDING',
+        decision: escalationDecision,
         reason,
         inputSnapshot: contextCapsule,
       }, async (tx) => {
@@ -687,7 +629,7 @@ class AcademicWorkflowService {
           where: { id: request.id },
           data: {
             status: 'ESCALATED',
-            decision: 'ESCALATED_PENDING',
+            decision: escalationDecision,
             escalationReason: reason,
             contextCapsule,
           },
@@ -697,7 +639,7 @@ class AcademicWorkflowService {
       return {
         success: true,
         status: 'ESCALATED',
-        decision: 'ESCALATED_PENDING',
+        decision: escalationDecision,
         requestCode: request.requestCode,
         requiredRole,
         actionableQuestion,
@@ -717,6 +659,7 @@ class AcademicWorkflowService {
     decision = 'APPROVE',
     reviewerNote = '',
     actorType = 'STAFF',
+    actorId = null,
     staffName = 'Chuyên viên PĐT',
   }) {
     try {
@@ -728,6 +671,20 @@ class AcademicWorkflowService {
       if (!request) return { success: false, error: 'Không tìm thấy đơn.' };
 
       const approved = decision === 'APPROVE';
+      const capsule = (typeof request.contextCapsule === 'object' && request.contextCapsule !== null)
+        ? request.contextCapsule
+        : {};
+      const requiredRole = capsule.requiredRole || (request.decision === 'ESCALATE_TO_DEAN' ? 'DEAN' : 'STAFF');
+
+      if (requiredRole === 'DEAN' && !['DEAN', 'ADMIN'].includes(actorType)) {
+        return { success: false, error: 'Hồ sơ này yêu cầu quyền Trưởng Phòng Đào tạo. Chuyên viên không được phép quyết định.' };
+      }
+      if (actorId && !request.assignedStaffId) {
+        return { success: false, error: 'Vui lòng nhận xử lý hồ sơ trước khi đưa ra quyết định.' };
+      }
+      if (request.assignedStaffId && actorId && request.assignedStaffId !== actorId && actorType !== 'ADMIN') {
+        return { success: false, error: 'Hồ sơ đang được một cán bộ khác xử lý. Vui lòng làm mới hàng đợi.' };
+      }
 
       // State Guard: Chặn thao tác trùng lặp hoặc trên đơn đã hủy
       if (request.status === 'CANCELLED') {
@@ -757,9 +714,7 @@ class AcademicWorkflowService {
       const beforeState = { status: request.status, qrCodeUrl: request.qrCodeUrl };
 
       // Cập nhật contextCapsule với ghi chú phê duyệt của Cán bộ / Trưởng khoa
-      const existingCapsule = (typeof request.contextCapsule === 'object' && request.contextCapsule !== null)
-        ? request.contextCapsule
-        : {};
+      const existingCapsule = capsule;
 
       const finalReviewerNote = reviewerNote?.trim() || (approved ? 'Hồ sơ hợp lệ, đồng ý phê duyệt.' : 'Từ chối tiếp nhận hồ sơ.');
       const updatedCapsule = {
@@ -789,6 +744,7 @@ class AcademicWorkflowService {
             decision: approved ? 'STAFF_MANUAL_APPROVED' : 'STAFF_MANUAL_REJECTED',
             qrCodeUrl,
             sha256Proof: log.sha256Hash,
+            assignedStaffId: actorId || request.assignedStaffId,
             escalationReason: preservedEscalationReason,
             contextCapsule: updatedCapsule,
           },
@@ -797,7 +753,10 @@ class AcademicWorkflowService {
 
       return {
         success: true,
+        requestId: request.id,
         requestCode: request.requestCode,
+        studentId: request.studentId,
+        studentCode: request.student?.studentCode,
         status: newStatus,
         qrCodeUrl,
         sha256Proof: auditLog?.sha256Hash,
@@ -822,6 +781,7 @@ class AcademicWorkflowService {
     requestCode,
     reason = 'Can thiệp dừng và ghi đè bởi Quản trị viên',
     actorType = 'STAFF',
+    actorId = null,
     staffName = 'Giám khảo / Cán bộ Quản lý',
   }) {
     try {
@@ -831,6 +791,17 @@ class AcademicWorkflowService {
       });
 
       if (!request) return { success: false, message: `Không tìm thấy hồ sơ đơn: ${searchTarget}` };
+
+      const capsule = request.contextCapsule && typeof request.contextCapsule === 'object'
+        ? request.contextCapsule
+        : {};
+      const requiredRole = capsule.requiredRole || (request.decision === 'ESCALATE_TO_DEAN' ? 'DEAN' : 'STAFF');
+      if (actorType === 'STAFF' && requiredRole === 'DEAN') {
+        return { success: false, error: 'Hồ sơ này thuộc thẩm quyền Trưởng Phòng Đào tạo. Chuyên viên không thể thu hồi.' };
+      }
+      if (actorType === 'STAFF' && (!actorId || request.assignedStaffId !== actorId)) {
+        return { success: false, error: 'Chuyên viên chỉ có thể thu hồi hồ sơ do chính mình phụ trách.' };
+      }
 
       // State Guard: Chặn hoàn tác lại đơn đã bị hủy từ trước
       if (request.status === 'CANCELLED') {
@@ -863,7 +834,9 @@ class AcademicWorkflowService {
 
       return {
         success: true,
+        requestId: request.id,
         requestCode: request.requestCode,
+        studentId: request.studentId,
         previousStatus: beforeState.status,
         currentStatus: 'CANCELLED',
         sha256Proof: auditLog?.sha256Hash,

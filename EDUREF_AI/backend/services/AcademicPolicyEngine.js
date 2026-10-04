@@ -18,17 +18,6 @@ class AcademicPolicyEngine {
     if (requestType.code === 'STUDENT_CONFIRMATION') {
       const result = evaluateStudentConfirmation({ student, inputData });
       const common = { ...result, decisionTimeMs: Date.now() - startTime };
-      if (result.decision === TRACK_A_DECISION.AUTO_APPROVE) {
-        return { ...common, decision: 'ROUTINE_AUTO_APPROVE', isRoutine: true };
-      }
-      if (result.decision === TRACK_A_DECISION.AUTO_REJECT) {
-        return {
-          ...common,
-          decision: 'EXPLICIT_POLICY_DENY',
-          policyCode: result.rule || 'STUDENT_CONFIRMATION_POLICY',
-          userMessage: result.userMessage || result.reason,
-        };
-      }
       if (result.decision === TRACK_A_DECISION.ESCALATE_STAFF) {
         return {
           ...common,
@@ -230,14 +219,16 @@ class AcademicPolicyEngine {
     }
 
     // =========================================================================
-    // CHỐT CHẶN 4: THỎA MÃN ĐẦY ĐỦ ĐIỀU KIỆN THƯỜNG QUY (ROUTINE AUTO APPROVE)
+    // CHỐT CHẶN 4: HỒ SƠ THƯỜNG QUY VẪN PHẢI QUA CON NGƯỜI QUYẾT ĐỊNH
     // =========================================================================
     // Áp dụng cho: Giấy xác nhận sinh viên (STUDENT_CONFIRMATION) và Bảng điểm (ACADEMIC_TRANSCRIPT)
     return {
-      decision: 'ROUTINE_AUTO_APPROVE',
+      decision: 'BEYOND_AUTHORITY',
       uncertaintyType: null,
       isRoutine: true,
-      reason: 'Hồ sơ đầy đủ dữ kiện, thỏa mãn 100% quy chế đào tạo, nằm trong phạm vi tự quyền của Tác tử AI.',
+      targetRole: 'STAFF',
+      actionableQuestion: 'Cán bộ Phòng Đào tạo kiểm tra hồ sơ đã được AI chuẩn bị và đưa ra quyết định cuối cùng?',
+      reason: 'Hồ sơ đủ dữ kiện để chuyển cán bộ Phòng Đào tạo xem xét. AI không tự phê duyệt hoặc từ chối.',
       decisionTimeMs: Date.now() - startTime,
     };
   }

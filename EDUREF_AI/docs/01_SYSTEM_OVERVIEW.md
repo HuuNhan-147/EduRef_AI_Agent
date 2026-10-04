@@ -26,7 +26,7 @@ EduRef AI được xây dựng theo tiêu chuẩn **Track 2 Option A: Bounded Au
 
 1. **Bounded Autonomy (Tự chủ có ranh giới bất biến):**
    - **Tự động phê duyệt 100% trong < 1 giây** đối với các thủ tục thường quy đủ điều kiện (Giấy xác nhận sinh viên hợp lệ).
-   - **Tuyệt đối không tự duyệt** các đơn vượt thẩm quyền (như Đơn xét tốt nghiệp, Đơn hoãn thi) mà bắt buộc phải chuyển tiếp lên Cán bộ/Lãnh đạo.
+   - **Tuyệt đối không tự phê duyệt hoặc từ chối** bất kỳ hồ sơ nào; mọi đơn phải được chuyển tới Cán bộ/Lãnh đạo đúng thẩm quyền.
 2. **Missing Information Guardrail (Chủ động làm rõ):**
    - Khi hồ sơ thiếu dữ kiện bắt buộc (mục đích, số điện thoại, nơi sinh), tác tử kiên quyết **không suy diễn**, chuyển trạng thái `WAITING_STUDENT` và đặt câu hỏi trực diện cho sinh viên.
 3. **Hard Policy Enforcement (Từ chối dứt khoát):**

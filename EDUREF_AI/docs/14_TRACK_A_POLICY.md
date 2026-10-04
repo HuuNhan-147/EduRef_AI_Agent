@@ -16,18 +16,19 @@ Policy version: `STUDENT_CONFIRMATION_V1.0.0`
 | Điều kiện | Phân loại | Hành động |
 |---|---|---|
 | Thiếu mục đích | `UNKNOWN_FACT` | `ASK_CLARIFICATION` với câu hỏi cụ thể |
-| Trạng thái không ACTIVE hoặc nợ vượt ngưỡng | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo policy rõ ràng |
+| Trạng thái không ACTIVE hoặc nợ vượt ngưỡng | `ROUTINE_POLICY_DENY` | Gắn cờ và `ESCALATE_TO_STAFF` để cán bộ quyết định |
 | Mục đích không nằm trong danh mục | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` với câu hỏi hành động |
 | Yêu cầu bỏ qua quy định/phê duyệt miệng | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` với câu hỏi xác minh |
-| Đủ dữ kiện, đúng policy, mục đích thường quy | `ROUTINE` | `AUTO_APPROVED` |
+| Đủ dữ kiện, đúng policy, mục đích thường quy | `ROUTINE` | `ESCALATE_TO_STAFF` kèm hồ sơ đã chuẩn bị |
 
 `OUTSIDE_POLICY` không đồng nghĩa với vi phạm policy. Tác tử không được tự từ chối hoặc tự cho phép trường hợp policy chưa bao phủ.
 
 ## Bất biến an toàn
 
 - Không có mục đích thì không duyệt.
-- Ca bị gắn cờ không được công bố là đã đạt.
+- AI không tự phê duyệt hoặc từ chối hồ sơ; mọi quyết định cuối cùng thuộc về cán bộ có thẩm quyền.
+- Ca bị gắn cờ không được công bố là đã đạt hoặc bị từ chối.
 - Hồ sơ `WAITING_STUDENT` không thể được cán bộ duyệt tắt.
 - Chỉ hồ sơ `ESCALATED` mới nhận quyết định của con người.
-- Quyết định cuối và audit hash của auto-approve được ghi trong cùng transaction.
+- Quyết định của cán bộ và audit hash được ghi trong cùng transaction.
 - Chứng từ mới luôn bắt đầu ở `PENDING`, không tự mang nhãn `VERIFIED`.

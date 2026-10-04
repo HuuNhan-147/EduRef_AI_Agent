@@ -18,7 +18,7 @@ Hệ thống EduRef AI triển khai cơ chế **Tamper-Evident Hash-Chained Audi
 │ BLOCK #1 (Genesis)        │      │ BLOCK #2                  │
 │ previousHash:             │      │ previousHash:             │
 │ "GENESIS_HASH_EDUREF_2026"│ ───► │ "e4b1c8a...3f90" (Hash 1) │
-│ action: "CREATE_REQUEST"  │      │ action: "AUTO_APPROVE"    │
+│ action: "CREATE_REQUEST"  │      │ action: "ROUTE_TO_HUMAN"  │
 │ sha256Hash: "e4b1c8a..."  │      │ sha256Hash: "7a8d29f..."  │
 └───────────────────────────┘      └─────────────┬─────────────┘
                                                  │
@@ -78,7 +78,7 @@ return crypto.createHash('sha256').update(rawPayload).digest('hex');
 - `id`: Định danh duy nhất CUID.
 - `requestId`: ID hồ sơ đơn sinh viên liên quan.
 - `actorType`: Vai trò người thực hiện (`AI_AGENT`, `STUDENT`, `STAFF`, `DEAN`, `ADMIN`).
-- `action`: Mã hành động chuẩn (`CREATE_REQUEST`, `CHECK_REQUIREMENTS`, `EVALUATE_POLICY`, `WORKFLOW_AUTO_APPROVE`, `STAFF_APPROVE_REQUEST`, `HUMAN_OVERRIDE_ROLLBACK`...).
+- `action`: Mã hành động chuẩn (`CREATE_REQUEST`, `CHECK_REQUIREMENTS`, `EVALUATE_POLICY`, `ROUTE_TO_HUMAN_REVIEW`, `STAFF_APPROVE_REQUEST`, `HUMAN_OVERRIDE_ROLLBACK`...).
 - `decision`: Quyết định đưa ra (`APPROVED`, `REJECTED`, `ESCALATED`, `WAITING_STUDENT`, `CANCELLED`).
 - `reason`: Căn cứ pháp lý hoặc lý do của quyết định.
 - `inputSnapshot`: Dữ liệu đầu vào tại thời điểm ra quyết định (JSONB).

@@ -3,3 +3,7 @@
 node_modules/
 dist/
 .npm-cache/
+
+.agents/
+AGENTS.md
+UI_UX_info.txt

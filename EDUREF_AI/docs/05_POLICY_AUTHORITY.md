@@ -2,6 +2,8 @@
 **Dự án:** EduRef AI — The Academic Escalation Referee  
 **Module:** `AcademicPolicyEngine.js`, `BasePetitionHandler.js`, `schema.prisma`
 
+> **Nguyên tắc Sprint 2:** AI chỉ tiếp nhận, kiểm tra dữ kiện, gắn cờ quy chế và định tuyến. AI không tự phê duyệt hoặc từ chối hồ sơ. Quyết định cuối cùng luôn thuộc `STAFF`, `DEAN` hoặc `ADMIN` theo cấp thẩm quyền.
+
 ---
 
 ## 1. PHÂN BIỆT RẠCH RÒI 4 KHÁI NIỆM TRỌNG TÂM
@@ -29,7 +31,7 @@
                                      ▼
                   ┌─────────────────────────────────────┐
                   │ 4. DECISION (Quyết định hành động)  │
-                  │ AUTO | ASK | ESCALATE | REJECT      │
+                  │ ASK | ROUTE | HUMAN DECISION        │
                   └─────────────────────────────────────┘
 ```
 
@@ -41,18 +43,18 @@
 2. **POLICY (Quy chế đào tạo):**
    - Trả lời câu hỏi: *Dựa trên cơ sở dữ liệu học vụ của nhà trường, sinh viên có đáp ứng quy chế để được giải quyết đơn không?*
    - Kết quả: Thỏa mãn (`passed = true`) hoặc Vi phạm (`passed = false`).
-   - Nếu vi phạm: Ra quyết định `REJECTED`, chuyển trạng thái `REJECTED` kèm điều khoản viện dẫn.
+   - Nếu có điều kiện chưa đạt: AI gắn cờ, viện dẫn điều khoản và chuyển cán bộ xem xét.
 
 3. **AUTHORITY (Ranh giới thẩm quyền):**
-   - Trả lời câu hỏi: *Hồ sơ này ai là người có thẩm quyền ký duyệt pháp lý? Tác tử AI, Chuyên viên PĐT hay Trưởng phòng Đào tạo?*
-   - Kết quả: `AI_AGENT`, `STAFF`, hoặc `DEAN`.
-   - Nếu vượt quyền AI: Ra quyết định `ESCALATE`, đóng gói `contextCapsule`, chuyển trạng thái `ESCALATED`.
+   - Trả lời câu hỏi: *Hồ sơ này thuộc Chuyên viên PĐT hay Trưởng phòng Đào tạo?*
+   - Kết quả: `STAFF` hoặc `DEAN`.
+   - AI đóng gói `contextCapsule`, chuyển trạng thái `ESCALATED` và không giữ quyền quyết định.
 
 4. **DECISION (Phán quyết cuối cùng):**
-   - `AUTO_APPROVE`: Tự động duyệt ngay, cấp mã chứng thực số và mã QR.
    - `ASK_CLARIFICATION`: Tạm dừng, yêu cầu sinh viên bổ sung.
-   - `ESCALATE`: Đóng gói hồ sơ chuyển lên Cán bộ/Lãnh đạo.
-   - `REJECT`: Từ chối dứt khoát do vi phạm quy chế.
+   - `ESCALATE_TO_STAFF`: Đóng gói hồ sơ chuyển Chuyên viên PĐT.
+   - `ESCALATE_TO_DEAN`: Chuyển cấp Trưởng Phòng đối với hồ sơ vượt thẩm quyền chuyên viên.
+   - `APPROVED`/`REJECTED`: Chỉ được ghi sau thao tác của con người có thẩm quyền.
 
 ---
 
@@ -62,10 +64,10 @@
 
 | Mã thủ tục | Tên thủ tục | Yêu cầu bắt buộc (Requirements) | Quy chế đào tạo (Policies) | Cấp thẩm quyền (Authority) | Hành vi AI mặc định |
 |---|---|---|---|---|---|
-| `STUDENT_CONFIRMATION` | Giấy Xác Nhận Sinh Viên | Mục đích sử dụng (`REQ_PURPOSE`), SĐT, Nơi sinh | Sinh viên `ACTIVE`, Nợ phí $\le$ 10.000.000đ | `AI_AGENT` (Tự quyền) | **Tự động phê duyệt** (`AUTO_APPROVE`) trong < 1s |
+| `STUDENT_CONFIRMATION` | Giấy Xác Nhận Sinh Viên | Mục đích sử dụng (`REQ_PURPOSE`), SĐT, Nơi sinh | Sinh viên `ACTIVE`, Nợ phí $\le$ 10.000.000đ | `STAFF` | AI chuẩn bị hồ sơ và **chuyển Chuyên viên quyết định** (`ESCALATE_TO_STAFF`) |
 | `GRADUATION_ASSESSMENT` | Đơn Đề Nghị Xét Tốt Nghiệp | SĐT, Nơi sinh, Lý do, 2 chứng chỉ chuẩn đầu ra (Số hiệu & Số vào sổ đúng quy cách) | Sinh viên `ACTIVE`, Nợ phí = 0đ, GPA $\ge$ 2.0 | `DEAN` (Hội đồng / Trưởng phòng Đào tạo) | **Không tự duyệt $\rightarrow$ Chuyển tiếp** (`ESCALATE_TO_DEAN`) |
 | `EXAM_DEFERRAL` | Đơn Xin Hoãn Thi | Mã môn học (`REQ_COURSE_CODE`), Giấy viện/Bệnh án (`REQ_HOSPITAL_DOC`) | Sinh viên `ACTIVE`, Lý do bất khả kháng (sức khỏe/tang gia) | `STAFF` (Chuyên viên PĐT thẩm định bệnh án) | **Không tự duyệt $\rightarrow$ Chuyển tiếp** (`ESCALATE_TO_STAFF`) |
-| `GRADE_APPEAL` | Đơn Xin Phúc Khảo | Mã môn học, Điểm số hiện tại, Lý do phúc khảo | Nộp trong vòng 7 ngày kể từ ngày công bố điểm | `STAFF` (Bộ phận Khảo thí) | Quá 7 ngày $\rightarrow$ **Từ chối ngay** (`REJECTED`) |
+| `GRADE_APPEAL` | Đơn Xin Phúc Khảo | Mã môn học, Điểm số hiện tại, Lý do phúc khảo | Nộp trong vòng 7 ngày kể từ ngày công bố điểm | `STAFF` (Bộ phận Khảo thí) | Quá hạn $\rightarrow$ **gắn cờ và chuyển cán bộ quyết định** |
 | `SPECIAL_PETITION` | Đơn Cứu Xét Ngoại Lệ | Bản giải trình lý do cá nhân (`REQ_EXPLANATION`) | Phải có sự phê duyệt của Ban Giám hiệu | `DEAN` (Lãnh đạo Phòng Đào tạo) | **Không tự duyệt $\rightarrow$ Chuyển tiếp** (`ESCALATE_TO_DEAN`) |
 
 ---
@@ -81,7 +83,7 @@ Khi một hồ sơ bị vượt thẩm quyền, tác tử AI tự động đóng
   "studentName": "Cao Hữu Nhân",
   "requestTypeName": "Đơn Đề Nghị Xét Tốt Nghiệp",
   "requiredRole": "DEAN",
-  "reason": "Loại thủ tục [Đơn Đề Nghị Xét Tốt Nghiệp] (ST-340510) vượt quá thẩm quyền tự động phê duyệt của Tác tử AI theo quy chế trường. Yêu cầu Trưởng khoa xem xét và ký duyệt chính thức.",
+  "reason": "Loại thủ tục [Đơn Đề Nghị Xét Tốt Nghiệp] (ST-340510) yêu cầu cấp Trưởng Phòng Đào tạo theo quy chế trường.",
   "actionableQuestion": "Kính chuyển Thầy/Cô Trưởng Khoa Công nghệ Thông tin phê duyệt hồ sơ xét tốt nghiệp cho sinh viên Cao Hữu Nhân (GPA: 3.52, Nợ phí: 0 VNĐ) đã hoàn thành đầy đủ chứng chỉ ngoại ngữ và kỹ năng.",
   "escalatedAt": "2026-09-21T13:41:33.859Z",
   "academicSnapshot": {

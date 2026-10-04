@@ -4,9 +4,17 @@
 
 ---
 
-## 1. FLOW 1: ROUTINE AUTO-APPROVAL (THƯỜNG QUY TỰ ĐỘNG DUYỆT)
+## Luồng tiếp nhận hiện hành cho sinh viên (Sprint 2)
 
-Áp dụng cho các thủ tục thường quy nằm trong thẩm quyền tự chủ của AI (ví dụ: Giấy xác nhận sinh viên hợp lệ).
+`StudentIntakeService` xử lý hội thoại của vai trò STUDENT, tách khỏi agent dành cho cán bộ. Chat chỉ trả lời câu hỏi, hỏi bổ sung khi mục đích thiếu/mơ hồ hoặc tạo `intakeDraft`; không ghi `StudentRequest` vào database. Bản nháp gồm thông tin sinh viên từ phiên đã xác thực, mục đích, nơi tiếp nhận, ghi chú và Phòng Đào tạo là nơi nhận. Sinh viên xem/sửa rồi bấm **Gửi hồ sơ**; khi đó frontend mới gọi `POST /api/petitions`. Core chuyển hồ sơ đủ thông tin đến hàng đợi cán bộ; AI không tự phê duyệt hoặc từ chối.
+
+Các sơ đồ Flow 1–2 bên dưới mô tả pipeline `PetitionWorkflowCore` sau khi đã nộp hoặc các workflow legacy; không phải thao tác ghi database ngay khi sinh viên gửi tin nhắn chat. Với `STUDENT_CONFIRMATION`, API nộp hồ sơ hiện trả lỗi 400 nếu thiếu mục đích, thay vì tạo hồ sơ `WAITING_STUDENT` từ chat.
+
+---
+
+## 1. FLOW 1: ROUTINE HUMAN REVIEW (HỒ SƠ THƯỜNG QUY QUA CÁN BỘ DUYỆT)
+
+Áp dụng cho thủ tục thường quy như Giấy xác nhận sinh viên. AI chuẩn bị và định tuyến; Chuyên viên Phòng Đào tạo quyết định.
 
 ```mermaid
 sequenceDiagram
@@ -17,6 +25,7 @@ sequenceDiagram
     participant Handler as StudentConfirmationHandler
     participant DB as PostgreSQL
     participant Audit as AuditLogService
+    actor CanBo as Chuyên viên PĐT
 
     SinhVien->>Frontend: Nộp yêu cầu cấp Giấy XNSV (Làm vé xe buýt)
     Frontend->>Core: processPetitionWorkflow({ studentCode, requestTypeCode, inputData })
@@ -26,14 +35,14 @@ sequenceDiagram
     Core->>Handler: evaluatePolicies(student, request)
     Handler-->>Core: passed = true (ACTIVE, nợ phí <= 10M)
     Core->>Handler: checkAuthority(request, student)
-    Handler-->>Core: role = AI_AGENT, action = AUTO_APPROVE
-    Core->>Handler: onApproved(request)
-    Handler-->>Core: Cấp mã ST-XXXXXX & mã QR
-    Core->>DB: Cập nhật status = APPROVED, qrCodeUrl
-    Core->>Audit: recordLog('WORKFLOW_AUTO_APPROVE', 'APPROVED')
+    Handler-->>Core: role = STAFF, action = STAFF_REVIEW
+    Core->>DB: Cập nhật status = ESCALATED, decision = ESCALATE_TO_STAFF
+    Core->>Audit: recordLog('ROUTE_TO_HUMAN_REVIEW', 'ESCALATE_TO_STAFF')
     Audit->>DB: Lưu Block mới có mã băm SHA-256
-    Core-->>Frontend: Trả về kết quả phê duyệt + Mã QR (< 100ms)
-    Frontend-->>SinhVien: Hiển thị chứng thực số thành công
+    Core-->>CanBo: Context Capsule + dữ kiện đã đối chiếu
+    CanBo->>DB: Phê duyệt hoặc từ chối theo thẩm quyền
+    DB->>Audit: Ghi quyết định và danh tính cán bộ
+    Frontend-->>SinhVien: Hiển thị trạng thái và kết quả do cán bộ quyết định
 ```
 
 ---
@@ -108,9 +117,9 @@ sequenceDiagram
 
 ---
 
-## 4. FLOW 4: HARD POLICY REJECTION (TỪ CHỐI DỨT KHOÁT DO SAI QUY CHẾ)
+## 4. FLOW 4: POLICY FLAG & HUMAN DECISION (GẮN CỜ VÀ CHUYỂN NGƯỜI CÓ THẨM QUYỀN)
 
-Áp dụng khi sinh viên vi phạm các quy chế đào tạo cứng (Thôi học, Nợ phí quá hạn).
+Áp dụng khi AI phát hiện điều kiện cần cán bộ xác nhận như trạng thái thôi học hoặc nợ phí quá ngưỡng. AI không tự từ chối hồ sơ.
 
 ```mermaid
 sequenceDiagram
@@ -121,16 +130,19 @@ sequenceDiagram
     participant Handler as StudentConfirmationHandler
     participant DB as PostgreSQL
     participant Audit as AuditLogService
+    actor CanBo as Chuyên viên PĐT
 
     SinhVien->>Frontend: Xin cấp giấy xác nhận sinh viên
     Frontend->>Core: processPetitionWorkflow()
     Core->>Handler: validateRequirements() -> PASSED
     Core->>Handler: evaluatePolicies()
-    Handler-->>Core: passed = false (Vi phạm POL_STUDENT_ACTIVE: Trạng thái DROPPED)
-    Core->>DB: Cập nhật status = REJECTED, decision = REJECTED_POLICY
-    Core->>Audit: recordLog('POLICY_VIOLATION_REJECT', 'REJECTED')
-    Core-->>Frontend: Từ chối tiếp nhận: "Sinh viên đã có quyết định buộc thôi học..."
-    Frontend-->>SinhVien: Hiển thị thông báo từ chối dứt khoát kèm điều khoản quy chế
+    Handler-->>Core: Gắn cờ POL_STUDENT_ACTIVE: Trạng thái DROPPED
+    Core->>DB: Cập nhật status = ESCALATED, decision = ESCALATE_TO_STAFF
+    Core->>Audit: recordLog('POLICY_FLAG_ROUTE_TO_HUMAN')
+    Core-->>Frontend: Đã tiếp nhận và chuyển Phòng Đào tạo xem xét
+    Core-->>CanBo: Context Capsule + điều kiện bị gắn cờ + câu hỏi hành động
+    CanBo->>DB: Phê duyệt hoặc từ chối theo thẩm quyền
+    Frontend-->>SinhVien: Hiển thị trạng thái và lý do quyết định của cán bộ
 ```
 
 ---

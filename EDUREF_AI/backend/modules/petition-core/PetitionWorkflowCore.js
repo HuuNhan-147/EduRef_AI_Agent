@@ -118,17 +118,14 @@ export class PetitionWorkflowCore {
           });
 
       if (existingActive) {
-        console.log(`  ♻️ [Core] Tái sử dụng đơn đang xử lý: [${existingActive.requestCode}] (${existingActive.status})`);
-        request = await prisma.studentRequest.update({
-          where: { id: existingActive.id },
-          data: {
-            inputData: inputData || {},
-            status: 'PROCESSING',
-            decision: null,
-            escalationReason: null,
-          },
-          include: { documents: true, student: true, requestType: true },
-        });
+        return {
+          success: false,
+          decision: 'DUPLICATE_ACTIVE',
+          status: existingActive.status,
+          requestId: existingActive.id,
+          requestCode: existingActive.requestCode,
+          message: `Bạn đang có hồ sơ [${existingActive.requestCode}] trong quá trình xử lý. Hãy theo dõi hoặc bổ sung hồ sơ đó trước khi gửi yêu cầu mới.`,
+        };
       } else {
         const requestCode = `ST-${Math.floor(100000 + Math.random() * 900000)}`;
         request = await prisma.studentRequest.create({
@@ -198,37 +195,51 @@ export class PetitionWorkflowCore {
     const policyResult = await handler.evaluatePolicies(student, request);
 
     if (!policyResult.passed) {
-      console.log(`  🚨 [Core Chốt 2] Vi phạm quy chế -> Chuyển REJECTED. Lý do: ${policyResult.reason}`);
+      const flaggedAuthority = await handler.checkAuthority(request, student, { inputData, documents: allDocs });
+      const requiredRole = flaggedAuthority.role === 'DEAN' ? 'DEAN' : 'STAFF';
+      const decision = requiredRole === 'DEAN' ? 'ESCALATE_TO_DEAN' : 'ESCALATE_TO_STAFF';
+      const actionableQuestion = policyResult.actionableQuestion || 'Cán bộ có thẩm quyền xác nhận hướng xử lý cho điều kiện được AI gắn cờ?';
+      const contextCapsule = handler.buildContextCapsule(request, student, policyResult.reason, actionableQuestion);
+      contextCapsule.requiredRole = requiredRole;
+      contextCapsule.targetUnit = 'ACADEMIC_AFFAIRS';
+      contextCapsule.classification = policyResult.classification || 'POLICY_REVIEW_REQUIRED';
+      contextCapsule.policyVersion = policyResult.policyVersion || null;
+      contextCapsule.aiRecommendation = 'REVIEW_POLICY_FLAG';
+
+      console.log(`  🟠 [Core Chốt 2] AI gắn cờ quy chế -> Chuyển ${requiredRole} quyết định. Lý do: ${policyResult.reason}`);
 
       await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType,
-        action: 'POLICY_VIOLATION_REJECT',
-        decision: 'REJECTED',
+        action: 'POLICY_FLAG_ROUTE_TO_HUMAN',
+        decision,
         reason: policyResult.reason,
-        inputSnapshot: { studentCode, violatedPolicy: policyResult.violatedPolicy },
+        inputSnapshot: { studentCode, violatedPolicy: policyResult.violatedPolicy, requiredRole },
         decisionTimeMs: Date.now() - startTime,
       }, async (tx) => {
         await tx.studentRequest.update({
           where: { id: request.id },
           data: {
-            status: 'REJECTED',
-            decision: 'REJECTED_POLICY',
+            status: 'ESCALATED',
+            decision,
             escalationReason: policyResult.reason,
+            contextCapsule,
           },
         });
       });
 
       return {
-        success: false,
-        decision: 'REJECTED_POLICY',
+        success: true,
+        decision,
         classification: policyResult.classification || 'ROUTINE_POLICY_DENY',
         uncertaintyType: policyResult.uncertaintyType || null,
-        status: 'REJECTED',
+        status: 'ESCALATED',
         requestId: request.id,
         requestCode: request.requestCode,
+        requiredRole,
         reason: policyResult.reason,
-        message: `Từ chối cấp đơn: ${policyResult.reason}`,
+        contextCapsule,
+        message: `AI đã gắn cờ một điều kiện cần xem xét và chuyển hồ sơ [${request.requestCode}] tới cán bộ có thẩm quyền. AI không tự từ chối hồ sơ.`,
       };
     }
 
@@ -238,104 +249,55 @@ export class PetitionWorkflowCore {
     console.log(`  🔒 [Core Chốt 3] Kiểm tra Thẩm quyền xử lý (Authority)...`);
     const authResult = await handler.checkAuthority(request, student, { inputData, documents: allDocs });
 
-    // Nếu vượt thẩm quyền của AI -> Chuyển tiếp (Escalate) có kiểm soát
-    if (authResult.action !== 'AUTO_APPROVE') {
-      console.log(`  🔴 [Core Chốt 3] Vượt thẩm quyền AI -> Chuyển ESCALATED lên [${authResult.role}]`);
+    const requiredRole = authResult.role === 'DEAN' ? 'DEAN' : 'STAFF';
+    const roleDisplayName = requiredRole === 'DEAN' ? 'Trưởng Phòng Đào tạo' : 'Chuyên viên Phòng Đào tạo';
+    const reason = authResult.reason || 'AI đã hoàn tất bước chuẩn bị và chuyển con người quyết định.';
+    const actionableQuestion = authResult.actionableQuestion || `${roleDisplayName} kiểm tra hồ sơ và đưa ra quyết định cuối cùng?`;
+    const contextCapsule = handler.buildContextCapsule(request, student, reason, actionableQuestion);
+    contextCapsule.requiredRole = requiredRole;
+    contextCapsule.targetUnit = 'ACADEMIC_AFFAIRS';
+    contextCapsule.classification = authResult.classification || authResult.uncertaintyType || 'ROUTINE';
+    contextCapsule.uncertaintyType = authResult.uncertaintyType || null;
+    contextCapsule.policyVersion = authResult.policyVersion || null;
+    contextCapsule.manualReviewRequired = true;
+    contextCapsule.aiRecommendation = 'READY_FOR_HUMAN_REVIEW';
 
-      const contextCapsule = handler.buildContextCapsule(
-        request,
-        student,
-        authResult.reason,
-        authResult.actionableQuestion
-      );
-      contextCapsule.classification = authResult.classification || authResult.uncertaintyType || 'BEYOND_AUTHORITY';
-      contextCapsule.uncertaintyType = authResult.uncertaintyType || contextCapsule.classification;
-      contextCapsule.policyVersion = authResult.policyVersion || null;
-      contextCapsule.manualReviewRequired = Boolean(reqResult.manualReviewRequired);
-
-      const escalateDecision = authResult.role === 'DEAN' ? 'ESCALATE_TO_DEAN' : 'ESCALATE_TO_STAFF';
-      const roleDisplayName =
-        authResult.role === 'DEAN'
-          ? 'Trưởng Phòng Đào Tạo & Hội đồng xét tốt nghiệp'
-          : 'Chuyên viên Phòng Đào tạo';
-
-      await AuditLogService.recordLogWithMutation({
-        requestId: request.id,
-        actorType,
-        action: 'ESCALATE_AUTHORITY_TRANSFER',
-        decision: 'ESCALATED',
-        reason: authResult.reason,
-        inputSnapshot: { requiredRole: authResult.role, contextCapsule },
-        decisionTimeMs: Date.now() - startTime,
-      }, async (tx) => {
-        await tx.studentRequest.update({
-          where: { id: request.id },
-          data: {
-            status: 'ESCALATED',
-            decision: escalateDecision,
-            escalationReason: authResult.reason,
-            contextCapsule,
-          },
-        });
-      });
-
-      return {
-        success: true,
-        decision: escalateDecision,
-        classification: contextCapsule.classification,
-        uncertaintyType: contextCapsule.uncertaintyType,
-        status: 'ESCALATED',
-        requestId: request.id,
-        requestCode: request.requestCode,
-        requiredRole: authResult.role,
-        reason: authResult.reason,
-        contextCapsule,
-        message: `Yêu cầu của bạn đã được tiếp nhận và đóng gói chuyển tiếp lên ${roleDisplayName} thẩm định theo thẩm quyền. Mã hồ sơ: [${request.requestCode}].`,
-      };
-    }
-
-    // =========================================================================
-    // CHỐT 4 & 5: EXECUTION (Phê duyệt tự động & Ký chuỗi băm SHA-256)
-    // =========================================================================
-    console.log(`  🟢 [Core Chốt 4 & 5] Đơn hợp lệ & trong thẩm quyền -> Tự động phê duyệt (AUTO_APPROVE)...`);
-    const approvalResult = await handler.onApproved(request);
-
-    const auditLog = await AuditLogService.recordLogWithMutation({
+    const escalateDecision = requiredRole === 'DEAN' ? 'ESCALATE_TO_DEAN' : 'ESCALATE_TO_STAFF';
+    await AuditLogService.recordLogWithMutation({
       requestId: request.id,
       actorType,
-      action: 'WORKFLOW_AUTO_APPROVE',
-      decision: 'APPROVED',
-      reason: 'Đơn đáp ứng toàn bộ điều kiện đầu vào, quy chế đào tạo và nằm trong thẩm quyền tự chủ của Tác tử AI.',
-      inputSnapshot: { inputData, requestCode: request.requestCode },
-      afterState: { status: 'APPROVED', qrCodeUrl: approvalResult.qrCodeUrl },
+      action: 'ROUTE_TO_HUMAN_REVIEW',
+      decision: escalateDecision,
+      reason,
+      inputSnapshot: { requiredRole, contextCapsule },
       decisionTimeMs: Date.now() - startTime,
-    }, async (tx, log) => {
+    }, async (tx) => {
       await tx.studentRequest.update({
         where: { id: request.id },
         data: {
-          status: 'APPROVED',
-          decision: 'ROUTINE_AUTO_APPROVED',
-          qrCodeUrl: approvalResult.qrCodeUrl,
-          sha256Proof: log.sha256Hash,
+          status: 'ESCALATED',
+          decision: escalateDecision,
+          escalationReason: reason,
+          contextCapsule,
+          qrCodeUrl: null,
+          sha256Proof: null,
         },
       });
     });
 
-    const totalDuration = Date.now() - startTime;
-    console.log(`  🎉 [Core] Hoàn tất tự động duyệt đơn [${request.requestCode}] trong ${totalDuration}ms!\n`);
-
     return {
       success: true,
-      decision: 'AUTO_APPROVED',
-      classification: authResult.classification || 'ROUTINE',
-      uncertaintyType: null,
-      status: 'APPROVED',
+      decision: escalateDecision,
+      classification: contextCapsule.classification,
+      uncertaintyType: contextCapsule.uncertaintyType,
+      status: 'ESCALATED',
       requestId: request.id,
       requestCode: request.requestCode,
-      qrCodeUrl: approvalResult.qrCodeUrl,
-      sha256Proof: auditLog?.sha256Hash,
-      totalDuration,
-      message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công trong ${totalDuration}ms. Mã QR chứng thực số đã sẵn sàng.`,
+      requiredRole,
+      reason,
+      contextCapsule,
+      totalDuration: Date.now() - startTime,
+      message: `Yêu cầu đã được tiếp nhận và chuyển tới ${roleDisplayName} để quyết định. Mã hồ sơ: [${request.requestCode}].`,
     };
   }
 

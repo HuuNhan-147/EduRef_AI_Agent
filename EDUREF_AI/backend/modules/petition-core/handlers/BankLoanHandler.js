@@ -73,13 +73,14 @@ export class BankLoanHandler extends BasePetitionHandler {
 
   /**
    * Thẩm quyền:
-   * Nếu đã nộp đủ Mẫu 01/NHCS hợp lệ -> AI Agent tự động ký số và cấp mã chứng thực số (AUTO_APPROVE)
+   * Hồ sơ đủ Mẫu 01/NHCS được chuyển cho Chuyên viên Phòng Đào tạo quyết định.
    */
   async checkAuthority(request, student, context = {}) {
     return {
-      role: 'AI_AGENT',
-      action: 'AUTO_APPROVE',
-      reason: 'Hồ sơ vay vốn đã đủ Mẫu 01/NHCS và trạng thái sinh viên hợp lệ. Tác tử AI tự động chứng thực điện tử.',
+      role: 'STAFF',
+      action: 'STAFF_REVIEW',
+      reason: 'Hồ sơ vay vốn đã đủ dữ kiện để Chuyên viên Phòng Đào tạo kiểm tra và quyết định.',
+      actionableQuestion: 'Cán bộ Phòng Đào tạo xác nhận hồ sơ vay vốn và đưa ra quyết định cuối cùng?',
     };
   }
 }

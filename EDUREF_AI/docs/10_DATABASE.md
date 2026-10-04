@@ -75,7 +75,7 @@ erDiagram
         string id PK
         string requestTypeId FK
         enum role "AI_AGENT, STAFF, DEAN"
-        enum action "AUTO_APPROVE, STAFF_REVIEW, DEAN_APPROVAL"
+        enum action "STAFF_REVIEW, DEAN_APPROVAL (AUTO_APPROVE chỉ giữ để tương thích dữ liệu cũ)"
         json condition "Ranh giới thẩm quyền JSONB"
     }
 
@@ -86,7 +86,7 @@ erDiagram
         string requestTypeId FK
         enum status "PENDING, PROCESSING, WAITING_STUDENT, APPROVED, ESCALATED, REJECTED, CANCELLED"
         json inputData "Dữ liệu sinh viên kê khai JSONB"
-        string decision "ROUTINE_AUTO_APPROVED, ESCALATE_TO_DEAN..."
+        string decision "ESCALATE_TO_STAFF, ESCALATE_TO_DEAN, STAFF_MANUAL_APPROVED..."
         string escalationReason "Lý do vượt quyền của AI"
         json contextCapsule "Đóng gói bối cảnh & Ghi chú cán bộ"
         string qrCodeUrl "Đường dẫn mã QR chứng thực"
@@ -107,7 +107,7 @@ erDiagram
         string id PK
         string requestId FK
         enum actorType "AI_AGENT, STUDENT, STAFF, DEAN"
-        string action "CREATE_REQUEST, WORKFLOW_AUTO_APPROVE..."
+        string action "CREATE_REQUEST, ROUTE_TO_HUMAN_REVIEW, STAFF_APPROVE_REQUEST..."
         string decision "APPROVED, REJECTED, ESCALATED..."
         string reason "Căn cứ pháp lý của quyết định"
         json inputSnapshot "Snapshot dữ liệu tại thời điểm ra quyết định"

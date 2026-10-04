@@ -3,24 +3,188 @@
 @tailwind utilities;
 
 @layer base {
+  :root {
+    color-scheme: dark;
+    --canvas: 7 10 18;
+    --surface: 14 19 31;
+    --surface-raised: 21 28 43;
+    --surface-soft: 27 36 54;
+    --border: 45 56 75;
+    --border-strong: 71 85 105;
+    --text: 241 245 249;
+    --text-muted: 148 163 184;
+    --text-subtle: 100 116 139;
+    --primary: 96 165 250;
+    --primary-strong: 59 130 246;
+    --success: 52 211 153;
+    --attention: 251 191 36;
+    --danger: 251 113 133;
+    --reasoning: 167 139 250;
+    --focus: 147 197 253;
+    --panel-shadow: 0 20px 50px -32px rgb(0 0 0 / 0.85);
+  }
+
+  :root[data-theme='light'] {
+    color-scheme: light;
+    --canvas: 247 249 252;
+    --surface: 255 255 255;
+    --surface-raised: 252 253 255;
+    --surface-soft: 239 243 248;
+    --border: 215 222 232;
+    --border-strong: 172 185 203;
+    --text: 27 39 57;
+    --text-muted: 79 94 113;
+    --text-subtle: 98 112 130;
+    --primary: 38 88 157;
+    --primary-strong: 29 78 147;
+    --success: 21 117 84;
+    --attention: 151 94 15;
+    --danger: 174 47 64;
+    --reasoning: 104 75 156;
+    --focus: 42 111 194;
+    --panel-shadow: 0 18px 46px -30px rgb(47 64 88 / 0.32);
+  }
+
+  * {
+    box-sizing: border-box;
+  }
+
+  html,
+  body,
+  #root {
+    min-height: 100%;
+  }
+
+  html {
+    background: rgb(var(--canvas));
+    scroll-behavior: smooth;
+  }
+
   body {
-    @apply bg-slate-50 text-slate-900 font-sans antialiased;
+    @apply m-0 bg-canvas font-sans text-foreground antialiased;
+    min-width: 320px;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+    text-rendering: optimizeLegibility;
+  }
+
+  button,
+  input,
+  textarea,
+  select {
+    font: inherit;
+  }
+
+  button,
+  [role='button'] {
+    touch-action: manipulation;
+  }
+
+  :focus-visible {
+    outline: 2px solid rgb(var(--focus));
+    outline-offset: 3px;
+  }
+
+  ::selection {
+    background: rgb(var(--primary-strong) / 0.35);
+    color: rgb(var(--text));
   }
 }
 
-/* Custom scrollbar mỏng tinh tế cho Terminal và Chat */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+@layer components {
+  .ui-panel {
+    @apply rounded-2xl border border-ui-border/80 bg-surface/95 shadow-panel;
+  }
+
+  .ui-panel-raised {
+    @apply rounded-2xl border border-ui-border bg-surface-raised shadow-panel;
+  }
+
+  .ui-button-primary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl bg-primary-strong px-4 py-2.5 text-sm font-semibold text-white transition duration-200 hover:bg-blue-500 disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none;
+  }
+
+  .ui-button-secondary {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 rounded-xl border border-ui-border bg-surface-raised px-4 py-2.5 text-sm font-semibold text-foreground transition duration-200 hover:border-ui-border-strong hover:bg-surface-soft disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none;
+  }
+
+  .ui-icon-button {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-transparent text-muted transition duration-200 hover:border-ui-border hover:bg-surface-raised hover:text-foreground disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none;
+  }
+
+  .ui-button-ghost {
+    @apply inline-flex min-h-10 items-center justify-center gap-2 rounded-lg px-3 py-2 text-sm font-medium text-primary transition duration-200 hover:bg-primary/10 hover:text-blue-300 disabled:cursor-not-allowed disabled:opacity-45 motion-reduce:transition-none;
+  }
+
+  .ui-field {
+    @apply min-h-11 w-full rounded-xl border border-ui-border bg-canvas/70 px-3.5 py-2.5 text-base text-foreground placeholder:text-muted/70 transition duration-200 hover:border-ui-border-strong focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm motion-reduce:transition-none;
+  }
+
+  .ui-kicker {
+    @apply text-[11px] font-semibold uppercase tracking-[0.14em] text-muted;
+  }
+
+  .ui-eyebrow {
+    @apply text-[11px] font-semibold uppercase tracking-[0.16em] text-muted;
+  }
 }
+
+.app-shell {
+  background-image: radial-gradient(circle at 54% -28%, rgb(var(--primary) / 0.10), transparent 42%),
+    radial-gradient(circle at 96% 92%, rgb(var(--reasoning) / 0.055), transparent 28%);
+}
+
+[data-theme='light'] .text-blue-300,
+[data-theme='light'] .text-blue-200 {
+  color: rgb(var(--primary-strong));
+}
+
+[data-theme='light'] .text-amber-50,
+[data-theme='light'] .text-amber-100,
+[data-theme='light'] .text-amber-200 {
+  color: rgb(var(--attention));
+}
+
+[data-theme='light'] .text-emerald-200 { color: rgb(var(--success)); }
+[data-theme='light'] .text-emerald-300 { color: rgb(var(--success)); }
+[data-theme='light'] .text-red-200,
+[data-theme='light'] .text-red-300,
+[data-theme='light'] .text-rose-200,
+[data-theme='light'] .text-rose-300 { color: rgb(var(--danger)); }
+[data-theme='light'] .text-violet-200 { color: rgb(var(--reasoning)); }
+[data-theme='light'] .text-slate-200,
+[data-theme='light'] .text-slate-300,
+[data-theme='light'] .text-slate-400,
+[data-theme='light'] .text-slate-500,
+[data-theme='light'] .text-slate-600 { color: rgb(var(--text-muted)); }
+
+* {
+  scrollbar-color: rgb(var(--border-strong)) transparent;
+  scrollbar-width: thin;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
 ::-webkit-scrollbar-track {
   background: transparent;
 }
+
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 3px;
+  border: 2px solid transparent;
+  border-radius: 999px;
+  background: rgb(var(--border-strong));
+  background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
 }

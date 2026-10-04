@@ -29,7 +29,7 @@ export const workflowTools = {
     return await AcademicWorkflowService.evaluatePolicy(requestId);
   },
 
-  async check_authority({ requestId, action = 'AUTO_APPROVE' }) {
+  async check_authority({ requestId, action = 'ROUTE_TO_HUMAN' }) {
     return await AcademicWorkflowService.checkAuthority({ requestId, action });
   },
 

@@ -10,26 +10,26 @@ Endpoint: `POST /api/agent/verify-general`
 
 | Ca | Nhóm | Kỳ vọng |
 |---|---|---|
-| G-01 | Routine | `AUTO_APPROVED` |
+| G-01 | Routine | `ESCALATE_TO_STAFF` |
 | G-02 | Unknown fact | `ASK_CLARIFICATION` |
-| G-03 | Explicit policy deny | `REJECTED_POLICY` |
+| G-03 | Policy flag | `ESCALATE_TO_STAFF` |
 | G-04 | Beyond authority | `ESCALATE_TO_STAFF` |
 
 ### Track A Escalation Verify — 5 ca
 
 Endpoint: `POST /api/agent/verify-90s`
 
-Bộ này luôn có đúng 5 ca trên cùng thủ tục `STUDENT_CONFIRMATION`: đúng 3 ca thường quy tự hoàn tất và đúng 2 ca chuyển tiếp.
+Bộ này luôn có đúng 5 ca trên cùng thủ tục `STUDENT_CONFIRMATION`. AI phải chuẩn bị đủ ngữ cảnh và chuyển cả 5 ca tới con người; không ca nào được AI tự phê duyệt hoặc từ chối.
 
 | Ca | Nhóm | Kỳ vọng |
 |---|---|---|
-| A-01 | Routine — vé xe buýt | `AUTO_APPROVED` |
-| A-02 | Routine — học bổng | `AUTO_APPROVED` |
-| A-03 | Routine — vay vốn | `AUTO_APPROVED` |
+| A-01 | Routine — vé xe buýt | `ESCALATE_TO_STAFF` |
+| A-02 | Routine — học bổng | `ESCALATE_TO_STAFF` |
+| A-03 | Routine — vay vốn | `ESCALATE_TO_STAFF` |
 | A-04 | Outside policy | `ESCALATE_TO_STAFF` |
 | A-05 | Beyond authority | `ESCALATE_TO_STAFF` |
 
-Mỗi ca chuyển tiếp phải có `actionableQuestion`. Toàn bộ ca trả `startedAt`, `completedAt`, `durationMs`, quyết định kỳ vọng/thực tế và PASS/FAIL. `distributionPassed` chỉ đúng khi phân bố thực tế là 3 AUTO + 2 ESCALATE.
+Mỗi ca chuyển tiếp phải có `actionableQuestion`. Toàn bộ ca trả `startedAt`, `completedAt`, `durationMs`, quyết định kỳ vọng/thực tế và PASS/FAIL. `distributionPassed` chỉ đúng khi cả 5 ca Track A được định tuyến tới đúng cấp con người.
 
 ## Ca mới do giám khảo nhập
 
@@ -54,7 +54,7 @@ cd ../frontend
 npm run build
 ```
 
-Unit test kiểm tra bộ 15 ca, phân bố Track A 3/2 và yêu cầu câu hỏi hành động cho mọi ca ngoài policy/vượt thẩm quyền.
+Unit test kiểm tra bộ 15 ca, nguyên tắc không có quyết định tự động và yêu cầu câu hỏi hành động cho mọi ca chuyển tiếp.
 
 ## Quy tắc báo cáo số liệu
 

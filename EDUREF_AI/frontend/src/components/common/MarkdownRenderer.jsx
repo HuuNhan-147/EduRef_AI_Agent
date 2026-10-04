@@ -1,132 +1,53 @@
-// src/components/common/MarkdownRenderer.jsx
-// Hiển thị văn bản phản hồi của AI có định dạng Markdown sạch sẽ, hỗ trợ cả giao diện User & AI
-
-import React from 'react';
+import { cn } from '../../lib/ui';
 
 export default function MarkdownRenderer({ content = '', isUser = false }) {
   if (!content) return null;
-
-  // Tách dòng văn bản và render các block
   const lines = String(content).split('\n');
 
   return (
-    <div
-      className={`space-y-1.5 text-sm leading-relaxed break-words font-sans ${
-        isUser ? 'text-white' : 'text-slate-800'
-      }`}
-    >
-      {lines.map((line, idx) => {
-        const trimmed = line.trim();
-
-        // 1. Dòng trống
-        if (!trimmed) {
-          return <div key={idx} className="h-1" />;
+    <div className={cn('space-y-2 break-words text-sm leading-7', isUser ? 'text-white' : 'text-slate-200')}>
+      {lines.map((line, index) => {
+        const value = line.trim();
+        if (!value) return <div key={index} className="h-1" aria-hidden="true" />;
+        if (value.startsWith('### ')) {
+          return <h4 key={index} className="mt-4 text-sm font-semibold text-foreground">{parseInline(value.slice(4), isUser)}</h4>;
         }
-
-        // 2. Heading ###
-        if (trimmed.startsWith('### ')) {
-          return (
-            <h4
-              key={idx}
-              className={`font-bold text-sm mt-2 mb-1 flex items-center gap-1.5 ${
-                isUser ? 'text-white' : 'text-slate-900'
-              }`}
-            >
-              <span className={`w-1 h-3.5 rounded-sm inline-block ${isUser ? 'bg-white' : 'bg-blue-600'}`}></span>
-              {trimmed.replace('### ', '')}
-            </h4>
-          );
+        if (value.startsWith('## ')) {
+          return <h3 key={index} className="mt-5 border-b border-ui-border pb-2 text-base font-semibold text-foreground">{parseInline(value.slice(3), isUser)}</h3>;
         }
-
-        // 3. Heading ##
-        if (trimmed.startsWith('## ')) {
+        if (/^[-*]\s/.test(value)) {
           return (
-            <h3
-              key={idx}
-              className={`font-bold text-base mt-2.5 mb-1 pb-0.5 border-b ${
-                isUser ? 'text-white border-blue-400/40' : 'text-slate-900 border-slate-200'
-              }`}
-            >
-              {trimmed.replace('## ', '')}
-            </h3>
-          );
-        }
-
-        // 4. Bullet points (* hoặc -)
-        if (trimmed.startsWith('* ') || trimmed.startsWith('- ')) {
-          const bulletText = trimmed.replace(/^(\*|-)\s+/, '');
-          return (
-            <div key={idx} className="flex items-start gap-2 pl-2">
-              <span className={`font-bold mt-1 text-xs ${isUser ? 'text-blue-200' : 'text-blue-600'}`}>•</span>
-              <span className="flex-1">{parseInlineFormatting(bulletText, isUser)}</span>
+            <div key={index} className="flex items-start gap-2 pl-1">
+              <span className={cn('mt-2.5 h-1.5 w-1.5 shrink-0 rounded-full', isUser ? 'bg-blue-100' : 'bg-primary')} aria-hidden="true" />
+              <span>{parseInline(value.replace(/^[-*]\s+/, ''), isUser)}</span>
             </div>
           );
         }
-
-        // 5. Đoạn trích dẫn / Cảnh báo (>)
-        if (trimmed.startsWith('> ')) {
-          return (
-            <div
-              key={idx}
-              className={`border-l-2 px-3 py-1.5 rounded-r text-xs italic my-1 ${
-                isUser
-                  ? 'bg-blue-800/60 border-blue-300 text-blue-100'
-                  : 'bg-slate-100 border-slate-400 text-slate-700'
-              }`}
-            >
-              {parseInlineFormatting(trimmed.replace('> ', ''), isUser)}
-            </div>
-          );
+        if (value.startsWith('> ')) {
+          return <blockquote key={index} className="my-2 rounded-r-xl border-l-2 border-primary/60 bg-blue-400/5 px-4 py-2 text-sm text-slate-300">{parseInline(value.slice(2), isUser)}</blockquote>;
         }
-
-        // 6. Dòng thường
-        return <p key={idx}>{parseInlineFormatting(line, isUser)}</p>;
+        return <p key={index}>{parseInline(line, isUser)}</p>;
       })}
     </div>
   );
 }
 
-// Hàm hỗ trợ in đậm **bold** và inline `code`
-function parseInlineFormatting(text, isUser = false) {
+function parseInline(text, isUser) {
   const parts = [];
   const regex = /(\*\*.*?\*\*|`.*?`)/g;
   let lastIndex = 0;
   let match;
 
   while ((match = regex.exec(text)) !== null) {
-    if (match.index > lastIndex) {
-      parts.push(text.substring(lastIndex, match.index));
-    }
+    if (match.index > lastIndex) parts.push(text.slice(lastIndex, match.index));
     const token = match[0];
-    if (token.startsWith('**') && token.endsWith('**')) {
-      parts.push(
-        <strong
-          key={match.index}
-          className={`font-bold ${isUser ? 'text-white' : 'text-slate-900'}`}
-        >
-          {token.slice(2, -2)}
-        </strong>
-      );
-    } else if (token.startsWith('`') && token.endsWith('`')) {
-      parts.push(
-        <code
-          key={match.index}
-          className={`px-1.5 py-0.5 font-mono text-xs rounded border ${
-            isUser
-              ? 'bg-blue-800/80 text-blue-100 border-blue-600/60'
-              : 'bg-slate-100 text-blue-700 border-slate-200'
-          }`}
-        >
-          {token.slice(1, -1)}
-        </code>
-      );
+    if (token.startsWith('**')) {
+      parts.push(<strong key={match.index} className={cn('font-semibold', isUser ? 'text-white' : 'text-foreground')}>{token.slice(2, -2)}</strong>);
+    } else {
+      parts.push(<code key={match.index} className={cn('rounded-md border px-1.5 py-0.5 font-mono text-xs', isUser ? 'border-white/20 bg-white/10 text-white' : 'border-ui-border bg-canvas text-blue-200')}>{token.slice(1, -1)}</code>);
     }
     lastIndex = regex.lastIndex;
   }
-
-  if (lastIndex < text.length) {
-    parts.push(text.substring(lastIndex));
-  }
-
-  return parts.length > 0 ? parts : text;
+  if (lastIndex < text.length) parts.push(text.slice(lastIndex));
+  return parts.length ? parts : text;
 }

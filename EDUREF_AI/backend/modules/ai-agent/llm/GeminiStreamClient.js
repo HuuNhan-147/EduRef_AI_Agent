@@ -33,7 +33,7 @@ export class GeminiStreamClient {
    * @param {String} systemInstruction System prompt
    * @param {Function} onChunk Callback nhận từng chunk text thời gian thực
    */
-  async streamGenerateContent(contents, functionDeclarations = [], systemInstruction = '', onChunk = null) {
+  async streamGenerateContent(contents, functionDeclarations = [], systemInstruction = '', onChunk = null, { signal = null } = {}) {
     const totalKeys = Math.max(this.apiKeys.length, 1);
     const activeModel = this.model || process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 
@@ -66,6 +66,7 @@ export class GeminiStreamClient {
             responseType: 'stream',
             timeout: 60000,
             httpsAgent: httpsAgent,
+            signal,
           }
         );
 

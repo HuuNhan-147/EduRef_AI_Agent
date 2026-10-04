@@ -16,7 +16,7 @@
 | **Decision** | **Chốt 1: Thẩm định Điều kiện (Requirements)** | Kiểm tra đủ trường bắt buộc (mục đích, SĐT, nơi sinh, chứng chỉ) | Có | Có (`checkRequirements`) | Có (Prompt) | Có (`Requirement`) | ✅ **Hoàn thành 100%** |
 | **Decision** | **Chốt 2: Thẩm định Quy chế (Policies)** | Kiểm tra sinh viên ACTIVE, nợ phí $\le$ 10M, GPA $\ge$ 2.0 | Có | Có (`AcademicPolicyEngine.js`) | Không | Có (`Policy`) | ✅ **Hoàn thành 100%** |
 | **Decision** | **Chốt 3: Phân cấp Thẩm quyền (Authority)** | Chặn AI tự duyệt đơn cấp Khoa/Trường, ép đơn tốt nghiệp chuyển Lãnh đạo | Có | Có (`checkAuthority`) | Không | Có (`AuthorityRule`) | ✅ **Hoàn thành 100%** |
-| **Decision** | **Chốt 4: Tự động phê duyệt thường quy** | Cấp mã số ST-XXXXXX, mã QR và SHA-256; thời gian thực tế được ghi theo từng lần chạy | Có | Có (`processRequest`) | Không | Có | ✅ **Hoàn thành 100%** |
+| **Decision** | **Chốt 4: Chuyển người có thẩm quyền** | Đóng gói hồ sơ, chỉ định cấp STAFF/DEAN và chờ quyết định con người | Có | Có (`processRequest`) | Không | Có | ✅ **Hoàn thành 100%** |
 | **Vision** | **Giám định Đa phương thức (Multimodal Vision)** | Bóc tách Số hiệu, Số vào sổ trên ảnh scan văn bằng tốt nghiệp | Có (Upload/Preview) | Có (`CertificateVisionService.js`) | Có (Gemini 2.0 Flash Vision) | Có (`RequestDocument`) | ✅ **Hoàn thành 100%** |
 | **Vision** | **Đối soát chéo Text vs Ảnh (Cross-Check)** | Bắt lỗi sai lệch giữa số gõ trên form và số trên ảnh scan văn bằng | Có (Báo lỗi đỏ) | Có (`GraduationAssessmentHandler.js`) | Có | Có | ✅ **Hoàn thành 100%** |
 | **HITL** | **Đóng gói Context Capsule** | Đóng gói lý do, hồ sơ và Actionable Question cho người duyệt | Có (`StaffEscalationPage.jsx`) | Có (`contextCapsule` JSONB) | Heuristic | Có (`StudentRequest.contextCapsule`) | ✅ **Hoàn thành 100%** |
@@ -33,12 +33,12 @@
 
 ### 1. Thủ tục 1: Giấy Xác Nhận Sinh Viên (`STUDENT_CONFIRMATION`)
 - **Phân loại:** Thủ tục thường quy (Routine Petition).
-- **Thẩm quyền:** Tác tử AI được phép tự động phê duyệt (`AUTO_APPROVE`).
+- **Thẩm quyền:** Chuyên viên Phòng Đào tạo (`STAFF_REVIEW`); AI không tự phê duyệt hoặc từ chối.
 - **Ràng buộc đầu vào:** Bắt buộc phải có `purpose` (Mục đích sử dụng: vay vốn, nghĩa vụ quân sự, làm vé xe buýt).
 - **Quy chế kiểm tra:**
   - Sinh viên phải đang theo học hợp lệ (`status === 'ACTIVE'`).
   - Không nợ học phí quá hạn trần 10.000.000 VNĐ.
-- **Thời gian xử lý:** Trung bình $20ms - 80ms$ (cấp mã chứng thực ST-XXXXXX và mã QR ngay lập tức).
+- **Hành động của AI:** Kiểm tra dữ kiện, gắn cờ quy chế, tạo mã hồ sơ và chuyển hàng đợi cán bộ.
 
 ### 2. Thủ tục 2: Đơn Đề Nghị Xét Tốt Nghiệp (`GRADUATION_ASSESSMENT`)
 - **Phân loại:** Thủ tục thẩm quyền cao (High-Authority Petition).

@@ -124,7 +124,7 @@ async function main() {
   console.log('✅ Đã tạo tài khoản Cán bộ PĐT & Trưởng phòng Đào tạo.');
 
   // 5. CHỈ TẠO 2 THỦ TỤC HỌC VỤ THỰC TẾ
-  // Thủ tục 1: Giấy xác nhận sinh viên (Ảnh 1) -> Cổng AUTO
+  // Thủ tục 1: Giấy xác nhận sinh viên (Ảnh 1) -> Cổng Chuyên viên PĐT
   const typeConfirm = await prisma.requestType.create({
     data: {
       code: 'STUDENT_CONFIRMATION',
@@ -199,11 +199,10 @@ async function main() {
       authorityRules: {
         create: [
           {
-            role: 'AI_AGENT',
-            action: 'AUTO_APPROVE',
+            role: 'STAFF',
+            action: 'STAFF_REVIEW',
             condition: {
-              isRoutine: true,
-              maxProcessingTimeSeconds: 2,
+              humanDecisionRequired: true,
             },
           },
         ],
@@ -302,7 +301,7 @@ async function main() {
   });
 
   console.log('✅ Đã nạp thành công 2 thủ tục thực tế:');
-  console.log('   1. [STUDENT_CONFIRMATION] - Giấy Xác Nhận Sinh Viên (AUTO_APPROVE)');
+  console.log('   1. [STUDENT_CONFIRMATION] - Giấy Xác Nhận Sinh Viên (STAFF_REVIEW)');
   console.log('   2. [GRADUATION_ASSESSMENT] - Đơn Đề Nghị Xét Tốt Nghiệp (ESCALATE_TO_DEAN)');
   console.log('🎉 [EduRef Seed] Hoàn tất nạp dữ liệu chuẩn thành công 100%!');
 }

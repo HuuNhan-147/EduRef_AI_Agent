@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import express from 'express';
 import http from 'http';
+import { randomUUID } from 'node:crypto';
 import { Server } from 'socket.io';
 import cors from 'cors';
 import jwt from 'jsonwebtoken';
@@ -11,6 +12,7 @@ import petitionRoutes from './routes/petitionRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { runAgent } from './modules/ai-agent/index.js';
+import { runStudentIntake } from './modules/ai-agent/StudentIntakeService.js';
 import { agentTerminalLogger } from './modules/ai-agent/core/AgentTerminalLogger.js';
 
 // Global error handlers để tránh crash tiến trình
@@ -42,6 +44,7 @@ const io = new Server(server, {
   },
   transports: ['websocket', 'polling'],
 });
+app.set('io', io);
 
 io.use((socket, next) => {
   const secret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'eduref_local_demo_secret_change_me');
@@ -100,14 +103,27 @@ app.get('/health', async (req, res) => {
 // Xử lý kết nối Socket.IO thời gian thực
 io.on('connection', (socket) => {
   console.log('🟢 [Socket.IO] Client đã kết nối:', socket.id);
+  const role = socket.user?.role;
+  if (role) socket.join(`role:${role}`);
+  if (role === 'STUDENT' && socket.user?.id) socket.join(`student:${socket.user.id}`);
+  const activeRuns = new Map();
 
   socket.on('client_send_message', async (data) => {
     const { message, sessionId = `sess_${socket.id}`, attachments, inputData } = data || {};
+    const runId = data?.runId || `run_${randomUUID()}`;
 
     if (!message) {
-      socket.emit('agent_error', { message: 'Tin nhắn không được để trống.' });
+      socket.emit('agent_error', { sessionId, runId, message: 'Tin nhắn không được để trống.' });
       return;
     }
+
+    if (activeRuns.has(runId)) {
+      socket.emit('agent_error', { sessionId, runId, message: 'Yêu cầu này đang được xử lý.' });
+      return;
+    }
+
+    const abortController = new AbortController();
+    activeRuns.set(runId, abortController);
 
     try {
       // 1. Tự động nạp ngữ cảnh người dùng thực tế từ Database
@@ -152,39 +168,71 @@ io.on('connection', (socket) => {
       }
 
       // 2. Gọi AI Agent với callback streaming từng chunk text kèm attachments
-      const result = await runAgent({
+      const agentRunner = userContext.role === 'STUDENT' ? runStudentIntake : runAgent;
+      const result = await agentRunner({
         message,
         currentUser: userContext,
         socket,
         sessionId,
+        runId,
+        signal: abortController.signal,
         attachments,
         inputData,
+        onProgress: (progress) => socket.emit('agent_progress', progress),
         onChunk: (chunk) => {
           socket.emit('agent_response_chunk', {
             sessionId,
+            runId,
             chunk,
           });
         },
       });
 
+      if (result.cancelled) {
+        socket.emit('agent_response_cancelled', {
+          sessionId,
+          runId,
+          totalDuration: result.totalDuration,
+          message: 'Đã dừng xử lý theo yêu cầu của bạn.',
+        });
+        return;
+      }
+
+      if (userContext.role === 'STUDENT' && result.error) {
+        socket.emit('agent_error', { sessionId, runId, error: result.reply });
+        return;
+      }
+
       // Bắn kết quả hoàn chỉnh về client
       socket.emit('agent_response_end', {
         sessionId,
+        runId,
         reply: result.reply,
         decision: result.decision,
         toolResult: result.toolResult,
+        intakeDraft: result.intakeDraft,
         totalDuration: result.totalDuration,
       });
     } catch (err) {
       console.error('❌ [Socket.IO] Lỗi khi xử lý tin nhắn:', err);
       socket.emit('agent_error', {
         sessionId,
+        runId,
         error: err.message,
       });
+    } finally {
+      activeRuns.delete(runId);
     }
   });
 
+  socket.on('client_cancel_run', ({ runId } = {}) => {
+    const controller = activeRuns.get(runId);
+    if (controller && !controller.signal.aborted) controller.abort();
+  });
+
   socket.on('disconnect', () => {
+    activeRuns.forEach((controller) => controller.abort());
+    activeRuns.clear();
     console.log('🔴 [Socket.IO] Client ngắt kết nối:', socket.id);
   });
 });

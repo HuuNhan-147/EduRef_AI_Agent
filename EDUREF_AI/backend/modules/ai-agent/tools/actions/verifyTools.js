@@ -16,10 +16,9 @@ function toPublicCase(testCase) {
     category: testCase.category,
     expectedDecision: testCase.expectedDecision,
     policyRef: `Policy ${STUDENT_CONFIRMATION_POLICY_VERSION}`,
-    judgeNotes:
-      testCase.expectedDecision === 'AUTO_APPROVED'
-        ? 'Ca thường quy phải hoàn tất tự động, không chuyển người xử lý.'
-        : 'Ca không chắc chắn phải dừng tự động hóa, phân loại đúng và cung cấp câu hỏi có thể trả lời trực tiếp.',
+    judgeNotes: testCase.expectedDecision === 'ASK_CLARIFICATION'
+      ? 'Ca thiếu dữ kiện phải hỏi sinh viên bằng một câu hỏi cụ thể.'
+      : 'AI phải phân loại, chuẩn bị ngữ cảnh và chuyển con người đưa ra quyết định cuối cùng.',
   };
 }
 
@@ -32,7 +31,7 @@ async function executeSuite({ mode, cases }) {
   agentTerminalLogger.log({
     step: 'START',
     type: 'START',
-    text: `[Verify:${mode}] 🚀 Bắt đầu thẩm định tự hành ${cases.length} ca chuẩn Track A (Policy: ${STUDENT_CONFIRMATION_POLICY_VERSION}).`,
+    text: `[Verify:${mode}] 🚀 Bắt đầu phân loại và định tuyến ${cases.length} ca (Policy: ${STUDENT_CONFIRMATION_POLICY_VERSION}).`,
   });
 
   for (let i = 0; i < cases.length; i++) {
@@ -64,24 +63,7 @@ async function executeSuite({ mode, cases }) {
         || testCase.expectedDecision === 'ASK_CLARIFICATION';
       const passed = decisionMatched && (!questionRequired || Boolean(actionableQuestion));
 
-      // Bắn log chi tiết từng chốt nghiệp vụ cho BGK theo dõi
-      if (response.decision === 'AUTO_APPROVED') {
-        agentTerminalLogger.log({
-          step: 'CHỐT 1-2',
-          type: 'TOOL_RESULT',
-          text: `  🔍 [${testCase.id}] Chốt 1 (Dữ kiện) & Chốt 2 (Quy chế): ĐẠT. Sinh viên ACTIVE, không nợ học phí.`,
-        });
-        agentTerminalLogger.log({
-          step: 'CHỐT 3',
-          type: 'TOOL_RESULT',
-          text: `  🔒 [${testCase.id}] Chốt 3 (Thẩm quyền): Mục đích thường quy (ROUTINE) -> AI tự động phê duyệt.`,
-        });
-        agentTerminalLogger.log({
-          step: 'DECISION',
-          type: 'DECISION',
-          text: `  🟢 [${testCase.id}] AUTO_APPROVED | Đơn [${response.requestCode}] (${durationMs}ms) | SHA-256: ${response.sha256Proof?.slice(0, 16) || 'valid'}...`,
-        });
-      } else if (response.decision === 'ASK_CLARIFICATION') {
+      if (response.decision === 'ASK_CLARIFICATION') {
         agentTerminalLogger.log({
           step: 'CHỐT 1',
           type: 'TOOL_CALL',
@@ -92,30 +74,29 @@ async function executeSuite({ mode, cases }) {
           type: 'DECISION',
           text: `  ⚡ [${testCase.id}] ASK_CLARIFICATION (${durationMs}ms) -> Đặt câu hỏi bổ sung: "${actionableQuestion}"`,
         });
-      } else if (response.decision === 'REJECTED' || response.decision === 'REJECTED_POLICY') {
-        agentTerminalLogger.log({
-          step: 'CHỐT 2',
-          type: 'TOOL_RESULT',
-          text: `  🚨 [${testCase.id}] Chốt 2 (Quy chế): Vi phạm quy chế đào tạo (ROUTINE_POLICY_DENY).`,
-        });
-        agentTerminalLogger.log({
-          step: 'DECISION',
-          type: 'DECISION',
-          text: `  🔴 [${testCase.id}] REJECTED_POLICY (${durationMs}ms) -> Từ chối tự động dứt khoát: ${response.reason || response.message}`,
-        });
       } else if (response.decision?.startsWith('ESCALATE_')) {
-        const catName = testCase.category === 'BEYOND_AUTHORITY'
-          ? 'BEYOND_AUTHORITY (Vượt thẩm quyền do phê duyệt miệng)'
-          : 'OUTSIDE_POLICY (Mục đích ngoài danh mục chính sách)';
+        const categoryLabels = {
+          ROUTINE: 'ROUTINE (Đủ thông tin để cán bộ xem xét)',
+          ROUTINE_POLICY_DENY: 'POLICY_FLAG (Có điều kiện cần cán bộ xác nhận)',
+          BEYOND_AUTHORITY: 'BEYOND_AUTHORITY (Yêu cầu ngoại lệ)',
+          OUTSIDE_POLICY: 'OUTSIDE_POLICY (Mục đích ngoài danh mục chính sách)',
+        };
+        const catName = categoryLabels[testCase.category] || testCase.category;
         agentTerminalLogger.log({
           step: 'CHỐT 3',
           type: 'TOOL_CALL',
-          text: `  🔒 [${testCase.id}] Chốt 3 (Thẩm quyền): Phân loại bất định [${catName}]. AI không được tự suy diễn.`,
+          text: `  🔒 [${testCase.id}] Chốt 3 (Thẩm quyền): Phân loại [${catName}]. AI không đưa ra quyết định cuối cùng.`,
         });
         agentTerminalLogger.log({
           step: 'DECISION',
           type: 'DECISION',
           text: `  ⚡ [${testCase.id}] ESCALATE_TO_STAFF (${durationMs}ms) -> Đóng gói Context Capsule + Câu hỏi hành động cho Cán bộ: "${actionableQuestion}"`,
+        });
+      } else {
+        agentTerminalLogger.log({
+          step: 'DECISION',
+          type: 'ERROR',
+          text: `  ❌ [${testCase.id}] Kết quả không hợp lệ: ${response.decision || 'UNKNOWN'}. AI không được tự phê duyệt hoặc từ chối.`,
         });
       }
 
@@ -157,15 +138,15 @@ async function executeSuite({ mode, cases }) {
 
   const completedAt = new Date();
   const passedCases = results.filter((result) => result.passed).length;
-  const autoCount = results.filter((result) => result.actualDecision === 'AUTO_APPROVED').length;
   const escalationCount = results.filter((result) => result.actualDecision?.startsWith('ESCALATE_')).length;
-  const distributionPassed = mode !== 'TRACK_A_ESCALATION' || (autoCount === 3 && escalationCount === 2);
+  const clarificationCount = results.filter((result) => result.actualDecision === 'ASK_CLARIFICATION').length;
+  const distributionPassed = mode !== 'TRACK_A_ESCALATION' || escalationCount === cases.length;
   const allPassed = passedCases === cases.length && distributionPassed;
 
   agentTerminalLogger.log({
     step: 'COMPLETE',
     type: 'COMPLETE',
-    text: `[Verify:${mode}] 🏁 Hoàn tất: ${passedCases}/${cases.length} PASS (AUTO=${autoCount}, ESCALATE=${escalationCount}) trong ${completedAt.getTime() - startedAt.getTime()}ms.`,
+    text: `[Verify:${mode}] 🏁 Hoàn tất: ${passedCases}/${cases.length} PASS (HUMAN_REVIEW=${escalationCount}) trong ${completedAt.getTime() - startedAt.getTime()}ms.`,
   });
 
   return {
@@ -178,11 +159,11 @@ async function executeSuite({ mode, cases }) {
     totalCases: cases.length,
     passedCases,
     failedCases: cases.length - passedCases,
-    autoCount,
     escalationCount,
+    clarificationCount,
     distributionPassed,
     allPassed,
-    summary: `${passedCases}/${cases.length} PASS | AUTO=${autoCount} | ESCALATE=${escalationCount}`,
+    summary: `${passedCases}/${cases.length} PASS | HUMAN_REVIEW=${escalationCount}`,
     results,
   };
 }
@@ -245,7 +226,7 @@ export const verifyTools = {
     if (result.success && result.data) {
       const d = result.data;
       const q = d.question || d.actionableQuestion || d.contextCapsule?.actionableQuestion;
-      const icon = d.decision === 'AUTO_APPROVED' ? '🟢' : d.decision?.startsWith('ESCALATE_') ? '⚡' : '🔴';
+      const icon = d.decision?.startsWith('ESCALATE_') ? '⚡' : d.decision === 'ASK_CLARIFICATION' ? '🟡' : '🔴';
       agentTerminalLogger.log({
         step: 'DECISION',
         type: 'DECISION',

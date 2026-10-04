@@ -59,14 +59,14 @@ export class BasePetitionHandler {
    * @param {Object} request - Hồ sơ đơn
    * @param {Object} student - Sinh viên
    * @param {Object} context - Ngữ cảnh bổ sung
-   * @returns {Promise<{ role: 'AI_AGENT'|'STAFF'|'DEAN', action: 'AUTO_APPROVE'|'STAFF_REVIEW'|'DEAN_APPROVAL', reason: string }>}
+   * @returns {Promise<{ role: 'STAFF'|'DEAN', action: 'STAFF_REVIEW'|'DEAN_APPROVAL', reason: string }>}
    */
   async checkAuthority(request, student, context = {}) {
-    // Mặc định cho phép AI tự động xử lý nếu là tác vụ thường quy
     return {
-      role: 'AI_AGENT',
-      action: 'AUTO_APPROVE',
-      reason: 'Đơn thường quy thuộc thẩm quyền phê duyệt tự động của Tác tử AI.',
+      role: 'STAFF',
+      action: 'STAFF_REVIEW',
+      reason: 'AI đã chuẩn bị hồ sơ; Chuyên viên Phòng Đào tạo đưa ra quyết định cuối cùng.',
+      actionableQuestion: 'Cán bộ Phòng Đào tạo kiểm tra thông tin và quyết định hướng xử lý hồ sơ?',
     };
   }
 
