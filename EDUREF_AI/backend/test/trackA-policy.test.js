@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { evaluateStudentConfirmation, inferStudentConfirmationInput } from '../services/StudentConfirmationDecisionService.js';
-import { GENERAL_VERIFY_CASES, TRACK_A_VERIFY_CASES, TRACK_A_15_CASE_DATASET } from '../fixtures/trackAVerifyCases.js';
+import { TRACK_A_VERIFY_CASES, TRACK_A_15_CASE_DATASET } from '../fixtures/trackAVerifyCases.js';
 
 const defaultStudent = {
   studentCode: 'TEST001',
@@ -10,15 +10,10 @@ const defaultStudent = {
   tuitionDebt: 0,
 };
 
-test('Track A fixture has exactly 3 routine auto cases and 2 escalation cases', () => {
+test('Track A fixture has exactly 3 routine auto cases and 2 escalation cases (60% Auto / 40% Escalate)', () => {
   assert.equal(TRACK_A_VERIFY_CASES.length, 5);
   assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision === 'AUTO_APPROVED').length, 3);
   assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision.startsWith('ESCALATE_')).length, 2);
-});
-
-test('General Verify fixture has 4 cases and includes a deny or escalation', () => {
-  assert.equal(GENERAL_VERIFY_CASES.length, 4);
-  assert.ok(GENERAL_VERIFY_CASES.some((item) => ['REJECTED_POLICY', 'ESCALATE_TO_STAFF'].includes(item.expectedDecision)));
 });
 
 test('15-case dataset is executable against the canonical policy', () => {

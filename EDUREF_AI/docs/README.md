@@ -21,6 +21,6 @@ Các tài liệu kiến trúc bổ trợ:
 - `09_API.md`
 - `10_DATABASE.md`
 - `12_TECHNICAL_DEBT.md`
-- `13_WEBMCP.md`
+- `13_ZERO_TRUST_SECURITY.md` — nguyên lý Zero-Trust Client Boundary và bảo vệ toàn vẹn quyết định học vụ.
 
 Nếu tài liệu cũ mâu thuẫn với `14_TRACK_A_POLICY.md`, policy chuẩn và test tự động là nguồn chân lý.

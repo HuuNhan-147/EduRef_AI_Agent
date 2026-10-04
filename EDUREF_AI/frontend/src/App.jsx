@@ -20,7 +20,8 @@ export default function App() {
   const [authError, setAuthError] = useState('');
 
   // Tab đang hoạt động
-  const [activeTab, setActiveTab] = useState('STUDENT_ASSISTANT');
+  // The judge-facing surface is the first screen after the demo session loads.
+  const [activeTab, setActiveTab] = useState('VERIFY_HARNESS');
 
   // Trạng thái Socket.IO
   const [socketConnected, setSocketConnected] = useState(false);

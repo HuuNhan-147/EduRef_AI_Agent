@@ -33,13 +33,24 @@ export class GeminiStreamClient {
    * @param {String} systemInstruction System prompt
    * @param {Function} onChunk Callback nhận từng chunk text thời gian thực
    */
-  async streamGenerateContent(contents, functionDeclarations = [], systemInstruction = '', onChunk = null) {
+  async streamGenerateContent(contents, functionDeclarations = [], systemInstruction = '', onChunk = null, signal = null) {
     const totalKeys = Math.max(this.apiKeys.length, 1);
     const activeModel = this.model || process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
 
     if (this.apiKeys.length === 0) {
       console.error('❌ [GeminiStreamClient] GEMINI_API_KEY is not defined in environment variables!');
       throw new Error('GEMINI_API_KEY chưa được cấu hình. Vui lòng kiểm tra file .env.');
+    }
+
+    if (signal?.aborted) {
+      return {
+        text: '',
+        parts: [],
+        duration: 0,
+        ttfb: 0,
+        model: activeModel,
+        isAborted: true,
+      };
     }
 
     for (let keyAttempt = 0; keyAttempt < totalKeys; keyAttempt++) {
@@ -66,6 +77,7 @@ export class GeminiStreamClient {
             responseType: 'stream',
             timeout: 60000,
             httpsAgent: httpsAgent,
+            signal: signal || undefined,
           }
         );
 
@@ -77,6 +89,28 @@ export class GeminiStreamClient {
 
         return await new Promise((resolve, reject) => {
           let buffer = '';
+
+          const onAbort = () => {
+            try {
+              response.data?.destroy();
+            } catch (e) {}
+            resolve({
+              text: fullText,
+              parts: originalParts,
+              duration: Date.now() - apiStartTime,
+              ttfb: ttfb || 0,
+              model: activeModel,
+              isAborted: true,
+            });
+          };
+
+          if (signal) {
+            if (signal.aborted) {
+              onAbort();
+              return;
+            }
+            signal.addEventListener('abort', onAbort, { once: true });
+          }
 
           const processJsonObj = (jsonObj) => {
             const candidate = jsonObj.candidates?.[0];
@@ -93,6 +127,10 @@ export class GeminiStreamClient {
           };
 
           response.data.on('data', (chunk) => {
+            if (signal?.aborted) {
+              onAbort();
+              return;
+            }
             if (ttfb === null) {
               ttfb = Date.now() - apiStartTime;
             }
@@ -122,6 +160,9 @@ export class GeminiStreamClient {
           });
 
           response.data.on('end', () => {
+            if (signal) {
+              signal.removeEventListener('abort', onAbort);
+            }
             if (buffer.trim()) {
               let jsonStr = buffer.trim();
               if (jsonStr.startsWith('data:')) jsonStr = jsonStr.replace(/^data:\s*/, '').trim();
@@ -143,14 +184,33 @@ export class GeminiStreamClient {
               duration: totalDuration,
               ttfb: ttfb || totalDuration,
               model: activeModel,
+              isAborted: false,
             });
           });
 
           response.data.on('error', (err) => {
-            reject(err);
+            if (signal) {
+              signal.removeEventListener('abort', onAbort);
+            }
+            if (signal?.aborted || axios.isCancel(err) || err.name === 'CanceledError' || err.name === 'AbortError') {
+              onAbort();
+            } else {
+              reject(err);
+            }
           });
         });
       } catch (err) {
+        if (signal?.aborted || axios.isCancel(err) || err.name === 'CanceledError' || err.name === 'AbortError') {
+          console.log('⏹ [GeminiStreamClient] Yêu cầu stream đã dừng an toàn theo tín hiệu người dùng.');
+          return {
+            text: '',
+            parts: [],
+            duration: 0,
+            ttfb: 0,
+            model: activeModel,
+            isAborted: true,
+          };
+        }
         const isRecoverable = err.response && [429, 403, 500, 503, 504].includes(err.response.status);
         if (isRecoverable && keyAttempt < totalKeys - 1) {
           console.warn(`🔄 [KeyRotator] Key [${maskedKey}] gặp sự cố (${err.response?.status}), tự động chuyển sang Key tiếp theo (${keyAttempt + 1}/${totalKeys})...`);

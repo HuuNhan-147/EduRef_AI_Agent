@@ -3,3 +3,7 @@
 node_modules/
 dist/
 .npm-cache/
+
+# Scratch and temporary scripts
+scratch/
+**/scratch/

@@ -50,7 +50,7 @@ erDiagram
 
     RequestType {
         string id PK
-        string code UK "STUDENT_CONFIRMATION, GRADUATION_ASSESSMENT"
+        string code UK "STUDENT_CONFIRMATION"
         string name
         string description
     }

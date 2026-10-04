@@ -1,6 +1,10 @@
 import AcademicWorkflowService from '../../../../services/AcademicWorkflowService.js';
 
 export const workflowTools = {
+  // ⚡ Fast-Path Master Tool
+  async process_student_confirmation({ studentCode, purpose = '', pickupCampus = '', inputData = {} }) {
+    return await AcademicWorkflowService.processStudentConfirmation({ studentCode, purpose, pickupCampus, inputData });
+  },
   // A. Student Context
   async get_student_profile({ studentCode }) {
     return await AcademicWorkflowService.getStudentProfile(studentCode);

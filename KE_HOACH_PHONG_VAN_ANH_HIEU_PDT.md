@@ -1,6 +1,6 @@
 # 📋 KỊCH BẢN PHỎNG VẤN CHUYÊN SÂU — ANH HIẾU (HỌC VỤ ĐIỆN TỬ HUTECH)
 > **Mục tiêu:** Đối chiếu và tinh chỉnh luồng xử lý của EduRef AI mô phỏng chính xác nghiệp vụ thực tế của Nhà trường.  
-> **Thời gian:** 09h00 — Sáng mai (29/09/2026) | **Địa điểm:** VP Khoa CNTT, Thủ Đức Campus  
+> **Thời gian:** 09h00 — 29/09/2026 | **Địa điểm:** VP Khoa CNTT, Thủ Đức Campus  
 
 ---
 
@@ -28,7 +28,40 @@
 
 ---
 
-## 3. QUAN TRỌNG NHẤT: XÁC ĐỊNH RANH GIỚI AI ↔ CON NGƯỜI (HITL)
+## ⏱️ 3. ĐO LƯỜNG TIMELINE CHI TIẾT TỪNG BƯỚC (BENCHMARK THỰC TẾ CHO SLIDE 3 — 7 ĐIỂM BGK)
+> *(Căn cứ yêu cầu bắt buộc của Ban Giám Khảo tại track2.md: Đo lường thời gian thực tế chi tiết từng bước gồm thời gian thao tác, thời gian chờ và bàn giao liên phòng ban để lập Sơ đồ Đối chiếu Trước vs Sau cho Vòng Chung kết).*
+
+- **Bước 1 — Sinh viên gửi yêu cầu → Cán bộ tiếp nhận:** Thường mất bao lâu?  
+  *(Hồ sơ nằm trong hàng đợi bao lâu thì cán bộ mở ra xử lý: vài tiếng, nửa ngày, hay định kỳ cuối ngày?)*
+- **Bước 2 — Tiếp nhận → Kiểm tra thông tin sinh viên:** Mất bao lâu?  
+  *(Mở hồ sơ, tra cứu MSSV, kiểm tra đúng người đúng khóa).*
+- **Bước 3 — Kiểm tra điều kiện / thông tin → Xác định loại giấy xác nhận:** Mất bao lâu?  
+  *(Đọc mục đích, phân loại mẫu giấy NVQS / Mẫu Vay vốn 01-TDSV / Mẫu chung).*
+- **Bước 4 — Kiểm tra dữ liệu trên hệ thống:** Cán bộ thường mất bao lâu?  
+  *(Tra cứu nợ học phí bên phần mềm Tài chính, kiểm tra trạng thái học vụ bên PĐT, kiểm tra kỷ luật).*
+- **Bước 5 — Nếu cần kiểm tra hoặc đối chiếu thêm thông tin:** Thường mất bao lâu?  
+  *(Khi có nghi vấn, cần gọi điện/email cho sinh viên hoặc hỏi ý kiến Khoa/Phòng Tài chính).*
+- **Bước 6 — Sau khi đủ điều kiện → Tạo giấy xác nhận:** Mất bao lâu?  
+  *(Điền thông tin vào biểu mẫu, in giấy ra hoặc tạo bản mềm).*
+- **Bước 7 — Tạo giấy → Trình ký, đóng mộc → Trả kết quả cho sinh viên:** Mất bao lâu?  
+  *(Thời gian chờ Lãnh đạo ký mộc đỏ, sinh viên đến văn phòng nhận hoặc gửi bưu điện).*
+- **Các bước nghẽn liên phòng ban:** Có bước nào phải chờ người khác hoặc bộ phận khác không?  
+  *(Ví dụ: chờ Phòng Tài chính xác nhận giao dịch chuyển khoản học phí, chờ Lãnh đạo ký duyệt theo đợt...)*
+- **Tổng Lead Time thực tế:** Tổng thời gian từ lúc sinh viên gửi đơn đến lúc cầm được giấy trên tay là bao nhiêu giờ / ngày?
+
+### 📊 Bảng Điền Số Liệu Benchmark Đối Chiếu Trực Tiếp:
+| Bước trong quy trình thủ công hiện tại | Thời gian xử lý thực tế (Touch Time) | Thời gian chờ đợi (Wait / Idle Time) | Bộ phận phụ trách | Khi có EduRef AI xử lý (Target) |
+| :--- | :---: | :---: | :---: | :---: |
+| **1. Tiếp nhận đơn nộp** | .............. phút | .............. giờ | Cổng thông tin | Tức thì (**0.1 giây**) |
+| **2. Tra cứu CSDL học vụ & Nợ phí** | .............. phút | .............. phút | PĐT / P.Tài chính | Tự động hóa qua API (**0.2 giây**) |
+| **3. Thẩm định quy chế & Ràng buộc thời gian** | .............. phút | .............. phút | Cán bộ CTSV | Deterministic Policy (**0.05 giây**) |
+| **4. In ấn, Trình ký & Đóng mộc** | .............. phút | .............. ngày | Lãnh đạo / Văn thư | Mã QR băm SHA-256 (**0.5 giây**) |
+| **5. Trả kết quả cho sinh viên** | .............. phút | .............. ngày | Phát tại quầy | Giấy điện tử tải ngay (**0.5 giây**) |
+| **TỔNG THỜI GIAN HOÀN TẤT** | **.............. phút** | **.............. ngày** | **Toàn trường** | **DƯỚI 2.0 GIÂY** |
+
+---
+
+## 4. QUAN TRỌNG NHẤT: XÁC ĐỊNH RANH GIỚI AI ↔ CON NGƯỜI (HITL)
 - Trong toàn bộ quy trình này, những trường hợp nào anh cho rằng hệ thống **có thể tự động duyệt hoàn toàn (AUTO-APPROVE)**?
 - Những trường hợp nào anh muốn hệ thống **tuyệt đối không tự duyệt** mà bắt buộc phải chuyển tiếp cho cán bộ (ESCALATE)?
 - Khi chuyển một đơn cho cán bộ, cán bộ cần nhìn thấy những thông tin tóm tắt nào trên màn hình để có thể ra quyết định nhanh nhất (trong 5 giây)?
@@ -39,7 +72,7 @@
 
 ---
 
-## 4. ĐỐI CHIẾU VỚI EDUREF HIỆN TẠI
+## 5. ĐỐI CHIẾU VỚI EDUREF HIỆN TẠI
 *(Mở sản phẩm EduRef AI trên laptop cho anh Hiếu xem từng bước rồi phỏng vấn trực tiếp)*
 
 - Với luồng EduRef hiện tại, bước nào đang khác với cách các anh/chị xử lý thực tế hàng ngày?
@@ -50,7 +83,7 @@
 
 ---
 
-## 5. CHỐT ĐỂ THIẾT KẾ POLICY + HUMAN-IN-THE-LOOP (HITL)
+## 6. CHỐT ĐỂ THIẾT KẾ POLICY + HUMAN-IN-THE-LOOP (HITL)
 - Nếu phải mô tả quy trình XNSV thành các bước:  
   **`Kiểm tra A → Kiểm tra B → Kiểm tra C → Quyết định`**, anh sẽ mô tả như thế nào?
 - Đâu là điều kiện mà **chỉ cần không đạt là chắc chắn từ chối**, không cần xét tiếp?

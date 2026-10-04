@@ -2,6 +2,8 @@
 **Dự án:** EduRef AI — The Academic Escalation Referee  
 **Module:** `backend/modules/ai-agent`
 
+> **Phạm vi Sprint 2:** Agent chỉ điều phối quy trình `STUDENT_CONFIRMATION`. Quyết định approve/reject/escalate do policy backend thực hiện. Tài liệu này không mô tả RAG, VectorDB, Redis hay các workflow đã loại khỏi bản chung kết.
+
 ---
 
 ## 1. MÔ HÌNH VÀ THÔNG SỐ CẤU HÌNH (MODEL CONFIGURATION)
@@ -33,7 +35,7 @@ Người dùng gửi tin nhắn
         │
         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ VÒNG LẶP REACT (Tối đa 8 vòng lặp - maxSteps = 8)           │
+│ VÒNG LẶP REACT (Tối đa 5 vòng lặp - maxSteps = 5)           │
 │                                                             │
 │ 1. Gọi Gemini streamGenerateContent với Function Declarations│
 │ 2. Kiểm tra xem model có trả về functionCall không?        │

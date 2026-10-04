@@ -6,6 +6,74 @@ import {
 } from './StudentConfirmationDecisionService.js';
 
 class AcademicWorkflowService {
+  /**
+   * ⚡ FAST-PATH MASTER TOOL: Xử lý trọn gói quy trình Cấp Giấy Xác Nhận Sinh Viên trong 1 bước duy nhất
+   */
+  static async processStudentConfirmation({ studentCode, purpose = '', pickupCampus = '', inputData = {} }) {
+    const startTime = Date.now();
+    try {
+      // 1. Kiểm tra bắt buộc: Mục đích sử dụng giấy xác nhận
+      const finalPurpose = String(purpose || inputData?.purpose || inputData?.reason || '').trim();
+      if (!finalPurpose) {
+        return {
+          success: true,
+          decision: 'ASK_CLARIFICATION',
+          status: 'WAITING_STUDENT',
+          classification: 'UNKNOWN_FACT',
+          uncertaintyType: 'UNKNOWN_FACT',
+          actionableQuestion: 'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, học bổng hay xin visa?',
+          message: 'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, học bổng hay xin visa?',
+        };
+      }
+
+      // 2. Kiểm tra bắt buộc: Cơ sở nhận giấy (Bắt buộc chọn 1 trong 2 cơ sở thực tế HUTECH)
+      const campusRaw = String(pickupCampus || inputData?.pickupCampus || inputData?.campus || '').trim();
+      if (!campusRaw) {
+        return {
+          success: true,
+          decision: 'ASK_CLARIFICATION',
+          status: 'WAITING_STUDENT',
+          classification: 'UNKNOWN_FACT',
+          uncertaintyType: 'UNKNOWN_FACT',
+          actionableQuestion: 'Vui lòng chọn cơ sở bạn muốn nhận Giấy xác nhận sinh viên bản cứng: Sai Gon Campus (A-01.01) hoặc Thu Duc Campus (E1-01.08).',
+          message: 'Dạ, hệ thống đã tiếp nhận yêu cầu xin cấp Giấy xác nhận sinh viên của bạn. Vui lòng chọn 1 trong 2 cơ sở sau để nhận giấy bản cứng:\n1. 🏢 Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)\n2. 🏢 Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)',
+        };
+      }
+
+      const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
+      const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm/i.test(campusRaw);
+      const normalizedCampus = isThuDuc
+        ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
+        : isSaiGon
+        ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
+        : campusRaw;
+
+      const payload = {
+        ...inputData,
+        purpose: finalPurpose,
+        pickupCampus: normalizedCampus,
+      };
+
+      // ⚡ GỌI TRỰC TIẾP QUA PETITION WORKFLOW CORE DUY NHẤT (SINGLE SOURCE OF TRUTH)
+      const { default: petitionWorkflowCore } = await import('../modules/petition-core/PetitionWorkflowCore.js');
+      const coreResult = await petitionWorkflowCore.processPetitionWorkflow({
+        studentCode: String(studentCode).trim(),
+        requestTypeCode: 'STUDENT_CONFIRMATION',
+        inputData: payload,
+        forceNewRequest: true,
+        actorType: 'AI_AGENT',
+      });
+
+      return {
+        ...coreResult,
+        actionableQuestion: coreResult.question || coreResult.actionableQuestion || coreResult.contextCapsule?.actionableQuestion,
+      };
+    } catch (err) {
+      console.error('❌ [processStudentConfirmation] Lỗi:', err);
+      return { success: false, error: err.message };
+    }
+  }
+
   // =========================================================================
   // NHÓM A: STUDENT CONTEXT
   // =========================================================================

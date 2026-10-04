@@ -30,13 +30,11 @@ export default function DynamicPetitionModal({
   onSubmitToChat,
   onPetitionCreated
 }) {
-  if (!isOpen || !petitionType) return null;
-
   const currentAccount = DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
 
   // Xác định mã thủ tục
-  const isConfirmForm = petitionType.code === 'STUDENT_CONFIRMATION';
-  const isGraduationForm = petitionType.code === 'GRADUATION_ASSESSMENT';
+  const isConfirmForm = petitionType?.code === 'STUDENT_CONFIRMATION';
+  const isGraduationForm = false;
 
   // State cho Form 1: Giấy Xác Nhận Sinh Viên
   const [confirmData, setConfirmData] = useState({
@@ -81,6 +79,8 @@ export default function DynamicPetitionModal({
     },
   });
   const [previewModalImg, setPreviewModalImg] = useState(null);
+
+  if (!isOpen || !petitionType) return null;
 
   // Nạp ảnh mẫu thực tế HUTECH của SV Cao Hữu Nhân khi bấm nút "🧪 Nạp Mẫu HUTECH"
   const handleLoadSample = (type) => {
@@ -338,17 +338,17 @@ export default function DynamicPetitionModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/60 backdrop-blur-xs p-4 animate-fade-in">
-      <div className={`bg-white rounded-xl shadow-2xl border border-slate-200 w-full ${isGraduationForm ? 'max-w-5xl' : 'max-w-3xl'} overflow-hidden flex flex-col max-h-[92vh]`}>
+      <div className="bg-white rounded-xl shadow-2xl border border-slate-200 w-full max-w-3xl overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Modal Top Header */}
         <div className="px-6 py-3.5 border-b border-slate-200 flex items-center justify-between bg-slate-50">
           <div className="flex items-center gap-2.5">
             <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${isConfirmForm ? 'bg-emerald-50 text-emerald-700 border-emerald-200' : 'bg-blue-50 text-blue-700 border-blue-200'}`}>
-              {isConfirmForm ? <FileText className="w-4 h-4" /> : <GraduationCap className="w-4 h-4" />}
+              <FileText className="w-4 h-4" />
             </div>
             <div>
               <h3 className="text-sm font-bold text-slate-800 uppercase tracking-wide">
-                {isConfirmForm ? 'GIẤY XÁC NHẬN' : 'NHẬP THÔNG TIN ĐƠN/PHIẾU — ĐƠN ĐỀ NGHỊ XÉT TỐT NGHIỆP'}
+                'GIẤY XÁC NHẬN SINH VIÊN'
               </h3>
               <p className="text-[11px] text-slate-500 font-mono">Mã thủ tục: {petitionType.code}</p>
             </div>
@@ -543,407 +543,7 @@ export default function DynamicPetitionModal({
           )}
 
           {/* ========================================================================= */}
-          {/* MẪU 2: ĐƠN ĐỀ NGHỊ XÉT TỐT NGHIỆP (Ảnh 2) */}
-          {/* ========================================================================= */}
-          {isGraduationForm && (
-            <div className="space-y-4">
-              <div className="border-b border-slate-200 pb-2">
-                <h4 className="font-bold text-xs uppercase tracking-wider text-slate-700">
-                  THÔNG TIN ĐƠN/PHIẾU
-                </h4>
-              </div>
 
-              {/* Số điện thoại liên hệ * */}
-              <div>
-                <label className="text-xs font-semibold text-rose-600 block mb-1">
-                  Số điện thoại liên hệ *
-                </label>
-                <input
-                  type="text"
-                  value={gradData.phone}
-                  onChange={(e) => setGradData({ ...gradData, phone: e.target.value })}
-                  placeholder="Sinh viên vui lòng nhập số điện thoại liên hệ"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-rose-300 bg-rose-50/20 focus:border-blue-600 focus:outline-hidden"
-                />
-              </div>
-
-              {/* Nơi sinh * */}
-              <div>
-                <label className="text-xs font-semibold text-rose-600 block mb-1">
-                  Nơi sinh *
-                </label>
-                <input
-                  type="text"
-                  value={gradData.birthPlace}
-                  onChange={(e) => setGradData({ ...gradData, birthPlace: e.target.value })}
-                  placeholder="Sinh viên vui lòng nhập nơi sinh"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-rose-300 bg-rose-50/20 focus:border-blue-600 focus:outline-hidden"
-                />
-              </div>
-
-              {/* Lý do xin đề nghị xét tốt nghiệp * */}
-              <div>
-                <label className="text-xs font-semibold text-rose-600 block mb-1">
-                  Lý do xin đề nghị xét tốt nghiệp *
-                </label>
-                <textarea
-                  rows={2}
-                  value={gradData.reason}
-                  onChange={(e) => setGradData({ ...gradData, reason: e.target.value })}
-                  placeholder="Sinh viên vui lòng nhập lý do xin đề nghị xét tốt nghiệp"
-                  className="w-full px-3 py-2 text-xs rounded-lg border border-rose-300 bg-rose-50/20 focus:border-blue-600 focus:outline-hidden resize-none"
-                />
-              </div>
-
-              {/* KHỐI BẢNG CHỨNG CHỈ */}
-              <div className="pt-3 space-y-3">
-                <div className="flex items-center justify-between">
-                  <h4 className="font-bold text-xs uppercase tracking-wider text-slate-800">
-                    DANH SÁCH CHỨNG CHỈ NỘP ĐƠN XÉT TỐT NGHIỆP
-                  </h4>
-                </div>
-
-                {/* Hộp hướng dẫn màu đỏ theo ảnh */}
-                <div className="p-3 bg-amber-50/60 border border-amber-200 rounded-lg flex items-center justify-between gap-3 text-xs">
-                  <div className="text-rose-600 font-medium">
-                    <p className="font-semibold">Số vào sổ và số hiệu phải nhập đầy đủ cả phần chữ và phần số, Ví dụ:</p>
-                    <p className="text-[11px] text-slate-600 mt-0.5">
-                      Số hiệu <span className="font-mono font-bold text-slate-800">A2532654</span> &nbsp;|&nbsp; 
-                      Số vào sổ <span className="font-mono font-bold text-slate-800">TA-B-16/2356</span> hoặc Số vào sổ <span className="font-mono font-bold text-slate-800">DKC17NN00001</span>
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => alert('Hướng dẫn: Sinh viên cần kiểm tra kỹ số hiệu và số vào sổ in trên góc phải hoặc mặt sau của Chứng chỉ.')}
-                    className="px-2.5 py-1.5 bg-amber-100 hover:bg-amber-200 text-amber-900 border border-amber-300 rounded font-semibold text-[11px] flex items-center gap-1 shrink-0"
-                  >
-                    <HelpCircle className="w-3.5 h-3.5" />
-                    Hướng dẫn
-                  </button>
-                </div>
-
-                {/* BẢNG CHỨNG CHỈ */}
-                <div className="overflow-x-auto border border-slate-300 rounded-lg shadow-xs">
-                  <table className="w-full text-left text-[11px] border-collapse">
-                    <thead>
-                      <tr className="bg-[#2c408b] text-white">
-                        <th className="py-2.5 px-2 text-center w-10 border-r border-blue-800 font-bold">STT</th>
-                        <th className="py-2.5 px-3 border-r border-blue-800 font-bold min-w-[180px]">LOẠI CHỨNG CHỈ</th>
-                        <th className="py-2.5 px-3 border-r border-blue-800 font-bold min-w-[110px]">SỐ HIỆU</th>
-                        <th className="py-2.5 px-3 border-r border-blue-800 font-bold min-w-[120px]">SỐ VÀO SỔ</th>
-                        <th className="py-2.5 px-3 border-r border-blue-800 font-bold min-w-[110px]">NGÀY CẤP</th>
-                        <th className="py-2.5 px-3 border-r border-blue-800 font-bold min-w-[120px]">NGÀY SINH TRÊN CHỨNG CHỈ</th>
-                        <th className="py-2.5 px-2 text-center w-10 font-bold">#</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200 bg-white">
-                      {gradData.certificates.map((cert, index) => (
-                        <tr key={cert.id} className="hover:bg-slate-50 transition-colors">
-                          <td className="py-2 px-2 text-center font-bold text-slate-500">{index + 1}</td>
-                          <td className="py-2 px-2">
-                            <select
-                              value={cert.certType}
-                              onChange={(e) => handleCertFieldChange(cert.id, 'certType', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-200 rounded text-[11px] bg-white"
-                            >
-                              <option value="Chứng chỉ Ngoại ngữ (TOEIC/IELTS)">Chứng chỉ Ngoại ngữ (TOEIC/IELTS)</option>
-                              <option value="Chứng chỉ Tin học (MOS/IC3)">Chứng chỉ Tin học (MOS/IC3)</option>
-                              <option value="Chứng chỉ Giáo dục Quốc phòng">Chứng chỉ Giáo dục Quốc phòng</option>
-                              <option value="Chứng chỉ Giáo dục Thể chất">Chứng chỉ Giáo dục Thể chất</option>
-                            </select>
-                          </td>
-                          <td className="py-2 px-2">
-                            <input
-                              type="text"
-                              value={cert.certNumber}
-                              onChange={(e) => handleCertFieldChange(cert.id, 'certNumber', e.target.value)}
-                              placeholder="VD: A2532654"
-                              className="w-full px-2 py-1 border border-slate-200 rounded text-[11px] font-mono"
-                            />
-                          </td>
-                          <td className="py-2 px-2">
-                            <input
-                              type="text"
-                              value={cert.bookNumber}
-                              onChange={(e) => handleCertFieldChange(cert.id, 'bookNumber', e.target.value)}
-                              placeholder="VD: TA-B-16/2356"
-                              className="w-full px-2 py-1 border border-slate-200 rounded text-[11px] font-mono"
-                            />
-                          </td>
-                          <td className="py-2 px-2">
-                            <input
-                              type="date"
-                              value={cert.issueDate}
-                              onChange={(e) => handleCertFieldChange(cert.id, 'issueDate', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-200 rounded text-[11px]"
-                            />
-                          </td>
-                          <td className="py-2 px-2">
-                            <input
-                              type="date"
-                              value={cert.birthDateOnCert}
-                              onChange={(e) => handleCertFieldChange(cert.id, 'birthDateOnCert', e.target.value)}
-                              className="w-full px-2 py-1 border border-slate-200 rounded text-[11px]"
-                            />
-                          </td>
-                          <td className="py-2 px-2 text-center">
-                            <button
-                              type="button"
-                              onClick={() => handleRemoveCertificate(cert.id)}
-                              disabled={gradData.certificates.length <= 1}
-                              className="text-slate-400 hover:text-rose-600 disabled:opacity-30 p-1"
-                            >
-                              <Trash2 className="w-3.5 h-3.5" />
-                            </button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {/* Nút thêm thông tin chứng chỉ (xanh lá nhạt theo ảnh) */}
-                <div className="flex justify-center pt-1">
-                  <button
-                    type="button"
-                    onClick={handleAddCertificate}
-                    className="px-4 py-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-300 rounded-md font-semibold text-xs flex items-center gap-1.5 shadow-2xs transition-colors"
-                  >
-                    <Plus className="w-4 h-4" />
-                    Thêm thông tin chứng chỉ
-                  </button>
-                </div>
-
-                {/* KHU VỰC ĐÍNH KÈM MINH CHỨNG CHỨNG CHỈ */}
-                <div className="pt-3 border-t border-slate-200 space-y-3">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <div className="p-1 rounded bg-blue-100 text-blue-700">
-                        <Paperclip className="w-4 h-4" />
-                      </div>
-                      <div>
-                        <h5 className="font-bold text-xs uppercase tracking-wider text-slate-800">
-                          Minh Chứng Chuẩn Đầu Ra (Bản Scan / Ảnh Chụp Đối Soát)
-                        </h5>
-                        <p className="text-[11px] text-slate-500">
-                          Đính kèm ảnh chứng chỉ thực tế có mộc đỏ để Hội đồng đối soát. EduRef AI sẽ tự động thẩm định format hồ sơ ngay khi bạn nộp đơn.
-                        </p>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Grid 2 Thẻ Minh Chứng: B1 và Làm việc nhóm */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-                    
-                    {/* THẺ 1: TIẾNG ANH B1 */}
-                    <div className={`p-3.5 rounded-xl border transition-all ${
-                      attachedCerts.b1.attached 
-                        ? 'bg-blue-50/40 border-blue-300 shadow-xs' 
-                        : 'bg-slate-50 border-slate-200'
-                    }`}>
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 mb-2.5">
-                        <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800">
-                          <Award className="w-4 h-4 text-blue-600" />
-                          <span>1. Chuẩn Ngoại ngữ: Tiếng Anh B1</span>
-                        </div>
-                        {attachedCerts.b1.attached ? (
-                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            Đã đính kèm tệp
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded">
-                            Chưa đính kèm
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Các nút bấm tải ảnh / nạp mẫu nhanh */}
-                      <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-                        <input
-                          type="file"
-                          id="upload-b1-file"
-                          accept="image/*"
-                          onChange={(e) => handleFileUpload('b1', e)}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor="upload-b1-file"
-                          className="px-2.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-300 text-[11px] font-semibold text-slate-700 cursor-pointer flex items-center gap-1 shadow-2xs transition-colors"
-                        >
-                          <Upload className="w-3 h-3 text-slate-500" />
-                          Chọn từ máy
-                        </label>
-
-                        <button
-                          type="button"
-                          onClick={() => handleLoadSample('b1')}
-                          className="px-2.5 py-1 rounded bg-blue-50 hover:bg-blue-100 border border-blue-200 text-[11px] font-bold text-blue-800 flex items-center gap-1 transition-colors"
-                        >
-                          🧪 Nạp Mẫu HUTECH
-                        </button>
-                      </div>
-
-                      {/* Khung hiển thị Thumbnail & Thông tin minh chứng */}
-                      {attachedCerts.b1.previewUrl ? (
-                        <div className="flex gap-3 bg-white p-2.5 rounded-lg border border-slate-200 text-[11px]">
-                          <div className="relative group shrink-0">
-                            <img
-                              src={attachedCerts.b1.previewUrl}
-                              alt="Chứng chỉ B1"
-                              className="w-16 h-22 object-cover rounded border border-slate-300 shadow-2xs cursor-pointer"
-                              onClick={() => setPreviewModalImg(attachedCerts.b1.previewUrl)}
-                            />
-                            <div
-                              onClick={() => setPreviewModalImg(attachedCerts.b1.previewUrl)}
-                              className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 rounded flex items-center justify-center text-white cursor-pointer transition-opacity"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </div>
-                          </div>
-
-                          <div className="flex-1 space-y-1">
-                            <div className="font-semibold text-slate-800 text-xs truncate">
-                              {attachedCerts.b1.fileName || 'HUTECH_Chung_Chi_Tieng_Anh_B1.png'}
-                            </div>
-                            <div className="text-slate-600 flex items-center justify-between">
-                              <span>Số hiệu trong đơn:</span>
-                              <span className="font-mono font-bold text-rose-600">
-                                {gradData.certificates[0]?.certNumber || 'Chưa nhập'}
-                              </span>
-                            </div>
-                            <div className="text-slate-600 flex items-center justify-between">
-                              <span>Số vào sổ:</span>
-                              <span className="font-mono font-bold text-blue-700">
-                                {gradData.certificates[0]?.bookNumber || 'Chưa nhập'}
-                              </span>
-                            </div>
-                            <div className="text-slate-500 flex items-center justify-between text-[10px] pt-0.5">
-                              <span>Ngày cấp: {gradData.certificates[0]?.issueDate || 'Chưa chọn'}</span>
-                              <button
-                                type="button"
-                                onClick={() => setPreviewModalImg(attachedCerts.b1.previewUrl)}
-                                className="text-blue-600 hover:underline font-semibold flex items-center gap-0.5"
-                              >
-                                <Eye className="w-3 h-3" /> Xem ảnh
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 rounded-lg border border-dashed border-slate-300 text-center text-slate-400 text-[11px] bg-white">
-                          Chưa có ảnh chứng chỉ B1. Bấm nút chọn từ máy hoặc nạp mẫu nhanh.
-                        </div>
-                      )}
-                    </div>
-
-                    {/* THẺ 2: KỸ NĂNG LÀM VIỆC NHÓM */}
-                    <div className={`p-3.5 rounded-xl border transition-all ${
-                      attachedCerts.teamwork.attached 
-                        ? 'bg-indigo-50/40 border-indigo-300 shadow-xs' 
-                        : 'bg-slate-50 border-slate-200'
-                    }`}>
-                      <div className="flex items-center justify-between pb-2 border-b border-slate-200/80 mb-2.5">
-                        <div className="flex items-center gap-1.5 font-bold text-xs text-slate-800">
-                          <Users className="w-4 h-4 text-indigo-600" />
-                          <span>2. Chuẩn Kỹ năng: Làm việc nhóm</span>
-                        </div>
-                        {attachedCerts.teamwork.attached ? (
-                          <span className="text-[10px] font-bold text-emerald-800 bg-emerald-100 px-2 py-0.5 rounded flex items-center gap-1">
-                            <CheckCircle2 className="w-3 h-3 text-emerald-600" />
-                            Đã đính kèm tệp
-                          </span>
-                        ) : (
-                          <span className="text-[10px] font-medium text-slate-500 bg-slate-200/70 px-2 py-0.5 rounded">
-                            Chưa đính kèm
-                          </span>
-                        )}
-                      </div>
-
-                      {/* Các nút bấm tải ảnh / nạp mẫu nhanh */}
-                      <div className="flex flex-wrap items-center gap-1.5 mb-2.5">
-                        <input
-                          type="file"
-                          id="upload-teamwork-file"
-                          accept="image/*"
-                          onChange={(e) => handleFileUpload('teamwork', e)}
-                          className="hidden"
-                        />
-                        <label
-                          htmlFor="upload-teamwork-file"
-                          className="px-2.5 py-1 rounded bg-white hover:bg-slate-100 border border-slate-300 text-[11px] font-semibold text-slate-700 cursor-pointer flex items-center gap-1 shadow-2xs transition-colors"
-                        >
-                          <Upload className="w-3 h-3 text-slate-500" />
-                          Chọn từ máy
-                        </label>
-
-                        <button
-                          type="button"
-                          onClick={() => handleLoadSample('teamwork')}
-                          className="px-2.5 py-1 rounded bg-indigo-50 hover:bg-indigo-100 border border-indigo-200 text-[11px] font-bold text-indigo-800 flex items-center gap-1 transition-colors"
-                        >
-                          🧪 Nạp Mẫu HUTECH
-                        </button>
-                      </div>
-
-                      {/* Khung hiển thị Thumbnail & Thông tin minh chứng */}
-                      {attachedCerts.teamwork.previewUrl ? (
-                        <div className="flex gap-3 bg-white p-2.5 rounded-lg border border-slate-200 text-[11px]">
-                          <div className="relative group shrink-0">
-                            <img
-                              src={attachedCerts.teamwork.previewUrl}
-                              alt="Chứng chỉ Làm việc nhóm"
-                              className="w-16 h-22 object-cover rounded border border-slate-300 shadow-2xs cursor-pointer"
-                              onClick={() => setPreviewModalImg(attachedCerts.teamwork.previewUrl)}
-                            />
-                            <div
-                              onClick={() => setPreviewModalImg(attachedCerts.teamwork.previewUrl)}
-                              className="absolute inset-0 bg-slate-900/40 opacity-0 group-hover:opacity-100 rounded flex items-center justify-center text-white cursor-pointer transition-opacity"
-                            >
-                              <Eye className="w-4 h-4" />
-                            </div>
-                          </div>
-
-                          <div className="flex-1 space-y-1">
-                            <div className="font-semibold text-slate-800 text-xs truncate">
-                              {attachedCerts.teamwork.fileName || 'HUTECH_Chung_Chi_Ky_Nang_Nhom.png'}
-                            </div>
-                            <div className="text-slate-600 flex items-center justify-between">
-                              <span>Số hiệu trong đơn:</span>
-                              <span className="font-mono font-bold text-rose-600">
-                                {gradData.certificates[1]?.certNumber || 'Chưa nhập'}
-                              </span>
-                            </div>
-                            <div className="text-slate-600 flex items-center justify-between">
-                              <span>Số vào sổ:</span>
-                              <span className="font-mono font-bold text-indigo-700">
-                                {gradData.certificates[1]?.bookNumber || 'Chưa nhập'}
-                              </span>
-                            </div>
-                            <div className="text-slate-500 flex items-center justify-between text-[10px] pt-0.5">
-                              <span>Ngày cấp: {gradData.certificates[1]?.issueDate || 'Chưa chọn'}</span>
-                              <button
-                                type="button"
-                                onClick={() => setPreviewModalImg(attachedCerts.teamwork.previewUrl)}
-                                className="text-indigo-600 hover:underline font-semibold flex items-center gap-0.5"
-                              >
-                                <Eye className="w-3 h-3" /> Xem ảnh
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div className="p-4 rounded-lg border border-dashed border-slate-300 text-center text-slate-400 text-[11px] bg-white">
-                          Chưa có ảnh chứng chỉ Kỹ năng nhóm. Bấm chọn từ máy hoặc nạp mẫu nhanh.
-                        </div>
-                      )}
-                    </div>
-
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
         </div>
 
         {/* Modal Footer Buttons */}
@@ -973,7 +573,7 @@ export default function DynamicPetitionModal({
               className={`px-5 py-2 text-xs font-bold text-white rounded-lg flex items-center gap-1.5 transition-colors shadow-2xs disabled:opacity-50 ${isConfirmForm ? 'bg-emerald-600 hover:bg-emerald-700' : 'bg-blue-700 hover:bg-blue-800'}`}
             >
               <CheckCircle2 className="w-4 h-4" />
-              {isSubmitting ? 'Đang gửi...' : isConfirmForm ? 'Nộp giấy xác nhận' : 'Nộp đơn đề nghị xét tốt nghiệp'}
+              {isSubmitting ? 'Đang gửi...' : 'Nộp giấy xác nhận'}
             </button>
           </div>
         </div>

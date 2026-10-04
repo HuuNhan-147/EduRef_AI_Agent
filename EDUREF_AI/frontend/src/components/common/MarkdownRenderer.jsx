@@ -86,10 +86,10 @@ export default function MarkdownRenderer({ content = '', isUser = false }) {
   );
 }
 
-// Hàm hỗ trợ in đậm **bold** và inline `code`
+// Hàm hỗ trợ link, in đậm **bold** và inline `code`
 function parseInlineFormatting(text, isUser = false) {
   const parts = [];
-  const regex = /(\*\*.*?\*\*|`.*?`)/g;
+  const regex = /(\[.*?\]\(https?:\/\/[^\s)]+\)|\*\*.*?\*\*|`.*?`|https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
   let lastIndex = 0;
   let match;
 
@@ -98,7 +98,48 @@ function parseInlineFormatting(text, isUser = false) {
       parts.push(text.substring(lastIndex, match.index));
     }
     const token = match[0];
-    if (token.startsWith('**') && token.endsWith('**')) {
+
+    // 1. Markdown link: [Tiêu đề](https://...)
+    if (token.startsWith('[') && token.includes('](')) {
+      const linkMatch = token.match(/^\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
+      if (linkMatch) {
+        const linkText = linkMatch[1];
+        const linkHref = linkMatch[2];
+        parts.push(
+          <a
+            key={match.index}
+            href={linkHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`font-semibold underline break-all inline-flex items-center gap-0.5 ${
+              isUser ? 'text-white hover:text-blue-100' : 'text-blue-600 hover:text-blue-800'
+            }`}
+          >
+            {linkText} <span className="text-[11px] no-underline">↗</span>
+          </a>
+        );
+      } else {
+        parts.push(token);
+      }
+    }
+    // 2. Đường link trực tiếp: https://... hoặc http://...
+    else if (token.startsWith('http://') || token.startsWith('https://')) {
+      parts.push(
+        <a
+          key={match.index}
+          href={token}
+          target="_blank"
+          rel="noopener noreferrer"
+          className={`font-semibold underline break-all inline-flex items-center gap-0.5 ${
+            isUser ? 'text-white hover:text-blue-100' : 'text-blue-600 hover:text-blue-800'
+          }`}
+        >
+          {token} <span className="text-[11px] no-underline">↗</span>
+        </a>
+      );
+    }
+    // 3. In đậm: **bold**
+    else if (token.startsWith('**') && token.endsWith('**')) {
       parts.push(
         <strong
           key={match.index}
@@ -107,7 +148,9 @@ function parseInlineFormatting(text, isUser = false) {
           {token.slice(2, -2)}
         </strong>
       );
-    } else if (token.startsWith('`') && token.endsWith('`')) {
+    }
+    // 4. Mã code: `code`
+    else if (token.startsWith('`') && token.endsWith('`')) {
       parts.push(
         <code
           key={match.index}
@@ -121,6 +164,7 @@ function parseInlineFormatting(text, isUser = false) {
         </code>
       );
     }
+
     lastIndex = regex.lastIndex;
   }
 
