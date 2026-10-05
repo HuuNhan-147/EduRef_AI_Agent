@@ -34,26 +34,26 @@ export default function TopNavbar({
     : DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
   const isStaff = ['STAFF', 'DEAN'].includes(currentAccount.type);
 
-  // Danh mục Navigation Tabs theo vai trò
+  // Danh mục Navigation Tabs theo vai trò (Được rút gọn tinh tế để vừa khít 1 hàng, không bị scroll)
   const studentNavItems = [
     {
       id: 'STUDENT_ASSISTANT',
-      label: 'Trợ lý Học vụ AI',
+      label: 'Trợ lý AI',
       icon: MessageSquare,
     },
     {
       id: 'MY_PETITIONS',
-      label: 'Hồ sơ & Đơn của tôi',
+      label: 'Đơn của tôi',
       icon: FileText,
     },
     {
       id: 'VERIFY_HARNESS',
-      label: 'Verify Track A',
+      label: 'Verify Đề A',
       icon: Zap,
     },
     {
       id: 'AUDIT_EXPLORER',
-      label: 'Kiểm toán SHA-256',
+      label: 'Kiểm toán',
       icon: ShieldCheck,
     },
   ];
@@ -61,28 +61,28 @@ export default function TopNavbar({
   const staffNavItems = [
     {
       id: 'VERIFY_HARNESS',
-      label: 'Verify Track A',
+      label: 'Verify Đề A',
       icon: Zap,
     },
     {
       id: 'STAFF_ESCALATION',
-      label: 'Escalation Hub',
+      label: 'Duyệt đơn',
       icon: AlertOctagon,
       count: pendingCount,
     },
     {
       id: 'STUDENT_ASSISTANT',
-      label: 'Góc nhìn Sinh viên',
+      label: 'Góc sinh viên',
       icon: MessageSquare,
     },
     {
       id: 'MY_PETITIONS',
-      label: 'Quản lý Đơn toàn trường',
+      label: 'Quản lý đơn',
       icon: FileText,
     },
     {
       id: 'AUDIT_EXPLORER',
-      label: 'Kiểm toán SHA-256',
+      label: 'Kiểm toán',
       icon: ShieldCheck,
     },
   ];
@@ -91,10 +91,10 @@ export default function TopNavbar({
 
   return (
     <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md select-none">
-      <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
+      <div className="w-full px-3 sm:px-5 lg:px-6 h-16 flex items-center justify-between gap-3">
         
         {/* Khối Nhận Diện Thương Hiệu Hành Chính Chuẩn Chính Quy */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2.5 shrink-0">
           {/* Logo HUTECH đại diện trường */}
           <div className="h-9 px-2 py-0.5 bg-white rounded-lg flex items-center justify-center shadow-xs border border-slate-700/60 shrink-0">
             <img src="/hutech_logo.png" alt="HUTECH University" className="h-full w-auto object-contain" />
@@ -117,9 +117,9 @@ export default function TopNavbar({
         </div>
 
         {/* ========================================================================= */}
-        {/* KHỐI NAVIGATION TABS NGANG (Đưa 4 mục từ Sidebar lên đây) */}
+        {/* KHỐI NAVIGATION TABS NGANG (Gọn gàng, vừa khít 1 hàng, không hiện scroll) */}
         {/* ========================================================================= */}
-        <nav className="flex items-center gap-1.5 overflow-x-auto py-1">
+        <nav className="flex items-center gap-1 overflow-x-auto py-1 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = activeTab === item.id;
@@ -128,13 +128,13 @@ export default function TopNavbar({
               <button
                 key={item.id}
                 onClick={() => setActiveTab && setActiveTab(item.id)}
-                className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-xs font-semibold transition-all shrink-0 ${
+                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                   isActive
                     ? 'bg-blue-600 text-white shadow-xs border border-blue-500'
                     : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
                 }`}
               >
-                <Icon className={`w-4 h-4 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
                 <span>{item.label}</span>
 
                 {/* Badge số lượng đơn chờ nếu có */}

@@ -5,9 +5,9 @@ import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddle
 const router = express.Router();
 
 /**
- * GET /api/audit/logs (Lấy danh sách nhật ký kiểm toán bất biến SHA-256)
+ * GET /api/audit/logs (Lấy danh sách nhật ký kiểm toán bất biến SHA-256 công khai minh bạch)
  */
-router.get('/logs', authenticateToken, requireStaffOrDean, async (req, res) => {
+router.get('/logs', authenticateToken, async (req, res) => {
   try {
     const { limit = 50, action } = req.query;
     const logs = await AuditLogService.getLogs({ limit: Number(limit), action });
