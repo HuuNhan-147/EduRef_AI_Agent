@@ -3,13 +3,14 @@
 **Đề bài:** MLAI Hackathon — Track 2: Option A (Bounded Autonomy & Escalation Referee)  
 **Phiên bản:** 1.0 (Hoàn thành Post-Sprint 1 Audit)
 
+> **Phạm vi Sprint 2:** Bản chung kết chỉ vận hành quy trình `STUDENT_CONFIRMATION`. Các mô tả xét tốt nghiệp hoặc workflow khác trong tài liệu lịch sử không thuộc sản phẩm demo hiện tại.
+
 ---
 
 ## 1. VẤN ĐỀ THỰC TẾ (PROBLEM STATEMENT)
 
 Trong các trường đại học quy mô lớn (ví dụ: Trường Đại học Công nghệ TP.HCM - HUTECH với hơn 40.000 sinh viên), Phòng Đào tạo tiếp nhận hàng chục nghìn hồ sơ thủ tục hành chính học vụ mỗi học kỳ:
-- Cấp giấy xác nhận sinh viên (làm vé xe buýt, vay vốn ngân hàng, tạm hoãn nghĩa vụ quân sự).
-- Đơn đề nghị xét tốt nghiệp và công nhận chuẩn đầu ra.
+- Cấp giấy xác nhận sinh viên cho các mục đích hợp lệ.
 - Đơn xin hoãn thi, phúc khảo điểm thi, cứu xét học vụ.
 
 ### Những bất cập nhức nhối hiện nay:
@@ -56,7 +57,7 @@ Hệ thống được tổ chức thành 4 tầng kiến trúc phân tách nghi�
                                │ HTTP REST API / Socket.IO
 ┌──────────────────────────────▼──────────────────────────────┐
 │ 2. TẦNG ĐIỀU PHỐI TÁC TỬ (AI AGENT & ORCHESTRATION)         │
-│ - AgentOrchestrator: Vòng lặp ReAct Loop (maxSteps = 8)     │
+│ - AgentOrchestrator: Vòng lặp ReAct Loop (maxSteps = 5)     │
 │ - GeminiStreamClient: Google Gemini 2.0 Flash Lite + Key Rotator│
 │ - CertificateVisionService: Gemini Vision OCR & Cross-check │
 │ - PromptEngine: System Playbook 6 bước Bounded Autonomy     │

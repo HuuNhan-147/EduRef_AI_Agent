@@ -50,7 +50,7 @@ erDiagram
 
     RequestType {
         string id PK
-        string code UK "STUDENT_CONFIRMATION, GRADUATION_ASSESSMENT"
+        string code UK "STUDENT_CONFIRMATION"
         string name
         string description
     }
@@ -81,7 +81,7 @@ erDiagram
 
     StudentRequest {
         string id PK
-        string requestCode UK "ST-XXXXXX"
+        string requestCode UK "XNSV-XXXXXX"
         string studentId FK
         string requestTypeId FK
         enum status "PENDING, PROCESSING, WAITING_STUDENT, APPROVED, ESCALATED, REJECTED, CANCELLED"

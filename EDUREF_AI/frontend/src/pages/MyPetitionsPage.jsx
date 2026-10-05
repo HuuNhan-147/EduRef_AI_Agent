@@ -14,14 +14,17 @@ import {
   QrCode,
   ExternalLink,
 } from 'lucide-react';
-import api from '../services/api';
+import api, { DEMO_ACCOUNTS } from '../services/api';
 
-export default function MyPetitionsPage({ userRole = 'STUDENT' }) {
+export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE', onSwitchTab }) {
   const [petitions, setPetitions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQrModal, setSelectedQrModal] = useState(null);
+
+  const account = DEMO_ACCOUNTS[currentAccountKey];
+  const isStaff = account?.type === 'STAFF' || account?.type === 'DEAN';
 
   const fetchPetitions = async () => {
     setLoading(true);
@@ -39,7 +42,7 @@ export default function MyPetitionsPage({ userRole = 'STUDENT' }) {
 
   useEffect(() => {
     fetchPetitions();
-  }, []);
+  }, [currentAccountKey]);
 
   const filteredPetitions = petitions.filter((p) => {
     const matchStatus = statusFilter === 'ALL' || p.status === statusFilter;
@@ -63,11 +66,13 @@ export default function MyPetitionsPage({ userRole = 'STUDENT' }) {
                 <FileText className="w-5 h-5" />
               </span>
               <h1 className="text-base font-bold text-slate-900 tracking-tight">
-                {userRole === 'STAFF' || userRole === 'DEAN' ? 'Quản Lý Hồ Sơ Đơn Toàn Trường' : 'Hồ Sơ & Đơn Học Vụ Của Tôi'}
+                {isStaff ? 'Quản Lý Hồ Sơ Đơn Toàn Trường' : 'Hồ Sơ & Đơn Học Vụ Của Tôi'}
               </h1>
             </div>
             <p className="text-xs text-slate-500 mt-1">
-              Theo dõi tình trạng phê duyệt, tra cứu mã chứng thực số và mã QR điện tử hợp lệ.
+              {isStaff
+                ? 'Theo dõi, tra cứu và kiểm toán toàn bộ hồ sơ học vụ sinh viên toàn trường.'
+                : 'Theo dõi tình trạng phê duyệt, tra cứu mã chứng thực số và mã QR điện tử hợp lệ.'}
             </p>
           </div>
 

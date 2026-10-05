@@ -2,6 +2,8 @@
 **Dự án:** EduRef AI — The Academic Escalation Referee  
 **Module:** `backend/modules/ai-agent`
 
+> **Phạm vi Sprint 2:** Agent chỉ điều phối quy trình `STUDENT_CONFIRMATION`. Quyết định approve/reject/escalate do policy backend thực hiện. Tài liệu này không mô tả RAG, VectorDB, Redis hay các workflow đã loại khỏi bản chung kết.
+
 ---
 
 ## 1. MÔ HÌNH VÀ THÔNG SỐ CẤU HÌNH (MODEL CONFIGURATION)
@@ -33,7 +35,7 @@ Người dùng gửi tin nhắn
         │
         ▼
 ┌─────────────────────────────────────────────────────────────┐
-│ VÒNG LẶP REACT (Tối đa 8 vòng lặp - maxSteps = 8)           │
+│ VÒNG LẶP REACT (Tối đa 5 vòng lặp - maxSteps = 5)           │
 │                                                             │
 │ 1. Gọi Gemini streamGenerateContent với Function Declarations│
 │ 2. Kiểm tra xem model có trả về functionCall không?        │
@@ -66,7 +68,7 @@ Hệ thống cung cấp 11 công cụ khai báo chuẩn Function Calling:
 2. `get_student_requests({ studentCode })`: Lấy lịch sử 10 đơn gần nhất của sinh viên để chống nộp trùng lặp hoặc lách luật.
 
 ### B. Nhóm Khởi tạo & Tra cứu Đơn (Request Context)
-3. `create_request({ studentCode, requestTypeCode, purpose, inputData })`: Khởi tạo hồ sơ đơn mới ở trạng thái `PENDING` và cấp mã đơn `ST-XXXXXX`.
+3. `create_request({ studentCode, requestTypeCode, purpose, inputData })`: Khởi tạo hồ sơ đơn mới ở trạng thái `PENDING` và cấp mã đơn `XNSV-XXXXXX`.
 4. `get_request({ requestId })`: Context Aggregator - lấy toàn bộ trạng thái chi tiết của đơn (chứng từ, thông tin sinh viên, kết quả thẩm định).
 
 ### C. Nhóm Thẩm định Hồ sơ (Requirement & Policy Gate)
@@ -100,7 +102,7 @@ Sinh viên thường dùng tiếng lóng hoặc từ viết tắt khi trao đổ
 ### 2. Xử lý đại từ chỉ định ngữ cảnh (Anaphora Resolution):
 Khi sinh viên hỏi: *"Đơn đó của em duyệt chưa?"* hoặc *"Hồ sơ này cần thêm gì?"*:
 - `ConversationMemory` lưu lại `lastRequestId` và `lastRequestType` của phiên.
-- Hệ thống tự động thay thế cụm "đơn đó", "hồ sơ đó" thành mã đơn cụ thể (ví dụ: `ST-340510`) trước khi đưa vào LLM suy luận.
+- Hệ thống tự động thay thế cụm "đơn đó", "hồ sơ đó" thành mã đơn cụ thể (ví dụ: `XNSV-340510`) trước khi đưa vào LLM suy luận.
 
 ---
 

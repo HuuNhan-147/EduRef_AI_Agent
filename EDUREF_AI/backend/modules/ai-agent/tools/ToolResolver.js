@@ -6,6 +6,9 @@ export class ToolResolver {
     console.log(`🛠️ [ToolResolver] Thực thi công cụ: ${toolName}`, args);
 
     switch (toolName) {
+      // ⚡ Fast-Path Master Tool
+      case 'process_student_confirmation':
+        return await workflowTools.process_student_confirmation(args);
       // A. Student Context
       case 'get_student_profile':
         return await workflowTools.get_student_profile(args);

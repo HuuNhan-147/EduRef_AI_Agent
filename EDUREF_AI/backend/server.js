@@ -97,6 +97,9 @@ app.get('/health', async (req, res) => {
   }
 });
 
+// Quản lý các phiên Agent đang thực thi để hỗ trợ ngắt dừng khẩn cấp (Stop Generation)
+const activeAgentSessions = new Map();
+
 // Xử lý kết nối Socket.IO thời gian thực
 io.on('connection', (socket) => {
   console.log('🟢 [Socket.IO] Client đã kết nối:', socket.id);
@@ -108,6 +111,11 @@ io.on('connection', (socket) => {
       socket.emit('agent_error', { message: 'Tin nhắn không được để trống.' });
       return;
     }
+
+    const controller = new AbortController();
+    const targetSession = sessionId || `sess_${socket.id}`;
+    activeAgentSessions.set(targetSession, controller);
+    activeAgentSessions.set(socket.id, controller);
 
     try {
       // 1. Tự động nạp ngữ cảnh người dùng thực tế từ Database
@@ -151,7 +159,7 @@ io.on('connection', (socket) => {
         throw new Error('Không xác định được danh tính hợp lệ của phiên Socket.IO.');
       }
 
-      // 2. Gọi AI Agent với callback streaming từng chunk text kèm attachments
+      // 2. Gọi AI Agent với callback streaming từng chunk text kèm attachments & abort signal
       const result = await runAgent({
         message,
         currentUser: userContext,
@@ -159,11 +167,14 @@ io.on('connection', (socket) => {
         sessionId,
         attachments,
         inputData,
+        signal: controller.signal,
         onChunk: (chunk) => {
-          socket.emit('agent_response_chunk', {
-            sessionId,
-            chunk,
-          });
+          if (!controller.signal.aborted) {
+            socket.emit('agent_response_chunk', {
+              sessionId,
+              chunk,
+            });
+          }
         },
       });
 
@@ -174,18 +185,55 @@ io.on('connection', (socket) => {
         decision: result.decision,
         toolResult: result.toolResult,
         totalDuration: result.totalDuration,
+        isAborted: result.isAborted || false,
       });
     } catch (err) {
+      if (controller.signal.aborted || err.name === 'AbortError' || err.name === 'CanceledError') {
+        console.log(`⏹ [Socket.IO] Đã ngắt tiến trình Agent cho phiên: ${targetSession} theo yêu cầu người dùng.`);
+        socket.emit('agent_response_end', {
+          sessionId,
+          reply: '*(Đã dừng xử lý theo yêu cầu của bạn)*',
+          decision: 'USER_ABORTED',
+          isAborted: true,
+        });
+        return;
+      }
+
       console.error('❌ [Socket.IO] Lỗi khi xử lý tin nhắn:', err);
       socket.emit('agent_error', {
         sessionId,
         error: err.message,
+      });
+    } finally {
+      activeAgentSessions.delete(targetSession);
+      activeAgentSessions.delete(socket.id);
+    }
+  });
+
+  // Lắng nghe yêu cầu dừng tạo phản hồi từ Client
+  socket.on('client_stop_generation', (data) => {
+    const { sessionId: stopSessionId } = data || {};
+    const targetSession = stopSessionId || `sess_${socket.id}`;
+    const controller = activeAgentSessions.get(targetSession) || activeAgentSessions.get(socket.id);
+    if (controller) {
+      console.log(`⏹ [Socket.IO] Nhận lệnh dừng tác tử từ Client: ${targetSession}`);
+      controller.abort();
+      activeAgentSessions.delete(targetSession);
+      activeAgentSessions.delete(socket.id);
+      socket.emit('agent_stopped', {
+        sessionId: targetSession,
+        message: 'Đã dừng thực thi theo yêu cầu của bạn.',
       });
     }
   });
 
   socket.on('disconnect', () => {
     console.log('🔴 [Socket.IO] Client ngắt kết nối:', socket.id);
+    const controller = activeAgentSessions.get(socket.id);
+    if (controller) {
+      controller.abort();
+      activeAgentSessions.delete(socket.id);
+    }
   });
 });
 

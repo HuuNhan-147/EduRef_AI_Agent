@@ -1,6 +1,41 @@
 export class ToolRegistry {
   static getDeclarations() {
     return [
+      // ⚡ Fast-Path Master Tool: Thẩm định & Cấp Giấy Xác Nhận Sinh Viên trong 1 bước
+      {
+        name: 'process_student_confirmation',
+        description:
+          'CÔNG CỤ DUYỆT VÀ CẤP GIẤY XÁC NHẬN SINH VIÊN (XNSV): Chỉ được gọi công cụ này khi sinh viên ĐÃ CUNG CẤP ĐỦ CẢ MỤC ĐÍCH VÀ ĐÃ CHỌN 1 TRONG 2 CƠ SỞ NHẬN GIẤY BẢN CỨNG. TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ BỊA ĐẶT CƠ SỞ HOẶC GỌI TOOL KHI SINH VIÊN CHƯA CHỌN CƠ SỞ! Nếu sinh viên chưa chọn cơ sở hoặc chưa nêu mục đích, BẮT BUỘC PHẢI HỎI LẠI SINH VIÊN BẰNG VĂN BẢN (0 TOOL CALLS).',
+        parameters: {
+          type: 'OBJECT',
+          properties: {
+            studentCode: {
+              type: 'STRING',
+              description: 'Mã số sinh viên (ví dụ: 2280602154)',
+            },
+            purpose: {
+              type: 'STRING',
+              description:
+                'Mục đích sử dụng giấy xác nhận (BẮT BUỘC: sinh viên phải nêu rõ mục đích như: vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, làm vé tháng xe buýt, học bổng, xin visa, giảm trừ thuế TNCN, bổ sung hồ sơ...)',
+            },
+            pickupCampus: {
+              type: 'STRING',
+              enum: [
+                'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+                'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)',
+              ],
+              description:
+                'Cơ sở nhận giấy bản cứng do sinh viên trực tiếp chọn (BẮT BUỘC: phải là "Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)" hoặc "Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)"). TUYỆT ĐỐI KHÔNG ĐƯỢC tự ý chọn thay sinh viên!',
+            },
+            inputData: {
+              type: 'OBJECT',
+              description: 'Dữ liệu bổ sung nếu có (userClaimedOverride nếu có cờ ép quyền)',
+            },
+          },
+          required: ['studentCode', 'purpose', 'pickupCampus'],
+        },
+      },
+
       // A. Student Context
       {
         name: 'get_student_profile',
@@ -45,7 +80,7 @@ export class ToolRegistry {
             requestTypeCode: {
               type: 'STRING',
               description:
-                'Mã thủ tục: STUDENT_CONFIRMATION (Giấy XNSV), GRADUATION_ASSESSMENT (Đơn xét tốt nghiệp)',
+                'Mã thủ tục: STUDENT_CONFIRMATION (Giấy Xác Nhận Sinh Viên)',
             },
             purpose: {
               type: 'STRING',
@@ -67,7 +102,7 @@ export class ToolRegistry {
           properties: {
             requestId: {
               type: 'STRING',
-              description: 'ID của đơn hoặc mã đơn (ST-XXXXXX)',
+              description: 'ID của đơn hoặc mã đơn (XNSV-XXXXXX)',
             },
           },
           required: ['requestId'],

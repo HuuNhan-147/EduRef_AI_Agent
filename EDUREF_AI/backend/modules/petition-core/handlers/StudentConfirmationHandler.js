@@ -50,12 +50,22 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       });
     }
 
-    // 3. Cơ sở nhận giấy
-    const campus = inputData?.pickupCampus || inputData?.campus || inputData?.REQ_CAMPUS || 'Trụ sở chính: phòng Công tác sinh viên (A-01,01)';
+    // 3. Cơ sở nhận giấy (Chuẩn hóa cơ sở chính thức HUTECH)
+    const campusRaw = inputData?.pickupCampus || inputData?.campus || inputData?.REQ_CAMPUS;
+    let normalizedCampus = 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
+    if (campusRaw && String(campusRaw).trim().length > 0) {
+      const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
+      const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm/i.test(campusRaw);
+      normalizedCampus = isThuDuc
+        ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
+        : isSaiGon
+        ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
+        : String(campusRaw).trim();
+    }
     passed.push({
       code: 'REQ_CAMPUS',
       name: 'Cơ sở nhận giấy',
-      value: String(campus).trim(),
+      value: normalizedCampus,
     });
 
     return {

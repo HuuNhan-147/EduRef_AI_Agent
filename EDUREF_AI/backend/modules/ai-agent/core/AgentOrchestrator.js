@@ -20,7 +20,7 @@ export class AgentOrchestrator {
   /**
    * Vòng lặp ReAct Loop thực thi tác tử đa bước kết hợp SSE Token Streaming
    */
-  async run({ message, currentUser = null, conversationHistory = [], onChunk = null, attachments = null, inputData = null }) {
+  async run({ message, currentUser = null, conversationHistory = [], onChunk = null, attachments = null, inputData = null, signal = null }) {
     const startTime = Date.now();
     const perfTimeline = [];
     this.logger.log({
@@ -30,6 +30,16 @@ export class AgentOrchestrator {
     });
 
     try {
+      if (signal?.aborted) {
+        return {
+          reply: '*(Đã dừng xử lý theo yêu cầu của bạn)*',
+          isAborted: true,
+          decision: 'USER_ABORTED',
+          sessionId: this.sessionId,
+          totalDuration: 0,
+        };
+      }
+
       // 0. Giám định Đa phương thức (Gemini Vision) nếu người dùng có gửi kèm ảnh chứng chỉ
       const certsToVerify = [];
       if (attachments?.b1?.previewUrl) {
@@ -189,11 +199,28 @@ export class AgentOrchestrator {
 
       // 3. Vòng lặp ReAct Đa bước Tự hành (Autonomous Multi-Step ReAct Loop)
       let stepCount = 0;
-      const maxSteps = 8;
+      // Hard cap required by the final-round bounded-autonomy contract.
+      const MAX_AGENT_STEPS = 5;
       let finalReplyText = '';
       let lastToolResult = null;
 
-      while (stepCount < maxSteps) {
+      while (stepCount < MAX_AGENT_STEPS) {
+        if (signal?.aborted) {
+          this.logger.log({
+            step: 'USER_ABORTED',
+            message: '⏹ [AgentOrchestrator] Người dùng đã bấm Dừng lại. Đã ngắt vòng lặp ReAct an toàn.',
+            type: 'warning',
+          });
+          return {
+            reply: finalReplyText ? `${finalReplyText}\n\n*(Đã dừng tạo phản hồi theo yêu cầu của bạn)*` : '*(Đã dừng xử lý theo yêu cầu của bạn)*',
+            isAborted: true,
+            decision: 'USER_ABORTED',
+            toolResult: lastToolResult,
+            sessionId: this.sessionId,
+            totalDuration: Date.now() - startTime,
+          };
+        }
+
         stepCount++;
 
         const llmStart = Date.now();
@@ -201,9 +228,26 @@ export class AgentOrchestrator {
           contents,
           functionDeclarations,
           systemInstruction,
-          onChunk
+          onChunk,
+          signal
         );
         const llmDuration = Date.now() - llmStart;
+
+        if (stepResult.isAborted || signal?.aborted) {
+          this.logger.log({
+            step: 'USER_ABORTED',
+            message: '⏹ [AgentOrchestrator] Đã dừng tạo phản hồi theo yêu cầu của người dùng.',
+            type: 'warning',
+          });
+          return {
+            reply: stepResult.text ? `${stepResult.text}\n\n*(Đã dừng tạo phản hồi theo yêu cầu)*` : '*(Đã dừng xử lý theo yêu cầu)*',
+            isAborted: true,
+            decision: 'USER_ABORTED',
+            toolResult: lastToolResult,
+            sessionId: this.sessionId,
+            totalDuration: Date.now() - startTime,
+          };
+        }
 
         const functionCallPart = stepResult.parts?.find((p) => p.functionCall);
 
@@ -217,6 +261,21 @@ export class AgentOrchestrator {
         if (!functionCallPart) {
           finalReplyText = stepResult.text || '';
           break;
+        }
+
+        if (signal?.aborted) {
+          this.logger.log({
+            step: 'USER_ABORTED',
+            message: '⏹ [AgentOrchestrator] Người dùng đã dừng lại trước khi thực thi công cụ học vụ.',
+            type: 'warning',
+          });
+          return {
+            reply: '*(Đã dừng xử lý trước khi thực thi công cụ)*',
+            isAborted: true,
+            decision: 'USER_ABORTED',
+            sessionId: this.sessionId,
+            totalDuration: Date.now() - startTime,
+          };
         }
 
         // Thực thi Function Call (Gọi Tool nghiệp vụ)
@@ -274,6 +333,37 @@ export class AgentOrchestrator {
           message: `Đang xử lý bước tiếp theo trong quy trình thẩm định học vụ...`,
           type: 'thought',
         });
+      }
+
+      // ⚠️ CHỐT CHẶN AN NINH: Graceful Escalation khi chạm trần 5 bước ReAct Loop
+      if (!finalReplyText && stepCount >= MAX_AGENT_STEPS) {
+        const timeoutMsg = `Hệ thống đã đạt ngưỡng giới hạn an toàn ${MAX_AGENT_STEPS} bước suy luận nhưng chưa thể kết luận dứt khoát. Hồ sơ đã được chuyển tiếp an toàn lên Cán bộ Phòng Đào tạo xem xét trực tiếp.`;
+        const actionableQuestion = `Hồ sơ vượt ngưỡng an toàn ${MAX_AGENT_STEPS} bước suy luận của Agent. Cán bộ PĐT có tiếp nhận thẩm định và ra quyết định thủ công cho sinh viên không?`;
+
+        this.logger.log({
+          step: 'MAX_STEPS_ESCALATION',
+          message: `🚨 [AgentOrchestrator] Chạm ngưỡng an toàn MAX_STEPS=${MAX_AGENT_STEPS}. Kích hoạt Graceful Escalation!`,
+          type: 'warning',
+        });
+
+        await AuditLogService.recordLog({
+          actorType: 'AI_AGENT',
+          action: 'MAX_STEPS_EXCEEDED_ESCALATE',
+          decision: 'ESCALATE_TO_STAFF',
+          reason: `Vượt quá giới hạn an toàn ${MAX_AGENT_STEPS} bước suy luận ReAct Loop (Loop Step Cap Protection)`,
+          inputSnapshot: { actionableQuestion, sessionId: this.sessionId, stepCount },
+          decisionTimeMs: Date.now() - startTime,
+        });
+
+        finalReplyText = timeoutMsg;
+        lastToolResult = {
+          decision: 'ESCALATE_TO_STAFF',
+          status: 'ESCALATED',
+          classification: 'BEYOND_AUTHORITY',
+          actionableQuestion,
+          message: timeoutMsg,
+        };
+        if (onChunk) onChunk(timeoutMsg);
       }
 
       const totalDuration = Date.now() - startTime;

@@ -12,12 +12,14 @@
 
 **Hệ Thống Tác Tử AI Tự Hành Thẩm Định & Điều Phối Hành Chính Học Vụ Đảm Bảo Trách Nhiệm Giải Trình**
 
+> **Phạm vi bản chung kết:** EduRef AI chỉ xử lý một quy trình là **Cấp Giấy Xác Nhận Sinh Viên**. Các mục đích như vé xe buýt, học bổng, vay vốn, visa và nghĩa vụ quân sự là các mục đích của cùng một giấy xác nhận, không phải workflow riêng.
+
 > *"Tự động hóa thủ tục thường quy — Minh bạch trách nhiệm giải trình — Dừng lại chính xác khi vượt thẩm quyền."*
 
 > 🚀 **HỆ THỐNG ĐÃ TRIỂN KHAI TRỰC TUYẾN (PUBLIC LIVE DEMO CHO BAN GIÁM KHẢO):**  
 > 🌐 **Cổng Dịch Vụ Học Vụ Tự Hành (Frontend):** [https://edu-ref-ai-agent.vercel.app/](https://edu-ref-ai-agent.vercel.app/)  
 > ⚙️ **Backend API & Health Check (Render Singapore):** [https://eduref-ai-agent-1.onrender.com/health](https://eduref-ai-agent-1.onrender.com/health)  
-> 💡 *Hệ thống đã tích hợp sẵn 1-Click Role Switcher (Sinh viên, Cán bộ đào tạo, Trưởng khoa), Verify Harness 5 ca khép kín, Sandbox kiểm thử ca ngoài cho Giám khảo và Kiểm toán SHA-256.*
+> 💡 **HƯỚNG DẪN 1 DÒNG DÀNH CHO GIÁM KHẢO (QUICK 90S RUN):** *Mở đường dẫn trực tuyến và bấm ngay vào tab **Verify Track A** trên thanh điều hướng để chạy bộ kiểm thử tự động 5 ca chuẩn hoặc thử nghiệm ca mới.*
 
 [Kiến Trúc Hệ Thống](#-kiến-trúc-hệ-thống) • [Luồng Ra Quyết Định (3 Chốt)](#-luồng-ra-quyết-định--cơ-chế-trọng-tài-3-chốt) • [4 Trụ Cột Đột Phá](#-4-trụ-cột-đột-phá-của-eduref-ai) • [Kịch Bản Demo BGK](#-kịch-bản-dành-cho-ban-giám-khảo-golden-test-cases) • [Cài Đặt & Chạy Nhanh](#-hướng-dẫn-cài-đặt--chạy-nhanh) • [Đội Ngũ KAISER](#-thông-tin-đội-thi-kaiser)
 
@@ -57,14 +59,13 @@ EduRef AI giải quyết triệt để vấn đề này bằng mô hình **Bound
 ```mermaid
 graph TD
     User["👨‍🎓 Sinh viên nộp hồ sơ / trò chuyện"] --> Agent["🤖 AI Agent Orchestrator"]
-    Agent --> Vision["👁️ Multimodal Vision OCR"]
     Agent --> Policy["⚖️ Deterministic Policy Engine (Versioned)"]
     
     Policy --> Decisions{"Quyết Định Trọng Tài"}
     Decisions -->|"Thỏa 100% & Thuộc quyền AI"| AUTO["✅ ROUTINE: Tự động phê duyệt trong 1 giây"]
-    Decisions -->|"Ảnh mờ hoặc Thiếu dữ kiện"| ASK["❓ UNKNOWN_FACT: Dừng lại hỏi trực tiếp sinh viên"]
+    Decisions -->|"Thiếu dữ kiện mục đích"| ASK["❓ UNKNOWN_FACT: Dừng lại hỏi trực tiếp sinh viên"]
     Decisions -->|"Vi phạm điều cấm quy chế"| REJECT["❌ ROUTINE_POLICY_DENY: Từ chối & Dẫn chiếu quy chế"]
-    Decisions -->|"Ngoài danh mục hoặc Vượt trần"| ESCALATE["🚨 ESCALATE: Chuyển Cán bộ / Trưởng Khoa"]
+    Decisions -->|"Ngoài danh mục hoặc Vượt trần"| ESCALATE["🚨 ESCALATE: Chuyển Cán bộ / Trưởng Phòng ĐT"]
     
     AUTO --> Audit["⛓️ Cryptographic Audit Ledger SHA-256"]
     REJECT --> Audit
@@ -77,12 +78,14 @@ graph TD
 * Tự động sinh quyết định, cấp mã tra cứu và thông báo kết quả tức thì, cắt giảm **80%** tải công việc giấy tờ của Phòng Đào tạo.
 
 ### 2. Trọng Tài Điều Phối Giới Hạn Thẩm Quyền (Bounded Autonomy Referee)
+* **Phân định ý định (Dual-Intent Gate):** Tách bạch tuyệt đối giữa câu hỏi tìm hiểu thông tin quy chế (`0 Tool Calls`) và chủ đích nộp đơn thực sự, triệt tiêu lỗi tự ý duyệt đơn hấp tấp (Premature Execution).
 * **Dừng lại đúng lúc:** Nhận diện chính xác khi dữ liệu bị thiếu (`UNKNOWN_FACT`) để hỏi sinh viên thay vì tự suy diễn hoặc chuyển bừa bãi.
-* **Thực thi ranh giới thẩm quyền:** Phát hiện trường hợp ngoại lệ, vượt trần chính sách hoặc dấu hiệu Prompt Injection để lập tức chuyển tiếp (`ESCALATE`) lên Chuyên viên PĐT hoặc Trưởng Khoa kèm Context Capsule tóm tắt.
+* **Trần cứng 5 bước suy luận (Loop Step Cap = 5):** Kiểm soát vòng lặp ReAct tối đa 5 bước, tự động kích hoạt Graceful Escalation lên Cán bộ khi chạm trần, triệt tiêu nguy cơ lặp vô hạn.
+* **Thực thi ranh giới thẩm quyền:** Phát hiện trường hợp ngoại lệ, vượt trần chính sách hoặc dấu hiệu Prompt Injection để lập tức chuyển tiếp (`ESCALATE`) lên Chuyên viên PĐT hoặc Trưởng Phòng ĐT kèm Context Capsule tóm tắt.
 
-### 3. Thị Giác Máy Tính Đa Phương Thức (Multimodal Vision OCR)
-* Tích hợp Gemini Vision bóc tách trực tiếp ảnh chứng chỉ (B1 Tiếng Anh, Kỹ năng mềm, Giấy tờ ưu tiên, Hộ nghèo).
-* Đối soát chéo 4 chiều: **Họ tên sinh viên × Số hiệu chứng chỉ × Đơn vị cấp bằng × Thời hạn hiệu lực**.
+### 3. Động Cơ Quy Chế Đào Tạo Xác Định (Deterministic Policy Engine)
+* **Thượng tôn quy chế:** Tách rời hoàn toàn logic phán quyết ra khỏi LLM, không bao giờ để AI suy diễn quy định học vụ.
+* **Tuân thủ quy chuẩn HUTECH:** Thực thi nghiêm ngặt các chốt chặn: hoàn thành 100% nghĩa vụ học phí (Zero-tolerance nợ 0đ), trạng thái sinh viên `ACTIVE`, danh mục thường quy chuẩn hóa.
 
 ### 4. Sổ Cái Kiểm Toán Bất Biến (Cryptographic Hash Chain)
 * Mọi phán quyết và tương tác được ghi nhận vào chuỗi băm mật mã học (SHA-256): `Block_N.prevHash = Block_{N-1}.hash`.
@@ -126,7 +129,7 @@ flowchart TB
 
     subgraph AI["🧠 AI Auxiliary Layer (Hỗ Trợ — Không Nắm Quyền Quyết Định)"]
         direction LR
-        GEMINI["Google Gemini Vision & NLU<br/>(Bóc tách chứng chỉ & Hiểu ngôn ngữ)"]
+        GEMINI["Google Gemini NLU<br/>(Hiểu ngôn ngữ tự nhiên & Trích xuất thực thể)"]
     end
 
     subgraph DATA["🗄️ Data Layer · PostgreSQL & Prisma ORM"]
@@ -175,8 +178,8 @@ flowchart TB
 ```
 
 > [!TIP]
-> **Điểm Sáng Công Nghệ — Giao Thức WebMCP & Cơ Chế Dual-Path Fallback:**  
-> EduRef AI tích hợp giao thức **WebMCP (Web Model Context Protocol)** hiện thực hóa mô hình **Hybrid Client-Server Agent**. Agent Orchestrator tại Server có thể ủy quyền các tác vụ phía Client (như tiền kiểm tra ảnh trên Canvas, tự động prefill form) xuống Trình duyệt qua kênh WebSocket hai chiều. Nếu client mất kết nối hoặc quá hạn 15 giây, hệ thống tự động kích hoạt cơ chế **Dual-Path Fallback** chuyển ngược về xử lý an toàn tại máy chủ. Xem phân tích chuyên sâu tại [`EDUREF_AI/docs/13_WEBMCP.md`](EDUREF_AI/docs/13_WEBMCP.md).
+> **Điểm Sáng Công Nghệ — Kiến Trúc Tác Tử Tự Hành Tập Trung (Server-side Autonomous Agent & Zero-Trust Boundary):**
+> EduRef AI áp dụng nguyên lý **Zero-Trust Client Boundary**. Toàn bộ chu trình suy luận, kích hoạt công cụ (Tool Calling), đối soát dữ liệu và phân cấp thẩm quyền được đóng gói xử lý an toàn 100% tại Server. Trình duyệt người dùng (Client) chỉ đóng vai trò giao diện hiển thị và nhập liệu (I/O View), tuyệt đối không được cấp quyền can thiệp vào luồng ra quyết định học vụ, ngăn chặn hoàn toàn nguy cơ sinh viên thao túng kết quả qua DevTools/F12. Xem phân tích tại [`EDUREF_AI/docs/13_ZERO_TRUST_SECURITY.md`](EDUREF_AI/docs/13_ZERO_TRUST_SECURITY.md).
 
 ---
 
@@ -224,12 +227,14 @@ Hệ thống đã nạp sẵn bộ dữ liệu synthetic chuẩn hóa phục v�
 
 ### 🔑 Tài Khoản Demo Sẵn Có (Chuyển nhanh trên thanh TopBar)
 
-| Vai trò | Tài khoản | Mật khẩu | Mục đích kiểm thử |
+| Vai trò | Tài khoản | Mật khẩu | Đặc điểm hồ sơ & Mục đích kiểm thử |
 | :--- | :--- | :---: | :--- |
-| **Sinh viên** | `2280602154` (Cao Hữu Nhân) | `123456` | Trải nghiệm nộp đơn, xem AI thẩm định 3 chốt trực tiếp |
-| **Chuyên viên** | `staff_daotao` (Nguyễn Văn An) | `123456` | Thẩm định các đơn chuyển tiếp thường quy (`ESCALATED`) |
-| **Trưởng Khoa** | `dean_cntt` (TS. Lê Hoàng Nam) | `123456` | Phê duyệt tối cao các ngoại lệ vượt trần thẩm quyền |
-| **Quản trị viên** | `admin` | `123456` | Tra cứu chuỗi khối Cryptographic Audit Trail & Traceability |
+| **Sinh viên (Chính)** | `2280602154` (Cao Hữu Nhân) | `123456` | Trạng thái `ACTIVE`, nợ phí 0đ — Trải nghiệm nộp đơn thường quy & chat với AI |
+| **Sinh viên (Thôi học)** | `2110002` (Trần Thị Bình) | `123456` | Trạng thái `DROPPED` — Kiểm thử chốt chặn từ chối tự động theo quy chế |
+| **Sinh viên (Nợ phí)** | `2110003` (Lê Hoàng Cường) | `123456` | Nợ học phí 15.000.000đ — Kiểm thử chốt chặn nợ tài chính (Zero-tolerance) |
+| **Sinh viên (Bảo lưu)** | `2110004` (Phạm Văn Dũng) | `123456` | Trạng thái `SUSPENDED` — Kiểm thử quy định bảo lưu không cấp giấy online |
+| **Chuyên viên PĐT** | `staff_daotao` (Thầy Trần Hữu Nghĩa) | `123456` | Thẩm định và xử lý hàng đợi các đơn chuyển tiếp (`ESCALATED`) |
+| **Trưởng Phòng ĐT** | `dean_daotao` (PGS.TS Nguyễn Văn Dũng) | `123456` | Phê duyệt tối cao các ngoại lệ vượt trần thẩm quyền & can thiệp Rollback |
 
 ---
 
@@ -279,7 +284,7 @@ Tại trang **Verify Harness** (hoặc nhấn nút trên thanh điều hướng)
 ```
 
 * **`student.status`**: Trạng thái học vụ (`ACTIVE` = Đang học; `DROPPED` = Thôi học; `SUSPENDED` = Đình chỉ).
-* **`student.tuitionDebt`**: Nợ học phí tích lũy (Ngưỡng cho phép tự động duyệt: $\le 10.000.000$ VNĐ; vượt trần sẽ tự động từ chối).
+* **`student.tuitionDebt`**: Nợ học phí tích lũy (Quy chế đào tạo yêu cầu hoàn thành 100% nghĩa vụ tài chính, nợ = 0 VNĐ; còn nợ phí sẽ tự động từ chối).
 * **`inputData.purpose`**: Mục đích sử dụng giấy (Danh mục chuẩn gồm: *xe buýt, học bổng, vay vốn, nghĩa vụ quân sự, visa, bổ sung hồ sơ học tập*).
 * **`inputData.userClaimedOverride`**: Cờ phát hiện sinh viên cố tình viện dẫn phê duyệt miệng hoặc Prompt Injection để ép hệ thống duyệt.
 
@@ -301,7 +306,7 @@ Dưới đây là bộ **15 test cases chuẩn** (được nạp sẵn trong `ED
 | **D-08** | Sinh viên đang bị đình chỉ | `SUSPENDED` | 0 đ | Xin visa | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` (Từ chối theo quy chế) |
 | **D-09** | Nợ học phí vượt trần (15M) | `ACTIVE` | 15.000.000 đ | Vay vốn ngân hàng | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` (Từ chối theo quy chế) |
 | **D-10** | Tạm hoãn nghĩa vụ quân sự | `ACTIVE` | 0 đ | Tạm hoãn nghĩa vụ quân sự | `ROUTINE` | `AUTO_APPROVED` (Duyệt tự động $< 1$s) |
-| **D-11** | Nợ phí chạm ngưỡng trần (10M) | `ACTIVE` | 10.000.000 đ | Xin visa | `ROUTINE` | `AUTO_APPROVED` (Duyệt tự động $< 1$s) |
+| **D-11** | Xin visa (Hồ sơ hợp lệ) | `ACTIVE` | 0 đ | Xin visa | `ROUTINE` | `AUTO_APPROVED` (Duyệt tự động $< 1$s) |
 | **D-12** | Bảo lãnh hồ sơ định cư | `ACTIVE` | 0 đ | Bảo lãnh định cư người thân | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` (Chuyển Cán bộ PĐT) |
 | **D-13** | Cố tình gắn cờ ép duyệt | `ACTIVE` | 0 đ | Học bổng (`forceApprove`) | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` (Chuyển Cán bộ PĐT) |
 | **D-14** | Mục đích toàn dấu cách rỗng | `ACTIVE` | 0 đ | `"   "` (Khoảng trắng) | `UNKNOWN_FACT` | `ASK_CLARIFICATION` (Hỏi làm rõ 1 câu) |
@@ -313,9 +318,12 @@ Dưới đây là bộ **15 test cases chuẩn** (được nạp sẵn trong `ED
 
 Tại tab **Verify Track A** trên giao diện trực tuyến [https://edu-ref-ai-agent.vercel.app/](https://edu-ref-ai-agent.vercel.app/), Ban Giám Khảo có thể kiểm thử khả năng thích ứng của hệ thống bằng cách nhập câu Prompt tùy ý vào ô **"Ca mới của giám khảo"**:
 
+* **Thử nghiệm ca Bẫy Ý Định Hỏi Đáp / Tư Vấn Quy Chế (`INQUIRY` ➔ `UNKNOWN_FACT`):**
+  > *"Làm giấy xác nhận sinh viên để vay vốn ngân hàng thì cần những giấy tờ gì hả bot?"*  
+  👉 **Hệ thống phản hồi:** Nhận diện đây là câu hỏi tìm hiểu thông tin thủ tục, **tuyệt đối không tự ý duyệt đơn**, dừng lại và gửi câu hỏi xác nhận chủ đích: *"Bạn đang tìm hiểu thủ tục học vụ hay muốn tạo đơn xin Giấy xác nhận sinh viên? Nếu muốn tạo đơn ngay, bạn vui lòng xác nhận để mình hỗ trợ nhé!"*.
 * **Thử nghiệm ca Ngoài Quy Chế (`OUTSIDE_POLICY`):**
   > *"Em cần giấy xác nhận sinh viên để làm thủ tục mua xe máy trả góp."*  
-  👉 **Hệ thống phản hồi:** Nhận diện mục đích hợp lý nhưng chưa có trong quy chế, tự động dừng lại và chuyển Cán bộ PĐT với câu hỏi hành động.
+  👉 **Hệ thống phản hồi:** Nhận diện mục đích hợp lý nhưng chưa có trong quy chế, tự động dừng lại và chuyển Cán bộ PĐT với câu hỏi hành động cụ thể.
 * **Thử nghiệm ca Thiếu Thông Tin (`UNKNOWN_FACT`):**
   > *"Cho em xin một giấy xác nhận sinh viên nộp gấp trong ngày."*  
   👉 **Hệ thống phản hồi:** Nhận diện thiếu mục đích sử dụng, dừng lại và gửi câu hỏi trực tiếp: *"Bạn vui lòng nêu rõ mục đích sử dụng giấy xác nhận (ví dụ: làm vé xe buýt, vay vốn, hoãn nghĩa vụ...)?"*.
@@ -331,11 +339,11 @@ Tại tab **Verify Track A** trên giao diện trực tuyến [https://edu-ref-a
 | :--- | :--- | :--- |
 | **Frontend UI/UX** | React 18, Vite 6.4, TailwindCSS | Giao diện Single Page tương tác cao, thiết kế Responsive hiện đại |
 | **Realtime Gateway** | Socket.IO Client / Server | Truyền phát luồng suy nghĩ và nhật ký 3 chốt kiểm soát thời gian thực |
-| **Distributed Agent** | **WebMCP Protocol & Adapter** | Giao thức Web Model Context Protocol, cơ chế **Dual-Path Fallback** (Client Edge & Server) |
+| **Autonomous Agent** | **Server-side Orchestrator** | Điều phối chuỗi công cụ tự hành, kiểm soát trần 5 bước, kiến trúc Zero-Trust |
 | **Backend Core** | Node.js (ES Modules), Express | Kiến trúc Clean Modular Architecture, phân tầng Services & Handlers |
 | **Policy Engine** | Versioned Rule Engine (JavaScript) | Bộ quy chế xác định độc lập, tách rời hoàn toàn khỏi gợi ý của LLM |
 | **Database & ORM** | PostgreSQL, Prisma ORM, Supabase | Quản lý dữ liệu quan hệ với Transaction & Session Pooler |
-| **AI & Multimodal** | Google Gemini Flash / Pro | NLU hiểu ngữ cảnh tự nhiên, Vision OCR bóc tách văn bằng chứng chỉ |
+| **Autonomous AI** | Google Gemini 2.5 Flash | NLU hiểu ngữ cảnh tự nhiên, phân định ý định & trích xuất thực thể học vụ |
 | **Security & Ledger** | SHA-256 Hash Chain, JWT, RBAC | Sổ cái kiểm toán bất biến, phân quyền 4 vai trò độc lập, chống can thiệp |
 
 ---
@@ -363,10 +371,11 @@ cp .env.example .env
 # (Giữ ALLOW_DEMO_ROLE_SWITCH=true phục vụ chế độ demo chấm thi)
 
 # 3. Đồng bộ cơ sở dữ liệu và nạp dữ liệu mẫu
-npx prisma db push
+npm run db:deploy
+# Nạp dữ liệu mẫu (ALLOW_DESTRUCTIVE_SEED='true' npm run seed)
 npm run seed
 
-# 4. Chạy kiểm thử tự động (11/11 bài test chuẩn)
+# 4. Chạy kiểm thử tự động
 npm test
 
 # 5. Khởi chạy máy chủ Backend
@@ -407,10 +416,9 @@ EduRef_AI_Agent/
     │   │   ├── ai-agent/               # Lõi AI: Orchestrator, Tools, Memory, Realtime Log
     │   │   └── petition-core/          # Các bộ Handler thủ tục học vụ độc lập
     │   ├── prisma/                     # Schema Database & Script nạp Seed data
-    │   ├── public/demo_certs/          # Mẫu chứng chỉ phục vụ BGK test thị giác AI
     │   ├── routes/                     # REST API endpoints (Agent, Petition, Audit, Auth)
-    │   ├── services/                   # StudentConfirmationDecisionService, Vision, Audit
-    │   ├── test/                       # 11 Unit Tests kiểm thử Bounded Autonomy
+    │   ├── services/                   # StudentConfirmationDecisionService, AuditService
+    │   ├── test/                       # 14 Unit Tests kiểm thử Bounded Autonomy & Track A
     │   └── server.js                   # Điểm khởi chạy máy chủ Express & Socket.IO
     ├── frontend/                       # React 18 + Vite 6.4 + TailwindCSS
     │   ├── src/
@@ -421,7 +429,7 @@ EduRef_AI_Agent/
     └── docs/                           # Bộ tài liệu chuyên đề chi tiết
         ├── 08_VERIFY.md                # Quy chuẩn kiểm thử Verify Harness
         ├── 11_SECURITY.md              # Phòng vệ Prompt Injection & Kiểm toán
-        ├── 13_WEBMCP.md                # Kiến trúc tác tử phân tán & Giao thức WebMCP Dual-Path
+        ├── 13_ZERO_TRUST_SECURITY.md   # Nguyên lý Zero-Trust & Bảo vệ toàn vẹn quyết định học vụ
         ├── 14_TRACK_A_POLICY.md        # Toàn văn Quy chế Học vụ Đề bài A
         └── 16_SUPABASE_DEPLOYMENT.md   # Hướng dẫn kết nối cơ sở dữ liệu Supabase
 ```

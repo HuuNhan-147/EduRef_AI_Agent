@@ -13,6 +13,8 @@ test('demo role switch exposes only fixed allowlisted account keys', () => {
     'STUDENT_ACTIVE',
     'STUDENT_DROPPED',
     'STUDENT_DEBT',
+    'STUDENT_SUSPENDED',
+    'STUDENT_GRADUATED',
     'STAFF_DAOTAO',
     'DEAN_DAOTAO',
   ]);

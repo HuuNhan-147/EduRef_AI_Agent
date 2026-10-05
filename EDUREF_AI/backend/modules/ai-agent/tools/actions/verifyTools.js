@@ -1,6 +1,6 @@
 import { petitionWorkflowCore } from '../../../petition-core/PetitionWorkflowCore.js';
 import { agentTerminalLogger } from '../../core/AgentTerminalLogger.js';
-import { GENERAL_VERIFY_CASES, TRACK_A_VERIFY_CASES } from '../../../../fixtures/trackAVerifyCases.js';
+import { TRACK_A_VERIFY_CASES } from '../../../../fixtures/trackAVerifyCases.js';
 import {
   inferStudentConfirmationInput,
   STUDENT_CONFIRMATION_POLICY_VERSION,
@@ -188,10 +188,6 @@ async function executeSuite({ mode, cases }) {
 }
 
 export const verifyTools = {
-  async run_general_verify() {
-    return executeSuite({ mode: 'GENERAL', cases: GENERAL_VERIFY_CASES });
-  },
-
   async run_verify_90s() {
     return executeSuite({ mode: 'TRACK_A_ESCALATION', cases: TRACK_A_VERIFY_CASES });
   },

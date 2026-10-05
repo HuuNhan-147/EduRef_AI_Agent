@@ -494,7 +494,7 @@ export default function StaffEscalationPage() {
                     : [];
 
                   // Nếu documents trong DB rỗng nhưng là đơn xét tốt nghiệp hoặc có hasAttachment/attachedCerts
-                  if (docList.length === 0 && (selectedPetition.requestType?.code === 'GRADUATION_ASSESSMENT' || selectedPetition.inputData?.hasAttachment || selectedPetition.inputData?.attachedCerts)) {
+                  if (docList.length === 0 && (selectedPetition.inputData?.hasAttachment || selectedPetition.inputData?.attachedCerts)) {
                     const certs = selectedPetition.inputData?.attachedCerts || {};
                     docList = [
                       {

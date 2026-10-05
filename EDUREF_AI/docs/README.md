@@ -21,6 +21,13 @@ Các tài liệu kiến trúc bổ trợ:
 - `09_API.md`
 - `10_DATABASE.md`
 - `12_TECHNICAL_DEBT.md`
-- `13_WEBMCP.md`
+- `13_ZERO_TRUST_SECURITY.md` — nguyên lý Zero-Trust Client Boundary và bảo vệ toàn vẹn quyết định học vụ.
+
+Đặc tả thiết kế & Kế hoạch kỹ thuật nội bộ (`specs/`):
+
+- `specs/VNG_TRACK_A_REQUIREMENTS.md` — Yêu cầu bài toán VNG Track A chuẩn hóa.
+- `specs/AGENT_ARCHITECTURE_SPEC.md` — Đặc tả kiến trúc ReAct Agent tự hành.
+- `specs/SYSTEM_CORE_RECONSTRUCTION.md` — Thiết kế tái cấu trúc Core học vụ & 4 chốt chặn.
+- `specs/FRONTEND_IMPLEMENTATION_PLAN.md` — Kế hoạch thiết kế giao diện UI/UX frontend.
 
 Nếu tài liệu cũ mâu thuẫn với `14_TRACK_A_POLICY.md`, policy chuẩn và test tự động là nguồn chân lý.

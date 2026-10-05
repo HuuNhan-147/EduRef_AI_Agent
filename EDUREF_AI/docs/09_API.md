@@ -67,7 +67,7 @@
   {
     "success": true,
     "data": {
-      "requestCode": "ST-819234",
+      "requestCode": "XNSV-819234",
       "status": "APPROVED",
       "decision": "AUTO_APPROVED",
       "qrCodeUrl": "https://api.qrserver.com/v1/create-qr-code/...",

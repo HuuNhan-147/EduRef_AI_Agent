@@ -64,10 +64,15 @@ router.post('/', authenticateToken, async (req, res) => {
       requestCode = req.body.type;
     }
 
-    // Nếu không truyền requestCode, suy luận loại form
+    // Bản chung kết chỉ nhận một workflow duy nhất.
     if (!requestCode) {
-      if (inputData.certificates) requestCode = 'GRADUATION_ASSESSMENT';
-      else requestCode = 'STUDENT_CONFIRMATION';
+      requestCode = 'STUDENT_CONFIRMATION';
+    }
+    if (requestCode !== 'STUDENT_CONFIRMATION') {
+      return res.status(400).json({
+        success: false,
+        message: 'Bản chung kết chỉ hỗ trợ thủ tục Giấy Xác Nhận Sinh Viên.',
+      });
     }
 
     // Xử lý danh sách documents đính kèm từ form (bản scan/ảnh chụp minh chứng)
@@ -116,7 +121,7 @@ router.post('/', authenticateToken, async (req, res) => {
 router.get('/types', async (req, res) => {
   try {
     const types = await prisma.requestType.findMany({
-      where: { active: true },
+      where: { active: true, code: 'STUDENT_CONFIRMATION' },
       include: {
         requirements: true,
         policies: true,
@@ -141,6 +146,49 @@ router.get('/students', authenticateToken, requireStaffOrDean, async (req, res) 
     });
 
     res.json({ success: true, data: students });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+/**
+ * GET /api/petitions/stats/metrics (Bộ chỉ số định lượng phục vụ Sprint 2 Dashboard)
+ * Keep this static path before /:id so Express cannot interpret "stats" as an id.
+ */
+router.get('/stats/metrics', authenticateToken, requireStaffOrDean, async (req, res) => {
+  try {
+    const totalRequests = await prisma.studentRequest.count();
+    const approvedRequests = await prisma.studentRequest.count({ where: { status: 'APPROVED' } });
+    const escalatedRequests = await prisma.studentRequest.count({ where: { status: 'ESCALATED' } });
+    const waitingRequests = await prisma.studentRequest.count({ where: { status: 'WAITING_STUDENT' } });
+    const rejectedRequests = await prisma.studentRequest.count({ where: { status: 'REJECTED' } });
+    const cancelledRequests = await prisma.studentRequest.count({ where: { status: 'CANCELLED' } });
+
+    const automationRate = totalRequests > 0 ? ((approvedRequests / totalRequests) * 100).toFixed(1) : null;
+    const processingTime = await prisma.auditLog.aggregate({
+      where: { decisionTimeMs: { not: null } },
+      _avg: { decisionTimeMs: true },
+    });
+
+    res.json({
+      success: true,
+      data: {
+        total: totalRequests,
+        approved: approvedRequests,
+        escalated: escalatedRequests,
+        waitingStudent: waitingRequests,
+        rejected: rejectedRequests,
+        cancelled: cancelledRequests,
+        metrics: {
+          routineAutomationRate: automationRate === null ? null : `${automationRate}%`,
+          missedEscalationRate: null,
+          falseEscalationRate: null,
+          avgProcessingTimeMs: processingTime._avg.decisionTimeMs,
+          measurementStatus: 'PARTIAL',
+          note: 'Missed/false escalation cần tập dữ liệu độc lập có nhãn; hệ thống không công bố số giả khi chưa đo.',
+        },
+      },
+    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }
@@ -323,48 +371,6 @@ router.post('/:id/resume', authenticateToken, async (req, res) => {
     });
 
     res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
-
-/**
- * GET /api/petitions/stats/metrics (Bộ chỉ số định lượng phục vụ Sprint 2 Dashboard)
- */
-router.get('/stats/metrics', authenticateToken, requireStaffOrDean, async (req, res) => {
-  try {
-    const totalRequests = await prisma.studentRequest.count();
-    const approvedRequests = await prisma.studentRequest.count({ where: { status: 'APPROVED' } });
-    const escalatedRequests = await prisma.studentRequest.count({ where: { status: 'ESCALATED' } });
-    const waitingRequests = await prisma.studentRequest.count({ where: { status: 'WAITING_STUDENT' } });
-    const rejectedRequests = await prisma.studentRequest.count({ where: { status: 'REJECTED' } });
-    const cancelledRequests = await prisma.studentRequest.count({ where: { status: 'CANCELLED' } });
-
-    const automationRate = totalRequests > 0 ? ((approvedRequests / totalRequests) * 100).toFixed(1) : null;
-    const processingTime = await prisma.auditLog.aggregate({
-      where: { decisionTimeMs: { not: null } },
-      _avg: { decisionTimeMs: true },
-    });
-
-    res.json({
-      success: true,
-      data: {
-        total: totalRequests,
-        approved: approvedRequests,
-        escalated: escalatedRequests,
-        waitingStudent: waitingRequests,
-        rejected: rejectedRequests,
-        cancelled: cancelledRequests,
-        metrics: {
-          routineAutomationRate: automationRate === null ? null : `${automationRate}%`,
-          missedEscalationRate: null,
-          falseEscalationRate: null,
-          avgProcessingTimeMs: processingTime._avg.decisionTimeMs,
-          measurementStatus: 'PARTIAL',
-          note: 'Missed/false escalation cần tập dữ liệu độc lập có nhãn; hệ thống không công bố số giả khi chưa đo.',
-        },
-      },
-    });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

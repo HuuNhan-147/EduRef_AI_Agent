@@ -96,7 +96,33 @@ async function main() {
     },
   });
 
-  console.log('✅ Đã tạo 4 sinh viên mẫu (2280602154: Cao Hữu Nhân [Chính], 2110001: Active, 2110002: Thôi học, 2110003: Nợ phí).');
+  const studentSuspended = await prisma.student.create({
+    data: {
+      studentCode: '2110004',
+      fullName: 'Phạm Văn Dũng',
+      email: 'dung.pham@edu.vn',
+      phone: '0904567890',
+      status: 'SUSPENDED', // Đang bảo lưu kết quả học tập
+      tuitionDebt: 0,
+      gpa: 3.10,
+      departmentId: cntt.id,
+    },
+  });
+
+  const studentGraduated = await prisma.student.create({
+    data: {
+      studentCode: '2110005',
+      fullName: 'Hoàng Thị Mai',
+      email: 'mai.hoang@edu.vn',
+      phone: '0905678901',
+      status: 'GRADUATED', // Đã tốt nghiệp
+      tuitionDebt: 0,
+      gpa: 3.65,
+      departmentId: ddt.id,
+    },
+  });
+
+  console.log('✅ Đã tạo 6 sinh viên mẫu (2280602154: Cao Hữu Nhân [Chính], 2110001: Active, 2110002: Thôi học, 2110003: Nợ phí, 2110004: Bảo lưu, 2110005: Tốt nghiệp).');
 
   // 4. Tạo Tài khoản Cán bộ & Lãnh đạo
   const defaultPassword = await bcrypt.hash('123456', 10);
@@ -123,8 +149,8 @@ async function main() {
 
   console.log('✅ Đã tạo tài khoản Cán bộ PĐT & Trưởng phòng Đào tạo.');
 
-  // 5. CHỈ TẠO 2 THỦ TỤC HỌC VỤ THỰC TẾ
-  // Thủ tục 1: Giấy xác nhận sinh viên (Ảnh 1) -> Cổng AUTO
+  // 5. Chỉ tạo workflow duy nhất của bản chung kết
+  // Giấy xác nhận sinh viên -> Cổng AUTO/HITL
   const typeConfirm = await prisma.requestType.create({
     data: {
       code: 'STUDENT_CONFIRMATION',
@@ -189,8 +215,8 @@ async function main() {
             ruleDefinition: {
               field: 'student.tuitionDebt',
               operator: 'LTE',
-              value: 10000000,
-              errorMessage: 'Sinh viên nợ học phí quá 10.000.000 VNĐ cần hoàn thành nghĩa vụ tài chính trước khi xin giấy.',
+              value: 0,
+              errorMessage: 'Sinh viên phải hoàn thành 100% nghĩa vụ học phí (nợ 0 VNĐ) trước khi xin giấy.',
             },
             priority: 2,
           },
@@ -211,99 +237,8 @@ async function main() {
     },
   });
 
-  // Thủ tục 2: Đơn đề nghị xét tốt nghiệp (Ảnh 2) -> Cổng ESCALATE / ASK
-  const typeGraduation = await prisma.requestType.create({
-    data: {
-      code: 'GRADUATION_ASSESSMENT',
-      name: 'Đơn Đề Nghị Xét Tốt Nghiệp',
-      description: 'Xét tốt nghiệp đợt chính khóa cho sinh viên đã hoàn thành số tín chỉ và nộp đủ chứng chỉ chuẩn đầu ra.',
-      requirements: {
-        create: [
-          {
-            code: 'REQ_PHONE',
-            name: 'Số điện thoại liên hệ',
-            isRequired: true,
-            description: 'Số điện thoại của sinh viên để Hội đồng liên hệ.',
-          },
-          {
-            code: 'REQ_BIRTH_PLACE',
-            name: 'Nơi sinh',
-            isRequired: true,
-            description: 'Tỉnh / Thành phố nơi sinh theo giấy khai sinh.',
-          },
-          {
-            code: 'REQ_REASON',
-            name: 'Lý do xin đề nghị xét tốt nghiệp',
-            isRequired: true,
-            description: 'Giải trình quá trình hoàn thành chương trình đào tạo.',
-          },
-          {
-            code: 'REQ_CERTIFICATES',
-            name: 'Danh sách chứng chỉ nộp đơn xét tốt nghiệp',
-            isRequired: true,
-            description: 'Bảng chứng chỉ chuẩn đầu ra (Ngoại ngữ, Tin học, GDQP, GDTC) gồm Số hiệu và Số vào sổ.',
-          },
-        ],
-      },
-      policies: {
-        create: [
-          {
-            code: 'POL_GRAD_STUDENT_ACTIVE',
-            name: 'Điều kiện sinh viên hợp lệ',
-            ruleDefinition: {
-              field: 'student.status',
-              operator: 'EQUALS',
-              value: 'ACTIVE',
-              errorMessage: 'Chỉ nhận đơn xét tốt nghiệp của sinh viên đang theo học.',
-            },
-            priority: 1,
-          },
-          {
-            code: 'POL_GRAD_NO_DEBT',
-            name: 'Hoàn thành nghĩa vụ học phí',
-            ruleDefinition: {
-              field: 'student.tuitionDebt',
-              operator: 'EQUALS',
-              value: 0,
-              errorMessage: 'Sinh viên phải hoàn tất 100% học phí (nợ phí = 0đ) trước khi đề nghị xét tốt nghiệp.',
-            },
-            priority: 2,
-          },
-          {
-            code: 'POL_GRAD_REQUIRED_CERTS',
-            name: 'Quy định nộp tối thiểu chứng chỉ chuẩn đầu ra',
-            ruleDefinition: {
-              requiredCertTypes: ['NGOAI_NGU', 'TIN_HOC'],
-              errorMessage: 'Bắt buộc phải có Chứng chỉ Ngoại ngữ và Chứng chỉ Tin học hợp lệ có cả Số hiệu và Số vào sổ.',
-            },
-            priority: 3,
-          },
-        ],
-      },
-      authorityRules: {
-        create: [
-          {
-            role: 'AI_AGENT',
-            action: 'ASK_CLARIFICATION',
-            condition: {
-              missingCertificates: true,
-            },
-          },
-          {
-            role: 'DEAN',
-            action: 'DEAN_APPROVAL',
-            condition: {
-              requiresCouncilApproval: true,
-            },
-          },
-        ],
-      },
-    },
-  });
-
-  console.log('✅ Đã nạp thành công 2 thủ tục thực tế:');
+  console.log('✅ Đã nạp thành công thủ tục chuẩn:');
   console.log('   1. [STUDENT_CONFIRMATION] - Giấy Xác Nhận Sinh Viên (AUTO_APPROVE)');
-  console.log('   2. [GRADUATION_ASSESSMENT] - Đơn Đề Nghị Xét Tốt Nghiệp (ESCALATE_TO_DEAN)');
   console.log('🎉 [EduRef Seed] Hoàn tất nạp dữ liệu chuẩn thành công 100%!');
 }
 

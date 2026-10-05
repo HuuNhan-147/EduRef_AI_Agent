@@ -4,17 +4,11 @@
 import prisma from '../../config/prisma.js';
 import AuditLogService from '../../services/AuditLogService.js';
 import { studentConfirmationHandler } from './handlers/StudentConfirmationHandler.js';
-import { bankLoanHandler } from './handlers/BankLoanHandler.js';
-import { militaryDefermentHandler } from './handlers/MilitaryDefermentHandler.js';
-import { graduationAssessmentHandler } from './handlers/GraduationAssessmentHandler.js';
 
 export class PetitionWorkflowCore {
   constructor() {
     this.handlers = new Map();
     this.registerHandler(studentConfirmationHandler);
-    this.registerHandler(bankLoanHandler);
-    this.registerHandler(militaryDefermentHandler);
-    this.registerHandler(graduationAssessmentHandler);
   }
 
   /**
@@ -130,7 +124,7 @@ export class PetitionWorkflowCore {
           include: { documents: true, student: true, requestType: true },
         });
       } else {
-        const requestCode = `ST-${Math.floor(100000 + Math.random() * 900000)}`;
+        const requestCode = `XNSV-${Math.floor(100000 + Math.random() * 900000)}`;
         request = await prisma.studentRequest.create({
           data: {
             requestCode,
@@ -187,6 +181,7 @@ export class PetitionWorkflowCore {
         requestCode: request.requestCode,
         missing: reqResult.missing,
         question,
+        actionableQuestion: question,
         message: question,
       };
     }
@@ -220,7 +215,7 @@ export class PetitionWorkflowCore {
       });
 
       return {
-        success: false,
+        success: true,
         decision: 'REJECTED_POLICY',
         classification: policyResult.classification || 'ROUTINE_POLICY_DENY',
         uncertaintyType: policyResult.uncertaintyType || null,
@@ -228,7 +223,7 @@ export class PetitionWorkflowCore {
         requestId: request.id,
         requestCode: request.requestCode,
         reason: policyResult.reason,
-        message: `Từ chối cấp đơn: ${policyResult.reason}`,
+        message: policyResult.userMessage || `Từ chối cấp đơn: ${policyResult.reason}`,
       };
     }
 
@@ -290,6 +285,7 @@ export class PetitionWorkflowCore {
         requiredRole: authResult.role,
         reason: authResult.reason,
         contextCapsule,
+        actionableQuestion: authResult.actionableQuestion || contextCapsule.actionableQuestion,
         message: `Yêu cầu của bạn đã được tiếp nhận và đóng gói chuyển tiếp lên ${roleDisplayName} thẩm định theo thẩm quyền. Mã hồ sơ: [${request.requestCode}].`,
       };
     }
@@ -336,6 +332,15 @@ export class PetitionWorkflowCore {
       sha256Proof: auditLog?.sha256Hash,
       totalDuration,
       message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công trong ${totalDuration}ms. Mã QR chứng thực số đã sẵn sàng.`,
+      confirmationDetails: {
+        studentName: student.fullName,
+        studentCode: student.studentCode,
+        department: student.department?.name,
+        purpose: inputData?.purpose || inputData?.reason,
+        pickupCampus: inputData?.pickupCampus,
+        issuedDate: new Date().toLocaleDateString('vi-VN'),
+        validDays: 30,
+      },
     };
   }
 

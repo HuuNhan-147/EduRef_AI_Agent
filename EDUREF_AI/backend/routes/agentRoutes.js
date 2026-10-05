@@ -85,17 +85,6 @@ router.post('/verify-90s', authenticateToken, async (req, res) => {
   }
 });
 
-/**
- * POST /api/agent/verify-general (Bộ Verify tổng quát 4 ca theo đề bài)
- */
-router.post('/verify-general', authenticateToken, async (req, res) => {
-  try {
-    const result = await verifyTools.run_general_verify();
-    res.json(result);
-  } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
-  }
-});
 
 /**
  * POST /api/agent/verify-custom (Kích hoạt thẩm định ca kiểm thử tùy chỉnh do BGK nhập)

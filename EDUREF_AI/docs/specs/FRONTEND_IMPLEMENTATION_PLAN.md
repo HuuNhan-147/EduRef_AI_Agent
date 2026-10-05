@@ -1,4 +1,4 @@
-# EDUREF AI FRONTEND IMPLEMENTATION PLAN
+﻿# EDUREF AI FRONTEND IMPLEMENTATION PLAN
 ## Kiến Trúc & Kế Hoạch Triển Khai Giao Diện Cổng Dịch Vụ Học Vụ Tự Hành (The Academic Escalation Referee)
 
 > Tài liệu kế hoạch lịch sử. Frontend hiện đã nằm trong `EDUREF_AI/frontend`; Verify dùng `/verify-general`, `/verify-90s` và `/verify-custom-prompt`. Kết quả thực tế không được điền sẵn trước khi chạy.
@@ -98,7 +98,7 @@
 1. Sinh viên chọn hoặc gõ: *"Em xin giấy xác nhận sinh viên để làm vé tháng xe buýt"*.
 2. Chat hiển thị live status: `Đang phân tích` $\rightarrow$ `Gọi get_student_profile` $\rightarrow$ `Kiểm tra requirements` $\rightarrow$ `Thẩm định policy` $\rightarrow$ `Xác nhận thẩm quyền`.
 3. Decision Card bên phải chuyển xanh: **AUTO APPROVED** (Thời gian: ~250ms).
-4. Khung chat render thẻ kết quả chứa **Mã đơn ST-XXXXXX**, **Mã QR chứng thực số**, và **Chữ ký SHA-256 Proof**.
+4. Khung chat render thẻ kết quả chứa **Mã đơn XNSV-XXXXXX**, **Mã QR chứng thực số**, và **Chữ ký SHA-256 Proof**.
 
 ### Flow B: Thiếu Dữ Kiện $\rightarrow$ `ASK` $\rightarrow$ Bổ sung $\rightarrow$ Resume $\rightarrow$ `AUTO_APPROVED`
 1. Sinh viên gõ: *"Cho em xin giấy xác nhận sinh viên"*.
@@ -183,7 +183,7 @@ App
     │   │   │   └── AgentMessageBubble
     │   │   │       ├── MarkdownRenderer (MarkdownText.jsx)
     │   │   │       ├── ToolExecutionBadge (Hiện tên tool, input, output khi gọi)
-    │   │   │       └── PetitionResultCard (ST-XXXXXX, QR Code, SHA256 Proof)
+    │   │   │       └── PetitionResultCard (XNSV-XXXXXX, QR Code, SHA256 Proof)
     │   │   ├── InlineDropzone (Upload Mẫu 01/NHCS hoặc Lệnh gọi NVQS khi có yêu cầu)
     │   │   └── ChatInputBar (Textarea tự co giãn, nút gửi, phím tắt Enter)
     │   │
@@ -321,7 +321,7 @@ Kế hoạch được chia thành **7 Phases độc lập**, triển khai tuần
 - **Acceptance Criteria:**
   - Sinh viên gửi tin nhắn $\rightarrow$ nhận streaming chunk mượt mà không giật lag.
   - Khi Agent gọi Tool $\rightarrow$ hiển thị thẻ tên Tool + tham số bóc tách.
-  - Sau khi duyệt $\rightarrow$ hiển thị mã đơn `ST-XXXXXX`, mã QR chứng thực và chữ ký SHA-256.
+  - Sau khi duyệt $\rightarrow$ hiển thị mã đơn `XNSV-XXXXXX`, mã QR chứng thực và chữ ký SHA-256.
 
 ---
 
@@ -399,7 +399,7 @@ Kế hoạch được chia thành **7 Phases độc lập**, triển khai tuần
 - Giới thiệu EduRef AI: Tác tử tự hành phân xử và điều phối học vụ đại học (Track 2 Option A).
 - Vai trò hiện tại: Sinh viên Nguyễn Văn An (2110001).
 - Thao tác: Bấm câu mẫu "Em xin giấy xác nhận sinh viên để làm vé tháng xe buýt".
-- Điểm nhấn: Agent streaming lời giải thích, tự động qua 5 chốt chặn, cấp mã ST-XXXXXX và mã QR trong 0.8 giây.
+- Điểm nhấn: Agent streaming lời giải thích, tự động qua 5 chốt chặn, cấp mã XNSV-XXXXXX và mã QR trong 0.8 giây.
 
 ⏱️ 0:31 - 1:15 | KHẢ NĂNG HỎI LÀM RÕ & BỔ SUNG BIỂU MẪU (ASK -> RESUME)
 - Thao tác: Gõ câu lệnh thiếu dữ kiện "Em xin xác nhận vay vốn ngân hàng chính sách".
