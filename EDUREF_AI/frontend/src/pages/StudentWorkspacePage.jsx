@@ -83,7 +83,7 @@ export default function StudentWorkspacePage({
       {
         id: 'welcome',
         sender: 'agent',
-        text: `Xin chào **${currentAccount.name}** (MSSV: ${currentAccount.code})!\n\nTôi là **EduRef AI** — Trợ lý điều phối hành chính học vụ tự hành của Nhà trường.\n\nBạn có thể gửi yêu cầu bằng ngôn ngữ tự nhiên (hoặc từ viết tắt như *xnsv*, *nhcs*, *nvqs*), hoặc chọn thủ tục ở cột bên trái để nộp đơn.`,
+        text: `Chào bạn **${currentAccount.name}** nhé! 👋\n\nMình là **EduRef AI** — Trợ lý học vụ số của trường.\n\nMình có thể hỗ trợ bạn cấp **Giấy xác nhận sinh viên** siêu tốc (để vay vốn ngân hàng, tạm hoãn NVQS, làm vé xe buýt, bổ sung hồ sơ học bổng, xin visa...) hoặc giải đáp các thắc mắc về quy chế đào tạo.\n\nHôm nay bạn cần mình hỗ trợ thủ tục gì nè?`,
         timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
       },
     ];
@@ -122,7 +122,7 @@ export default function StudentWorkspacePage({
         {
           id: `welcome_${Date.now()}`,
           sender: 'agent',
-          text: `Xin chào **${currentAccount.name}** (MSSV: ${currentAccount.code})!\n\nTôi là **EduRef AI** — Trợ lý điều phối hành chính học vụ tự hành của Nhà trường.\n\nBạn có thể gửi yêu cầu bằng ngôn ngữ tự nhiên (hoặc từ viết tắt như *xnsv*, *nhcs*, *nvqs*), hoặc chọn thủ tục ở cột bên trái để nộp đơn.`,
+          text: `Chào bạn **${currentAccount.name}** nhé! 👋\n\nMình là **EduRef AI** — Trợ lý học vụ số của trường.\n\nMình có thể hỗ trợ bạn cấp **Giấy xác nhận sinh viên** siêu tốc (để vay vốn ngân hàng, tạm hoãn NVQS, làm vé xe buýt, bổ sung hồ sơ học bổng, xin visa...) hoặc giải đáp các thắc mắc về quy chế đào tạo.\n\nHôm nay bạn cần mình hỗ trợ thủ tục gì nè?`,
           timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
         },
       ]);
@@ -619,10 +619,20 @@ export default function StudentWorkspacePage({
           </div>
           <button
             onClick={() => {
-              setMessages([]);
+              try {
+                sessionStorage.removeItem(`eduref_messages_${currentAccount.code}`);
+              } catch (e) {}
+              setMessages([
+                {
+                  id: `welcome_${Date.now()}`,
+                  sender: 'agent',
+                  text: `Chào bạn **${currentAccount.name}** nhé! 👋\n\nMình là **EduRef AI** — Trợ lý học vụ số của trường.\n\nMình có thể hỗ trợ bạn cấp **Giấy xác nhận sinh viên** siêu tốc (để vay vốn ngân hàng, tạm hoãn NVQS, làm vé xe buýt, bổ sung hồ sơ học bổng, xin visa...) hoặc giải đáp các thắc mắc về quy chế đào tạo.\n\nHôm nay bạn cần mình hỗ trợ thủ tục gì nè?`,
+                  timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                },
+              ]);
               setSessionId(`sess_${Date.now()}`);
             }}
-            className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1"
+            className="text-xs text-slate-400 hover:text-slate-700 flex items-center gap-1 cursor-pointer"
           >
             <RefreshCw className="w-3.5 h-3.5" /> Xóa hội thoại
           </button>
