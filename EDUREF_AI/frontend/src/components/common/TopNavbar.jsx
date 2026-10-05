@@ -49,11 +49,11 @@ export default function TopNavbar({
     {
       id: 'VERIFY_HARNESS',
       label: 'Verify Đề A',
-      icon: Zap,
+      icon: CheckCircle,
     },
     {
       id: 'AUDIT_EXPLORER',
-      label: 'Kiểm toán',
+      label: 'Kiểm toán SHA-256',
       icon: ShieldCheck,
     },
   ];
@@ -62,7 +62,7 @@ export default function TopNavbar({
     {
       id: 'VERIFY_HARNESS',
       label: 'Verify Đề A',
-      icon: Zap,
+      icon: CheckCircle,
     },
     {
       id: 'STAFF_ESCALATION',
@@ -82,7 +82,7 @@ export default function TopNavbar({
     },
     {
       id: 'AUDIT_EXPLORER',
-      label: 'Kiểm toán',
+      label: 'Kiểm toán SHA-256',
       icon: ShieldCheck,
     },
   ];
@@ -90,27 +90,27 @@ export default function TopNavbar({
   const navItems = isStaff ? staffNavItems : studentNavItems;
 
   return (
-    <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md select-none">
+    <header className="bg-[#0B3B82] text-white border-b border-[#082C64] sticky top-0 z-40 shadow-sm select-none">
       <div className="w-full px-3 sm:px-5 lg:px-6 h-16 flex items-center justify-between gap-3">
         
-        {/* Khối Nhận Diện Thương Hiệu Hành Chính Chuẩn Chính Quy */}
+        {/* Khối Nhận Diện Thương Hiệu Hành Chính Chuẩn Chính Quy HUTECH */}
         <div className="flex items-center gap-2.5 shrink-0">
           {/* Logo HUTECH đại diện trường */}
-          <div className="h-9 px-2 py-0.5 bg-white rounded-lg flex items-center justify-center shadow-xs border border-slate-700/60 shrink-0">
+          <div className="h-9 px-2 py-0.5 bg-white rounded-lg flex items-center justify-center shadow-xs border border-white/40 shrink-0">
             <img src="/hutech_logo.png" alt="HUTECH University" className="h-full w-auto object-contain" />
           </div>
 
           {/* Vạch phân cách tinh tế */}
-          <div className="h-7 w-px bg-slate-800 hidden sm:block shrink-0" />
+          <div className="h-7 w-px bg-blue-400/30 hidden sm:block shrink-0" />
 
           <div>
             <div className="flex items-center gap-2">
-              <span className="font-bold text-base tracking-tight text-white">EduRef AI</span>
-              <span className="px-1.5 py-0.2 rounded text-[10px] font-semibold tracking-wider uppercase bg-blue-500/20 text-blue-300 border border-blue-400/30">
+              <span className="font-bold text-base tracking-tight text-white drop-shadow-xs">EduRef AI</span>
+              <span className="px-1.5 py-0.5 rounded text-[10px] font-bold tracking-wider uppercase bg-rose-600 text-white shadow-2xs">
                 VNG · Đề A
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-normal hidden lg:block">
+            <p className="text-[11px] text-blue-200 font-medium hidden lg:block">
               Cổng Dịch Vụ Học Vụ Tự Hành
             </p>
           </div>
@@ -128,13 +128,13 @@ export default function TopNavbar({
               <button
                 key={item.id}
                 onClick={() => setActiveTab && setActiveTab(item.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all shrink-0 cursor-pointer ${
                   isActive
-                    ? 'bg-blue-600 text-white shadow-xs border border-blue-500'
-                    : 'text-slate-300 hover:text-white hover:bg-slate-800/80 border border-transparent'
+                    ? 'bg-white/20 text-white shadow-xs border border-white/30 backdrop-blur-xs'
+                    : 'text-blue-100 hover:text-white hover:bg-white/10 border border-transparent'
                 }`}
               >
-                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-slate-400'}`} />
+                <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-white' : 'text-blue-200'}`} />
                 <span>{item.label}</span>
 
                 {/* Badge số lượng đơn chờ nếu có */}
@@ -155,23 +155,23 @@ export default function TopNavbar({
           <button
             onClick={() => onOpenOnboarding && onOpenOnboarding()}
             title="Xem lại hướng dẫn trải nghiệm 30 giây"
-            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-xs font-semibold text-blue-300 hover:text-white transition-colors cursor-pointer"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-[#082C64] hover:bg-[#062047] border border-blue-400/30 text-xs font-semibold text-amber-300 hover:text-white transition-colors cursor-pointer shadow-2xs"
           >
             <HelpCircle className="w-4 h-4 text-amber-400" />
             <span className="hidden md:inline">Hướng dẫn test</span>
           </button>
 
           {/* Socket.IO Connection Badge */}
-          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono">
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-[#082C64] border border-blue-400/30 text-xs font-mono">
             {socketConnected ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                <span className="text-slate-300">Live Socket</span>
+                <span className="text-blue-100 text-[11px] font-medium">Live Socket</span>
               </>
             ) : (
               <>
                 <span className="w-2 h-2 rounded-full bg-rose-400"></span>
-                <span className="text-slate-400">Disconnected</span>
+                <span className="text-blue-200 text-[11px]">Disconnected</span>
               </>
             )}
           </div>
@@ -180,21 +180,21 @@ export default function TopNavbar({
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700 transition-colors text-left cursor-pointer"
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-[#082C64] hover:bg-[#062047] border border-blue-400/30 transition-colors text-left cursor-pointer shadow-2xs"
             >
-              <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-blue-400 border border-slate-600">
-                {currentAccount.type === 'STUDENT' ? (currentAccountKey === 'CUSTOM_STUDENT' ? '⭐' : 'SV') : 'CB'}
+              <div className="w-7 h-7 rounded-full bg-white text-[#0B3B82] flex items-center justify-center text-xs font-bold shadow-xs">
+                {currentAccount.type === 'STUDENT' ? 'SV' : 'CB'}
               </div>
               <div className="hidden xl:block">
                 <div className="text-xs font-medium text-white flex items-center gap-1.5">
                   {currentAccount.name}
-                  <span className="text-[10px] text-slate-400 font-mono">({currentAccount.code})</span>
+                  <span className="text-[10px] text-blue-200 font-mono">({currentAccount.code})</span>
                 </div>
-                <div className="text-[10px] text-slate-400 font-normal truncate max-w-[150px]">
+                <div className="text-[10px] text-blue-200 font-normal truncate max-w-[150px]">
                   {currentAccount.tag}
                 </div>
               </div>
-              <ChevronDown className="w-4 h-4 text-slate-400" />
+              <ChevronDown className="w-4 h-4 text-blue-200" />
             </button>
 
             {/* Dropdown Menu */}
@@ -206,7 +206,7 @@ export default function TopNavbar({
                   <div className="p-2.5 bg-blue-50/80 border-b border-blue-100">
                     <div className="flex items-center justify-between text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5">
                       <span className="flex items-center gap-1">
-                        ⭐ Hồ sơ của bạn (Cục bộ)
+                        Hồ sơ của bạn (Cục bộ)
                       </span>
                       <button
                         onClick={() => {

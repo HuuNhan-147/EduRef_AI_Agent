@@ -20,6 +20,8 @@ import {
   Building,
   Eye,
   X,
+  Search,
+  ChevronLeft,
 } from 'lucide-react';
 import api, { API_BASE_URL } from '../services/api';
 
@@ -28,6 +30,11 @@ export default function StaffEscalationPage() {
   const [loading, setLoading] = useState(false);
   const [selectedPetition, setSelectedPetition] = useState(null);
   const [previewImg, setPreviewImg] = useState(null);
+
+  // Bộ lọc trạng thái & tìm kiếm nhanh để thanh danh sách không bị dài
+  const [statusFilter, setStatusFilter] = useState('ESCALATED'); // Mặc định hiển thị đơn chờ PĐT duyệt
+  const [searchQuery, setSearchQuery] = useState('');
+  const [mobileShowDetail, setMobileShowDetail] = useState(false); // Chuyển đổi màn hình trên mobile
 
   // States cho modal phê duyệt / từ chối / hoàn tác
   const [actionModal, setActionModal] = useState(null); // null | 'APPROVE' | 'REJECT' | 'ROLLBACK'
@@ -129,10 +136,26 @@ export default function StaffEscalationPage() {
   };
 
   const escalatedList = petitions.filter((p) => p.status === 'ESCALATED');
+  const approvedList = petitions.filter((p) => p.status === 'APPROVED');
+  const rejectedList = petitions.filter((p) => p.status === 'REJECTED');
+
+  // Lọc danh sách theo Tab trạng thái và Ô tìm kiếm
+  const filteredPetitions = petitions.filter((p) => {
+    const matchStatus = statusFilter === 'ALL' || p.status === statusFilter;
+    const q = searchQuery.trim().toLowerCase();
+    const matchQuery =
+      !q ||
+      p.requestCode?.toLowerCase().includes(q) ||
+      p.requestType?.name?.toLowerCase().includes(q) ||
+      p.student?.fullName?.toLowerCase().includes(q) ||
+      p.student?.studentCode?.toLowerCase().includes(q);
+    return matchStatus && matchQuery;
+  });
+
   const capsule = selectedPetition?.contextCapsule;
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-slate-50">
+    <div className="flex-1 flex overflow-hidden bg-[#F0F4F9] h-full">
       
       {/* Toast Notification */}
       {toast && (
@@ -145,75 +168,208 @@ export default function StaffEscalationPage() {
       )}
 
       {/* CỘT DANH SÁCH HỒ SƠ CHỜ THẨM ĐỊNH (Trái) */}
-      <div className="w-96 bg-white border-r border-slate-200 flex flex-col shrink-0">
-        <div className="p-4 border-b border-slate-100 flex items-center justify-between">
+      <div className={`w-full md:w-96 bg-white border-r border-slate-200/90 flex flex-col shrink-0 h-full ${
+        mobileShowDetail ? 'hidden md:flex' : 'flex'
+      }`}>
+        {/* Header danh sách */}
+        <div className="p-3 sm:p-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div>
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-              <AlertOctagon className="w-4 h-4 text-indigo-600" />
-              Hàng Đợi Chuyển Tiếp (Escalation)
+            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
+              <AlertOctagon className="w-4 h-4 text-[#0B3B82]" />
+              Hàng Đợi Chuyển Tiếp
             </h2>
-            <p className="text-[11px] text-slate-400 mt-0.5">
-              {escalatedList.length} hồ sơ vượt thẩm quyền AI chờ bạn xử lý
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              <span className="font-semibold text-amber-700">{escalatedList.length} hồ sơ</span> chờ cán bộ thẩm định
             </p>
           </div>
           <button
             onClick={fetchEscalations}
             disabled={loading}
-            className="text-xs text-blue-700 hover:text-blue-900 font-medium"
+            className="text-xs text-[#0B3B82] hover:text-[#082C64] font-semibold cursor-pointer px-2 py-1 rounded hover:bg-blue-50 transition-colors"
           >
-            Làm mới
+            {loading ? 'Đang tải...' : 'Làm mới'}
           </button>
         </div>
 
-        {/* Danh sách cuộn */}
-        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1">
-          {petitions.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-400">
-              Không có hồ sơ nào trong hệ thống.
+        {/* Ô Tìm Kiếm Nhanh */}
+        <div className="p-2.5 border-b border-slate-100 bg-white">
+          <div className="relative">
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Tìm mã đơn, MSSV, tên SV..."
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1.5 focus:ring-[#0B3B82] focus:bg-white transition-all"
+            />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                title="Xóa tìm kiếm"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </div>
+        </div>
+
+        {/* Bộ Lọc Trạng Thái Dạng Tabs Nhỏ Gọn */}
+        <div className="px-2.5 py-1.5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-1 overflow-x-auto text-[11px] font-medium custom-scrollbar">
+          <button
+            onClick={() => setStatusFilter('ESCALATED')}
+            className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
+              statusFilter === 'ESCALATED'
+                ? 'bg-[#0B3B82] text-white shadow-xs font-semibold'
+                : 'text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <span>Chờ duyệt</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              statusFilter === 'ESCALATED' ? 'bg-amber-400 text-slate-900' : 'bg-amber-100 text-amber-800'
+            }`}>
+              {escalatedList.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('ALL')}
+            className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
+              statusFilter === 'ALL'
+                ? 'bg-[#0B3B82] text-white shadow-xs font-semibold'
+                : 'text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <span>Tất cả</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              statusFilter === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
+            }`}>
+              {petitions.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('APPROVED')}
+            className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
+              statusFilter === 'APPROVED'
+                ? 'bg-emerald-700 text-white shadow-xs font-semibold'
+                : 'text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <span>Đã duyệt</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              statusFilter === 'APPROVED' ? 'bg-emerald-900 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
+            }`}>
+              {approvedList.length}
+            </span>
+          </button>
+
+          <button
+            onClick={() => setStatusFilter('REJECTED')}
+            className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
+              statusFilter === 'REJECTED'
+                ? 'bg-rose-700 text-white shadow-xs font-semibold'
+                : 'text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <span>Từ chối</span>
+            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+              statusFilter === 'REJECTED' ? 'bg-rose-900 text-rose-100' : 'bg-rose-100 text-rose-800'
+            }`}>
+              {rejectedList.length}
+            </span>
+          </button>
+        </div>
+
+        {/* Thanh đếm kết quả nhỏ */}
+        <div className="px-3 py-1 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
+          <span>Hiển thị <b>{filteredPetitions.length}</b> / {petitions.length} hồ sơ</span>
+          {(searchQuery || statusFilter !== 'ESCALATED') && (
+            <button
+              onClick={() => {
+                setSearchQuery('');
+                setStatusFilter('ESCALATED');
+              }}
+              className="text-[#0B3B82] hover:underline font-medium"
+            >
+              Mặc định
+            </button>
+          )}
+        </div>
+
+        {/* Danh sách cuộn dạng Compact Item */}
+        <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1 custom-scrollbar">
+          {filteredPetitions.length === 0 ? (
+            <div className="p-8 text-center text-xs text-slate-400 space-y-2">
+              <p>Không tìm thấy hồ sơ phù hợp.</p>
+              {(searchQuery || statusFilter !== 'ALL') && (
+                <button
+                  onClick={() => {
+                    setSearchQuery('');
+                    setStatusFilter('ALL');
+                  }}
+                  className="text-xs text-[#0B3B82] font-semibold hover:underline"
+                >
+                  Xem tất cả hồ sơ
+                </button>
+              )}
             </div>
           ) : (
-            petitions.map((p) => {
+            filteredPetitions.map((p) => {
               const isSelected = selectedPetition?.id === p.id;
               const isEscalated = p.status === 'ESCALATED';
 
               return (
                 <div
                   key={p.id}
-                  onClick={() => handleSelectPetition(p)}
-                  className={`p-3 rounded-lg cursor-pointer transition-all text-left border ${
+                  onClick={() => {
+                    handleSelectPetition(p);
+                    setMobileShowDetail(true);
+                  }}
+                  className={`p-2.5 rounded-lg cursor-pointer transition-all text-left border ${
                     isSelected
-                      ? 'bg-blue-50/70 border-blue-300 shadow-xs'
-                      : 'border-transparent hover:bg-slate-50'
+                      ? 'bg-blue-50/90 border-[#0B3B82] border-l-4 shadow-xs'
+                      : isEscalated
+                      ? 'bg-amber-50/40 border-amber-200/60 hover:bg-amber-50/70'
+                      : 'border-slate-100 hover:bg-slate-50'
                   }`}
                 >
+                  {/* Hàng 1: Mã đơn & Badge trạng thái */}
                   <div className="flex items-center justify-between gap-1">
-                    <span className="font-mono text-xs font-bold text-slate-900">
-                      {p.requestCode}
-                    </span>
+                    <div className="flex items-center gap-1.5 min-w-0">
+                      {isEscalated && (
+                        <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0 animate-ping" />
+                      )}
+                      <span className="font-mono text-xs font-bold text-slate-900 truncate">
+                        {p.requestCode}
+                      </span>
+                    </div>
                     <span
-                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider ${
+                      className={`px-1.5 py-0.5 rounded text-[9px] font-bold uppercase tracking-wider shrink-0 ${
                         p.status === 'APPROVED'
                           ? 'bg-emerald-100 text-emerald-800'
                           : p.status === 'ESCALATED'
-                          ? 'bg-indigo-100 text-indigo-800 animate-pulse'
+                          ? 'bg-amber-100 text-amber-900 border border-amber-300 font-extrabold'
                           : p.status === 'REJECTED'
                           ? 'bg-rose-100 text-rose-800'
                           : p.status === 'CANCELLED'
                           ? 'bg-slate-200 text-slate-700 line-through'
-                          : 'bg-amber-100 text-amber-800'
+                          : 'bg-blue-100 text-blue-800'
                       }`}
                     >
-                      {p.status}
+                      {p.status === 'ESCALATED' ? 'CẦN DUYỆT' : p.status}
                     </span>
                   </div>
 
+                  {/* Hàng 2: Tên thủ tục */}
                   <div className="text-xs font-medium text-slate-800 mt-1 truncate">
                     {p.requestType?.name || 'Thủ tục học vụ'}
                   </div>
 
-                  <div className="text-[11px] text-slate-500 flex items-center justify-between mt-1">
-                    <span>SV: {p.student?.fullName || 'Sinh viên'}</span>
-                    <span className="font-mono text-[10px]">{p.student?.studentCode}</span>
+                  {/* Hàng 3: Tên sinh viên & MSSV */}
+                  <div className="text-[11px] text-slate-500 flex items-center justify-between mt-1 pt-1 border-t border-slate-100/60">
+                    <span className="truncate max-w-[190px]">SV: <span className="text-slate-700 font-medium">{p.student?.fullName || 'Sinh viên'}</span></span>
+                    <span className="font-mono text-[10px] text-slate-600 shrink-0 font-medium">{p.student?.studentCode}</span>
                   </div>
                 </div>
               );
@@ -223,7 +379,20 @@ export default function StaffEscalationPage() {
       </div>
 
       {/* CỘT CHI TIẾT CONTEXT CAPSULE & BỘ NÚT DUYỆT (Phải) */}
-      <div className="flex-1 bg-slate-50 flex flex-col overflow-y-auto p-6">
+      <div className={`flex-1 bg-slate-50 flex flex-col overflow-y-auto p-4 sm:p-6 ${
+        !mobileShowDetail ? 'hidden md:flex' : 'flex'
+      }`}>
+        {/* Nút Quay lại danh sách trên Mobile */}
+        <div className="md:hidden mb-3">
+          <button
+            onClick={() => setMobileShowDetail(false)}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0B3B82] bg-white border border-slate-200 rounded-lg shadow-xs hover:bg-blue-50 transition-colors"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            Quay lại danh sách hồ sơ
+          </button>
+        </div>
+
         {selectedPetition ? (
           <div className="max-w-4xl mx-auto w-full space-y-5">
             

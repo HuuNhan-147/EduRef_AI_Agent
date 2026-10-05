@@ -55,14 +55,14 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE', 
   });
 
   return (
-    <div className="flex-1 bg-slate-50 overflow-y-auto p-6 space-y-6">
-      <div className="max-w-6xl mx-auto space-y-5">
+    <div className="flex-1 bg-[#F0F4F9] overflow-y-auto p-4 sm:p-6 space-y-5">
+      <div className="max-w-6xl mx-auto space-y-4">
         
         {/* Header */}
-        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="p-5 sm:p-6 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-blue-100 text-blue-800">
+              <span className="p-2 rounded-lg bg-blue-50 text-[#0B3B82] border border-blue-200">
                 <FileText className="w-5 h-5" />
               </span>
               <h1 className="text-base font-bold text-slate-900 tracking-tight">
@@ -79,22 +79,23 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE', 
           <button
             onClick={fetchPetitions}
             disabled={loading}
-            className="text-xs font-semibold text-blue-700 hover:text-blue-900"
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 rounded-lg bg-white hover:bg-slate-50 border border-slate-200 text-xs font-semibold text-[#0B3B82] transition-colors cursor-pointer self-start md:self-auto"
           >
-            Làm mới danh sách
+            <RotateCcw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+            <span>Làm mới danh sách</span>
           </button>
         </div>
 
         {/* Thanh Lọc & Tìm Kiếm */}
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200">
-          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto">
+        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 bg-white p-3 rounded-xl border border-slate-200/90 shadow-2xs">
+          <div className="flex items-center gap-1.5 overflow-x-auto w-full sm:w-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
             {['ALL', 'APPROVED', 'ESCALATED', 'WAITING_STUDENT', 'REJECTED', 'CANCELLED'].map((st) => (
               <button
                 key={st}
                 onClick={() => setStatusFilter(st)}
-                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                className={`px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all cursor-pointer ${
                   statusFilter === st
-                    ? 'bg-blue-700 text-white shadow-xs'
+                    ? 'bg-[#0B3B82] text-white shadow-xs'
                     : 'text-slate-600 hover:bg-slate-100'
                 }`}
               >

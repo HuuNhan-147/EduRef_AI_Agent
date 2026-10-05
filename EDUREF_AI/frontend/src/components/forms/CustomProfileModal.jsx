@@ -6,28 +6,28 @@ import { updateSocketAuth } from '../../services/socket';
 const SCENARIOS = [
   {
     id: 'ACTIVE_ZERO_DEBT',
-    label: '🟢 Đang học bình thường — Học phí 0đ',
+    label: 'Đang học bình thường — Học phí 0đ',
     desc: 'Hồ sơ đủ điều kiện theo quy chế, AI sẽ tự động phê duyệt nếu mục đích hợp lệ.',
     status: 'ACTIVE',
     debt: 0,
   },
   {
     id: 'ACTIVE_DEBT',
-    label: '💳 Đang học — Còn nợ học phí (15.000.000 đ)',
+    label: 'Đang học — Còn nợ học phí (15.000.000 đ)',
     desc: 'Thử nghiệm quy tắc Zero-tolerance: AI sẽ từ chối tự động vì chưa hoàn tất nghĩa vụ học phí.',
     status: 'ACTIVE',
     debt: 15000000,
   },
   {
     id: 'DROPPED',
-    label: '🚨 Đã có quyết định thôi học (DROPPED)',
+    label: 'Đã có quyết định thôi học (DROPPED)',
     desc: 'Thử nghiệm bảo vệ quy chế: AI chặn và từ chối vì không còn là sinh viên đang theo học.',
     status: 'DROPPED',
     debt: 0,
   },
   {
     id: 'SUSPENDED',
-    label: '⏸️ Đang trong thời gian bảo lưu (SUSPENDED)',
+    label: 'Đang trong thời gian bảo lưu (SUSPENDED)',
     desc: 'Thử nghiệm hướng dẫn: AI từ chối cấp trực tuyến và hướng dẫn liên hệ trực tiếp phòng CTSV.',
     status: 'SUSPENDED',
     debt: 0,
@@ -340,7 +340,7 @@ export default function CustomProfileModal({
           </div>
 
           <div className="p-2.5 rounded-lg bg-slate-50 border border-slate-200 text-[11px] text-slate-500">
-            ℹ️ Hồ sơ này chỉ được lưu trên trình duyệt của riêng bạn để bảo mật, không làm ảnh hưởng đến người khác.
+            Hồ sơ này chỉ được lưu trên trình duyệt của riêng bạn để bảo mật, không làm ảnh hưởng đến người khác.
           </div>
 
           {/* Footer nút bấm */}
@@ -356,16 +356,10 @@ export default function CustomProfileModal({
             <button
               type="submit"
               disabled={loading}
-              className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
+              className="px-5 py-2 rounded-lg bg-[#0B3B82] hover:bg-[#082C64] active:bg-[#062047] text-white text-xs font-bold shadow-xs flex items-center gap-1.5 cursor-pointer disabled:opacity-50"
             >
-              {loading ? (
-                <>
-                  <RotateCw className="w-3.5 h-3.5 animate-spin" />
-                  <span>Đang khởi tạo…</span>
-                </>
-              ) : (
-                <span>Lưu & Bắt đầu Chat</span>
-              )}
+              {loading ? <RotateCw className="w-3.5 h-3.5 animate-spin" /> : null}
+              <span>Lưu & Sử dụng ngay</span>
             </button>
           </div>
         </form>

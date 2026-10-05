@@ -64,14 +64,14 @@ export default function AuditExplorerPage() {
   };
 
   return (
-    <div className="flex-1 bg-slate-50 overflow-y-auto p-6 space-y-6">
-      <div className="max-w-6xl mx-auto space-y-5">
+    <div className="flex-1 bg-[#F0F4F9] overflow-y-auto p-4 sm:p-6 space-y-5">
+      <div className="max-w-6xl mx-auto space-y-4">
         
         {/* Header Kiểm Toán */}
-        <div className="p-6 rounded-xl bg-white border border-slate-200 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="p-5 sm:p-6 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
-              <span className="p-1.5 rounded-lg bg-emerald-100 text-emerald-800">
+              <span className="p-2 rounded-lg bg-emerald-50 text-emerald-800 border border-emerald-200">
                 <ShieldCheck className="w-5 h-5" />
               </span>
               <h1 className="text-base font-bold text-slate-900 tracking-tight">
@@ -87,16 +87,16 @@ export default function AuditExplorerPage() {
           <button
             onClick={handleVerifyChain}
             disabled={isVerifyingChain}
-            className="px-4 py-2.5 rounded-lg bg-slate-900 hover:bg-black disabled:opacity-50 text-white text-xs font-bold shadow-xs flex items-center gap-2 transition-all shrink-0 cursor-pointer"
+            className="px-4 py-2.5 rounded-lg bg-[#0B3B82] hover:bg-[#082C64] active:bg-[#062047] disabled:opacity-50 text-white text-xs font-bold shadow-xs flex items-center gap-2 transition-all shrink-0 cursor-pointer"
           >
             {isVerifyingChain ? (
               <>
-                <RotateCw className="w-4 h-4 animate-spin text-emerald-400" />
+                <RotateCw className="w-4 h-4 animate-spin text-emerald-300" />
                 Đang duyệt chuỗi khối...
               </>
             ) : (
               <>
-                <ShieldCheck className="w-4 h-4 text-emerald-400" />
+                <ShieldCheck className="w-4 h-4 text-emerald-300" />
                 Kiểm Tra Toàn Vẹn Chuỗi Khối
               </>
             )}

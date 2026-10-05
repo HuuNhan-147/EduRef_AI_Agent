@@ -186,16 +186,21 @@ export default function App() {
 
   if (authStatus !== 'ready') {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-slate-950 px-4 text-slate-100">
-        <div className="w-full max-w-md rounded-xl border border-slate-800 bg-slate-900 p-6 text-center shadow-xl">
-          <div className="mx-auto mb-4 h-10 w-10 animate-pulse rounded-lg bg-blue-600" />
-          <h1 className="text-lg font-bold">EduRef AI · VNG Đề A</h1>
+      <div className="flex min-h-screen items-center justify-center bg-[#0B3B82] px-4 text-white">
+        <div className="w-full max-w-md rounded-2xl border border-blue-400/30 bg-[#082C64] p-7 text-center shadow-2xl">
+          <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-white flex items-center justify-center p-1.5 shadow-md">
+            <img src="/hutech_logo.png" alt="HUTECH" className="h-full w-auto object-contain" />
+          </div>
+          <h1 className="text-base font-bold text-white tracking-wide">EduRef AI · Cổng Dịch Vụ Học Vụ Tự Hành</h1>
           {authStatus === 'loading' ? (
-            <p className="mt-2 text-sm text-slate-400">Đang khởi tạo phiên kiểm thử an toàn…</p>
+            <div className="mt-3 flex items-center justify-center gap-2 text-xs text-blue-200">
+              <span className="w-2 h-2 rounded-full bg-blue-300 animate-ping"></span>
+              <span>Đang kết nối cổng dịch vụ học vụ HUTECH…</span>
+            </div>
           ) : (
             <>
               <p className="mt-2 text-sm text-rose-300">{authError}</p>
-              <button onClick={initializeDemoSession} className="mt-4 rounded-lg bg-blue-600 px-4 py-2 text-sm font-semibold text-white">
+              <button onClick={initializeDemoSession} className="mt-4 rounded-lg bg-white hover:bg-slate-100 px-4 py-2 text-xs font-bold text-[#0B3B82] shadow-sm transition-colors cursor-pointer">
                 Thử kết nối lại
               </button>
             </>
@@ -227,7 +232,7 @@ export default function App() {
   };
 
   return (
-    <div className="h-screen flex flex-col bg-slate-100 overflow-hidden font-sans select-none text-slate-800">
+    <div className="h-screen flex flex-col bg-[#F0F4F9] overflow-hidden font-sans select-none text-slate-800">
       
       {/* 1. Header trên cùng: Brand EduRef AI + Top Navigation Tabs + 1-Click Role Switcher */}
       <TopNavbar
@@ -246,7 +251,7 @@ export default function App() {
       <div className="flex-1 flex overflow-hidden">
         
         {/* Màn hình chính */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-slate-50 relative">
+        <main className="flex-1 flex flex-col overflow-hidden bg-[#F0F4F9] relative">
           
           {/* Toast Notification Floating */}
           {toast && (

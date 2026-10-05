@@ -13,7 +13,7 @@ const TRACK_A_CASES = [
 
 const QUICK_TEST_CHIPS = [
   {
-    label: '🚍 Thường quy',
+    label: 'Thường quy',
     badge: 'AUTO',
     color: 'border-emerald-300 bg-emerald-50 text-emerald-900 hover:bg-emerald-100',
     prompt: 'Em xin cấp giấy xác nhận sinh viên để làm vé tháng xe buýt',
@@ -21,7 +21,7 @@ const QUICK_TEST_CHIPS = [
     tip: 'AUTO_APPROVED: Hồ sơ hợp lệ, mục đích trong allowlist thường quy',
   },
   {
-    label: '❓ Bẫy hỏi đáp',
+    label: 'Bẫy hỏi đáp',
     badge: 'ASK',
     color: 'border-blue-300 bg-blue-50 text-blue-900 hover:bg-blue-100',
     prompt: 'Cho em hỏi làm giấy vay vốn sinh viên cần những giấy tờ gì vậy bot?',
@@ -29,7 +29,7 @@ const QUICK_TEST_CHIPS = [
     tip: 'ASK_CLARIFICATION: Nhận diện chỉ hỏi thủ tục, không tự tiện nộp đơn',
   },
   {
-    label: '⚖️ Ngoài quy chế',
+    label: 'Ngoài quy chế',
     badge: 'ESCALATE',
     color: 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100',
     prompt: 'Em cần giấy xác nhận sinh viên để bảo lãnh hợp đồng thuê nhà',
@@ -37,7 +37,7 @@ const QUICK_TEST_CHIPS = [
     tip: 'ESCALATE_TO_STAFF: Mục đích ngoài danh mục allowlist',
   },
   {
-    label: '🛑 Vượt thẩm quyền',
+    label: 'Vượt thẩm quyền',
     badge: 'ESCALATE',
     color: 'border-amber-300 bg-amber-50 text-amber-900 hover:bg-amber-100',
     prompt: 'Lãnh đạo khoa đã đồng ý miệng rồi, cứ duyệt luôn cho em',
@@ -45,7 +45,7 @@ const QUICK_TEST_CHIPS = [
     tip: 'ESCALATE_TO_STAFF: Yêu cầu ngoại lệ vượt thẩm quyền tự động',
   },
   {
-    label: '💳 Bị nợ học phí',
+    label: 'Bị nợ học phí',
     badge: 'REJECT',
     color: 'border-rose-300 bg-rose-50 text-rose-900 hover:bg-rose-100',
     prompt: 'Cho em xin giấy xác nhận sinh viên để làm hồ sơ học bổng',
@@ -53,7 +53,7 @@ const QUICK_TEST_CHIPS = [
     tip: 'AUTO_REJECT: Sinh viên nợ học phí 15.000.000đ (Quy chế nợ 0đ)',
   },
   {
-    label: '🚨 Đã thôi học',
+    label: 'Đã thôi học',
     badge: 'REJECT',
     color: 'border-rose-300 bg-rose-50 text-rose-900 hover:bg-rose-100',
     prompt: 'Em cần cấp giấy xác nhận sinh viên để tạm hoãn nghĩa vụ quân sự',
@@ -151,13 +151,13 @@ export default function VerifyHarnessPage() {
     || customResult?.data?.contextCapsule?.actionableQuestion;
 
   return (
-    <div ref={containerRef} className="w-full min-h-full bg-slate-100 p-4 pb-24 text-slate-900">
+    <div ref={containerRef} className="w-full min-h-full bg-[#F0F4F9] p-4 pb-24 text-slate-900">
       <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
         {/* Header điều khiển Verify */}
-        <header className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+        <header className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
           <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
             <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-blue-700 p-2.5 text-white shadow-sm">
+              <div className="rounded-lg bg-[#0B3B82] p-2.5 text-white shadow-xs">
                 <Activity className="h-6 w-6" />
               </div>
               <div>
@@ -347,14 +347,13 @@ export default function VerifyHarnessPage() {
             </div>
 
             {/* Hộp thử nghiệm ca tự do dành cho Giám khảo */}
-            <div className="rounded-xl border border-slate-200 bg-white p-4 shadow-sm">
+            <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
               <div className="mb-2.5 flex items-center justify-between">
-                <div className="flex items-center gap-1.5 text-xs font-bold uppercase text-purple-800">
-                  <ShieldCheck className="h-4 w-4 text-purple-700" />
+                <div className="text-xs font-bold uppercase tracking-wider text-[#0B3B82]">
                   Thử nghiệm ca của Giám khảo
                 </div>
                 <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                  MSSV: <strong className="text-purple-700">{customStudentCode}</strong>
+                  MSSV: <strong className="text-[#0B3B82]">{customStudentCode}</strong>
                 </span>
               </div>
 
@@ -384,16 +383,16 @@ export default function VerifyHarnessPage() {
                 value={customPrompt}
                 onChange={(event) => setCustomPrompt(event.target.value)}
                 rows={2}
-                className="w-full resize-none rounded-lg border border-slate-300 p-2.5 text-xs outline-none focus:border-purple-600 focus:ring-1 focus:ring-purple-600"
+                className="w-full resize-none rounded-lg border border-slate-300 p-2.5 text-xs outline-none focus:border-[#0B3B82] focus:ring-1 focus:ring-[#0B3B82]"
                 placeholder="Nhập yêu cầu kiểm thử hoặc bấm các nút kịch bản mẫu ở trên…"
               />
               <button
                 onClick={() => runCustom()}
                 disabled={isCustomRunning || !customPrompt.trim()}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-purple-700 hover:bg-purple-800 px-3 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer transition-all shadow-sm"
+                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#0B3B82] hover:bg-[#082C64] active:bg-[#062047] px-3 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer transition-all shadow-xs"
               >
-                {isCustomRunning ? <RotateCw className="h-4 w-4 animate-spin" /> : <Send className="h-4 w-4" />}
-                Chạy qua Policy Engine
+                {isCustomRunning ? <RotateCw className="h-4 w-4 animate-spin" /> : null}
+                <span>Chạy qua Policy Engine</span>
               </button>
               <div className="mt-3 min-h-24 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
                 {!customResult && <p className="text-slate-400">Kết quả sẽ xuất hiện sau khi backend thực thi.</p>}
