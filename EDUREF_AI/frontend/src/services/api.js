@@ -107,6 +107,8 @@ export const DEMO_ACCOUNTS = {
 /**
  * Hàm đăng nhập và đổi vai trò 1-Click
  */
+import { updateSocketAuth } from './socket';
+
 const roleSwitchRequests = new Map();
 let latestRoleSwitchRequest = 0;
 
@@ -132,6 +134,7 @@ export const switchRoleAuth = (accountKey) => {
       localStorage.setItem('eduref_token', res.data.token);
       localStorage.setItem('eduref_user', JSON.stringify(res.data.user));
       localStorage.setItem('eduref_role_key', accountKey);
+      updateSocketAuth(res.data.token);
       window.dispatchEvent(new Event('eduref-auth-changed'));
       return res.data.user;
     })

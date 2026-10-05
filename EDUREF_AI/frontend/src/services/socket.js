@@ -51,4 +51,15 @@ export const getSocket = () => {
   return socketInstance;
 };
 
+/**
+ * Chủ động cập nhật token xác thực Socket.IO và tái kết nối tức thì
+ */
+export const updateSocketAuth = (newToken) => {
+  const token = newToken || localStorage.getItem('eduref_token');
+  if (socketInstance) {
+    socketInstance.auth = { token };
+    socketInstance.disconnect().connect();
+  }
+};
+
 export default getSocket;

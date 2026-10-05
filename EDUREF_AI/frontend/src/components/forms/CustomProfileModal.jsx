@@ -1,9 +1,7 @@
-// src/components/forms/CustomProfileModal.jsx
-// Modal cho phép sinh viên tự tạo hồ sơ cá nhân để thử nghiệm với dữ liệu thật
-
 import React, { useState } from 'react';
 import { UserCheck, X, Sparkles, AlertCircle, CheckCircle2, RotateCw } from 'lucide-react';
 import api from '../../services/api';
+import { updateSocketAuth } from '../../services/socket';
 
 const SCENARIOS = [
   {
@@ -152,6 +150,7 @@ export default function CustomProfileModal({
           localStorage.setItem('eduref_token', response.data.token);
           localStorage.setItem('eduref_user', JSON.stringify(user));
           localStorage.setItem('eduref_role_key', 'CUSTOM_STUDENT');
+          updateSocketAuth(response.data.token);
           window.dispatchEvent(new Event('eduref-auth-changed'));
         }
 

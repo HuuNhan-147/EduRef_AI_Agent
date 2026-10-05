@@ -136,9 +136,24 @@ io.on('connection', (socket) => {
     try {
       // 1. Tự động nạp ngữ cảnh người dùng thực tế từ Database
       let userContext = {};
-      const codeToFind = socket.user?.studentCode;
+      const secret = process.env.JWT_SECRET || (process.env.NODE_ENV === 'production' ? null : 'eduref_local_demo_secret_change_me');
 
-      if (['STAFF', 'DEAN', 'ADMIN'].includes(socket.user?.role)) {
+      // Nếu client gửi kèm token mới, cập nhật ngay socket.user
+      if (data?.token && secret) {
+        try {
+          const decoded = jwt.verify(data.token, secret);
+          if (decoded) {
+            socket.user = { ...socket.user, ...decoded };
+          }
+        } catch (_e) {
+          // Bỏ qua nếu token không hợp lệ
+        }
+      }
+
+      const explicitStudentCode = data?.studentCode || data?.currentUser?.studentCode;
+      const isStaffRole = ['STAFF', 'DEAN', 'ADMIN'].includes(socket.user?.role) && !explicitStudentCode;
+
+      if (isStaffRole) {
         const staffUser = await prisma.user.findUnique({
           where: { id: socket.user.id },
         });
@@ -151,23 +166,33 @@ io.on('connection', (socket) => {
             type: 'STAFF',
           };
         }
-      } else if (socket.user?.role === 'STUDENT' && codeToFind) {
-        const student = await prisma.student.findUnique({
-          where: { studentCode: String(codeToFind).trim() },
-          include: { department: true },
-        });
-        if (student) {
-          userContext = {
-            studentCode: student.studentCode,
-            fullName: student.fullName,
-            email: student.email,
-            status: student.status,
-            department: student.department?.name,
-            tuitionDebt: Number(student.tuitionDebt),
-            gpa: Number(student.gpa),
-            role: 'STUDENT',
-            type: 'STUDENT',
-          };
+      } else {
+        const codeToFind = explicitStudentCode || socket.user?.studentCode;
+        if (codeToFind) {
+          const student = await prisma.student.findUnique({
+            where: { studentCode: String(codeToFind).trim() },
+            include: { department: true },
+          });
+          if (student) {
+            userContext = {
+              studentCode: student.studentCode,
+              fullName: student.fullName,
+              email: student.email,
+              status: student.status,
+              department: student.department?.name,
+              tuitionDebt: Number(student.tuitionDebt),
+              gpa: Number(student.gpa),
+              role: 'STUDENT',
+              type: 'STUDENT',
+            };
+            // Đồng bộ lại danh tính socket hiện tại để các sự kiện kế tiếp không bị lệch
+            socket.user = {
+              ...socket.user,
+              studentCode: student.studentCode,
+              role: 'STUDENT',
+              fullName: student.fullName,
+            };
+          }
         }
       }
 

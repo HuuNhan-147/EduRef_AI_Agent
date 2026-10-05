@@ -106,6 +106,8 @@ export default function StudentWorkspacePage({
 
     if (prevCodeRef.current !== currentAccount.code) {
       prevCodeRef.current = currentAccount.code;
+      // Cấp mới sessionId gắn chặt với MSSV của tài khoản hiện tại để tách biệt bộ nhớ ReAct
+      setSessionId(`sess_${currentAccount.code}_${Date.now()}`);
       // Nạp lại hội thoại của sinh viên này nếu từng có
       try {
         const cached = sessionStorage.getItem(`eduref_messages_${currentAccount.code}`);
@@ -131,7 +133,7 @@ export default function StudentWorkspacePage({
 
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
-  const [sessionId, setSessionId] = useState(`sess_${Date.now()}`);
+  const [sessionId, setSessionId] = useState(() => `sess_${currentAccount.code || 'student'}_${Date.now()}`);
   const [types, setTypes] = useState([]);
   
   // Trạng thái đơn hiện tại đang xử lý hiển thị ở Cột 3 (Cũng được lưu vào sessionStorage)
@@ -343,6 +345,7 @@ export default function StudentWorkspacePage({
     const payload = {
       message: text,
       studentCode: currentAccount.code,
+      token: localStorage.getItem('eduref_token'),
       currentUser: {
         studentCode: currentAccount.code,
         code: currentAccount.code,

@@ -20,9 +20,10 @@ router.post('/chat', authenticateToken, async (req, res) => {
 
     // Tự động nạp ngữ cảnh người dùng thực tế từ Database
     let userContext = {};
-    const codeToFind = req.user?.studentCode;
+    const explicitStudentCode = req.body?.studentCode || req.body?.currentUser?.studentCode;
+    const isStaffRole = ['STAFF', 'DEAN', 'ADMIN'].includes(req.user?.role) && !explicitStudentCode;
 
-    if (['STAFF', 'DEAN', 'ADMIN'].includes(req.user?.role)) {
+    if (isStaffRole) {
       const staffUser = await prisma.user.findUnique({
         where: { id: req.user.id },
       });
@@ -35,23 +36,26 @@ router.post('/chat', authenticateToken, async (req, res) => {
           type: 'STAFF',
         };
       }
-    } else if (req.user?.role === 'STUDENT' && codeToFind) {
-      const student = await prisma.student.findUnique({
-        where: { studentCode: String(codeToFind).trim() },
-        include: { department: true },
-      });
-      if (student) {
-        userContext = {
-          studentCode: student.studentCode,
-          fullName: student.fullName,
-          email: student.email,
-          status: student.status,
-          department: student.department?.name,
-          tuitionDebt: Number(student.tuitionDebt),
-          gpa: Number(student.gpa),
-          role: 'STUDENT',
-          type: 'STUDENT',
-        };
+    } else {
+      const codeToFind = explicitStudentCode || req.user?.studentCode;
+      if (codeToFind) {
+        const student = await prisma.student.findUnique({
+          where: { studentCode: String(codeToFind).trim() },
+          include: { department: true },
+        });
+        if (student) {
+          userContext = {
+            studentCode: student.studentCode,
+            fullName: student.fullName,
+            email: student.email,
+            status: student.status,
+            department: student.department?.name,
+            tuitionDebt: Number(student.tuitionDebt),
+            gpa: Number(student.gpa),
+            role: 'STUDENT',
+            type: 'STUDENT',
+          };
+        }
       }
     }
 
