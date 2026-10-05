@@ -31,13 +31,29 @@ const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
   'http://127.0.0.1:5173',
+  'https://edu-ref-ai-agent.vercel.app',
+  'https://edu-ref-ai-agent-git-main-hu-nhans-projects.vercel.app',
+  'https://edu-ref-ai-agent-fru4xivtn-hu-nhans-projects.vercel.app',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
-// Cấu hình Socket.IO với CORS
+// Kiểm tra nguồn gốc truy cập linh hoạt (hỗ trợ mọi link preview trên Vercel của dự án)
+const isAllowedOrigin = (origin) => {
+  if (!origin) return true;
+  if (allowedOrigins.includes(origin)) return true;
+  if (/^https:\/\/edu-ref-ai-agent.*\.vercel\.app$/.test(origin)) return true;
+  return false;
+};
+
+// Cấu hình Socket.IO với CORS linh hoạt
 const io = new Server(server, {
   cors: {
-    origin: allowedOrigins,
+    origin: (origin, callback) => {
+      if (isAllowedOrigin(origin)) {
+        return callback(null, true);
+      }
+      return callback(new Error(`Socket CORS: Nguồn [${origin}] không được phép.`));
+    },
     credentials: true,
   },
   transports: ['websocket', 'polling'],
@@ -63,7 +79,7 @@ app.use(
   cors({
     origin: (origin, callback) => {
       // Cho phép requests không có origin (như curl, mobile apps, server-to-server)
-      if (!origin || allowedOrigins.includes(origin)) {
+      if (isAllowedOrigin(origin)) {
         return callback(null, true);
       }
       return callback(new Error(`CORS Policy: Nguồn truy cập [${origin}] không được phép.`), false);
