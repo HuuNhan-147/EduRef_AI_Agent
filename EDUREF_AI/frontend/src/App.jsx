@@ -1,15 +1,13 @@
-// src/App.jsx
-// Shell giao diện trung tâm EduRef AI kết nối toàn bộ hệ thống Học vụ Tự hành
-
 import React, { useState, useEffect } from 'react';
 import TopNavbar from './components/common/TopNavbar';
-import AppSidebar from './components/common/AppSidebar';
 import StudentWorkspacePage from './pages/StudentWorkspacePage';
 import StaffEscalationPage from './pages/StaffEscalationPage';
 import VerifyHarnessPage from './pages/VerifyHarnessPage';
 import AuditExplorerPage from './pages/AuditExplorerPage';
 import MyPetitionsPage from './pages/MyPetitionsPage';
 import DynamicPetitionModal from './components/forms/DynamicPetitionModal';
+import WelcomeOnboardingModal from './components/common/WelcomeOnboardingModal';
+import CustomProfileModal from './components/forms/CustomProfileModal';
 import api, { switchRoleAuth, DEMO_ACCOUNTS } from './services/api';
 import getSocket from './services/socket';
 
@@ -19,9 +17,37 @@ export default function App() {
   const [authStatus, setAuthStatus] = useState('loading');
   const [authError, setAuthError] = useState('');
 
-  // Tab đang hoạt động
-  // The judge-facing surface is the first screen after the demo session loads.
-  const [activeTab, setActiveTab] = useState('VERIFY_HARNESS');
+  // Tab đang hoạt động: Mặc định là Trợ lý Sinh viên thân thiện, trừ khi có URL query ?tab=verify dành cho BGK
+  const getInitialTab = () => {
+    try {
+      const params = new URLSearchParams(window.location.search);
+      if (params.get('tab') === 'verify') return 'VERIFY_HARNESS';
+    } catch {
+      // Bỏ qua lỗi URL nếu có
+    }
+    return 'STUDENT_ASSISTANT';
+  };
+  const [activeTab, setActiveTab] = useState(getInitialTab);
+
+  // Popup Onboarding chào mừng 30 giây (Kiểm tra xem người dùng đã chọn không hiển thị lại chưa)
+  const [onboardingOpen, setOnboardingOpen] = useState(() => {
+    try {
+      return localStorage.getItem('eduref_hide_onboarding') !== 'true';
+    } catch {
+      return true;
+    }
+  });
+
+  // Hồ sơ sinh viên tùy biến (lưu cục bộ trên máy của sinh viên đó)
+  const [customProfile, setCustomProfile] = useState(() => {
+    try {
+      const saved = localStorage.getItem('eduref_custom_student');
+      return saved ? JSON.parse(saved) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [customProfileModalOpen, setCustomProfileModalOpen] = useState(false);
 
   // Trạng thái Socket.IO
   const [socketConnected, setSocketConnected] = useState(false);
@@ -123,6 +149,22 @@ export default function App() {
 
   // Xử lý đổi vai trò
   const handleRoleChange = async (newAccountKey) => {
+    if (newAccountKey === 'CUSTOM_STUDENT') {
+      if (customProfile) {
+        if (customProfile.token) {
+          localStorage.setItem('eduref_token', customProfile.token);
+          localStorage.setItem('eduref_role_key', 'CUSTOM_STUDENT');
+          window.dispatchEvent(new Event('eduref-auth-changed'));
+        }
+        setCurrentAccountKey('CUSTOM_STUDENT');
+        setActiveTab('STUDENT_ASSISTANT');
+        showToast(`Đã chuyển sang hồ sơ của bạn: ${customProfile.name} (${customProfile.code})`, 'info');
+      } else {
+        setCustomProfileModalOpen(true);
+      }
+      return;
+    }
+
     const authenticatedUser = await switchRoleAuth(newAccountKey);
     if (!authenticatedUser) {
       showToast('Không thể chuyển vai trò demo. Vui lòng kiểm tra cấu hình backend.', 'warning');
@@ -195,6 +237,9 @@ export default function App() {
         activeTab={activeTab}
         setActiveTab={setActiveTab}
         pendingCount={pendingCount}
+        customProfile={customProfile}
+        onOpenCustomProfile={() => setCustomProfileModalOpen(true)}
+        onOpenOnboarding={() => setOnboardingOpen(true)}
       />
 
       {/* 2. Phần thân: Toàn bộ 100% chiều rộng màn hình cho nội dung chính */}
@@ -223,6 +268,7 @@ export default function App() {
           <div className={`flex-1 h-full overflow-hidden ${activeTab === 'STUDENT_ASSISTANT' ? 'flex' : 'hidden'}`}>
             <StudentWorkspacePage
               currentAccountKey={currentAccountKey}
+              customProfile={customProfile}
               onOpenDynamicForm={handleOpenDynamicForm}
               externalPrompt={externalPrompt}
               onClearExternalPrompt={() => setExternalPrompt(null)}
@@ -267,8 +313,32 @@ export default function App() {
         onClose={() => setDynamicModal({ isOpen: false, petitionType: null })}
         petitionType={dynamicModal.petitionType}
         currentAccountKey={currentAccountKey}
+        customProfile={customProfile}
         onSubmitToChat={handleSubmitToChat}
         onPetitionCreated={handlePetitionCreated}
+      />
+
+      {/* 4. Modal Hướng dẫn trải nghiệm 30 giây (Onboarding) */}
+      <WelcomeOnboardingModal
+        isOpen={onboardingOpen}
+        onClose={() => setOnboardingOpen(false)}
+        onSelectTestPrompt={(promptText) => handleSubmitToChat(promptText)}
+        onOpenCustomProfile={() => {
+          setOnboardingOpen(false);
+          setCustomProfileModalOpen(true);
+        }}
+      />
+
+      {/* 5. Modal Tạo / Cập nhật hồ sơ sinh viên tùy biến */}
+      <CustomProfileModal
+        isOpen={customProfileModalOpen}
+        onClose={() => setCustomProfileModalOpen(false)}
+        currentProfile={customProfile}
+        onProfileSaved={(savedProfile) => {
+          setCustomProfile(savedProfile);
+          setCurrentAccountKey('CUSTOM_STUDENT');
+          showToast(`Đã lưu và kích hoạt hồ sơ: ${savedProfile.name}`, 'success');
+        }}
       />
     </div>
   );

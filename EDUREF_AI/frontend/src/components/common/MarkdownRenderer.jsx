@@ -6,8 +6,9 @@ import React from 'react';
 export default function MarkdownRenderer({ content = '', isUser = false }) {
   if (!content) return null;
 
-  // Tách dòng văn bản và render các block
-  const lines = String(content).split('\n');
+  // Chuẩn hóa nếu LLM vô tình xuống dòng giữa ] và (
+  const normalizedContent = String(content).replace(/\]\s*\n\s*\(/g, '](');
+  const lines = normalizedContent.split('\n');
 
   return (
     <div
@@ -88,8 +89,11 @@ export default function MarkdownRenderer({ content = '', isUser = false }) {
 
 // Hàm hỗ trợ link, in đậm **bold** và inline `code`
 function parseInlineFormatting(text, isUser = false) {
+  if (!text) return null;
   const parts = [];
-  const regex = /(\[.*?\]\(https?:\/\/[^\s)]+\)|\*\*.*?\*\*|`.*?`|https?:\/\/[^\s<]+[^<.,:;"')\]\s])/g;
+
+  // Regex nhận diện các khối: link bọc bold, link chứa bold, bold link nối, link thường, bold, code, bare URL
+  const regex = /(\*\*\[.*?\]\(https?:\/\/[^\s)]+\)\*\*|\[\*\*.*?\*\*\]\(https?:\/\/[^\s)]+\)|\*\*\[.*?\]\*\*\s*\((?:https?:\/\/[^\s)]+)\)|\[.*?\]\(https?:\/\/[^\s)]+\)|\*\*.*?\*\*|`.*?`|https?:\/\/[^\s<)]+[^<.,:;"')\]\s])/g;
   let lastIndex = 0;
   let match;
 
@@ -99,30 +103,93 @@ function parseInlineFormatting(text, isUser = false) {
     }
     const token = match[0];
 
-    // 1. Markdown link: [Tiêu đề](https://...)
-    if (token.startsWith('[') && token.includes('](')) {
-      const linkMatch = token.match(/^\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
+    // 1. Link dạng: **[Tiêu đề](https://...)**
+    if (token.startsWith('**[') && token.endsWith(')**')) {
+      const linkMatch = token.slice(2, -2).match(/^\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
       if (linkMatch) {
-        const linkText = linkMatch[1];
-        const linkHref = linkMatch[2];
+        parts.push(
+          <strong key={match.index} className={`font-bold ${isUser ? 'text-white' : 'text-slate-900'}`}>
+            <a
+              href={linkMatch[2]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`underline break-all inline-flex items-center gap-0.5 cursor-pointer ${
+                isUser ? 'text-white hover:text-blue-200' : 'text-blue-600 hover:text-blue-800'
+              }`}
+            >
+              {linkMatch[1]} <span className="text-[11px] no-underline">↗</span>
+            </a>
+          </strong>
+        );
+      } else {
+        parts.push(token);
+      }
+    }
+    // 2. Link dạng: [**Tiêu đề**](https://...)
+    else if (token.startsWith('[**') && token.includes('**](')) {
+      const linkMatch = token.match(/^\[\*\*(.*?)\*\*\]\((https?:\/\/[^\s)]+)\)$/);
+      if (linkMatch) {
         parts.push(
           <a
             key={match.index}
-            href={linkHref}
+            href={linkMatch[2]}
             target="_blank"
             rel="noopener noreferrer"
-            className={`font-semibold underline break-all inline-flex items-center gap-0.5 ${
-              isUser ? 'text-white hover:text-blue-100' : 'text-blue-600 hover:text-blue-800'
+            className={`font-bold underline break-all inline-flex items-center gap-0.5 cursor-pointer ${
+              isUser ? 'text-white hover:text-blue-200' : 'text-blue-600 hover:text-blue-800'
             }`}
           >
-            {linkText} <span className="text-[11px] no-underline">↗</span>
+            {linkMatch[1]} <span className="text-[11px] no-underline">↗</span>
           </a>
         );
       } else {
         parts.push(token);
       }
     }
-    // 2. Đường link trực tiếp: https://... hoặc http://...
+    // 3. Link dạng: **[Tiêu đề]**(https://...) hoặc **[Tiêu đề]** (https://...)
+    else if (token.startsWith('**[') && token.includes(']**') && token.includes('(')) {
+      const linkMatch = token.match(/^\*\*\[(.*?)\]\*\*\s*\((https?:\/\/[^\s)]+)\)$/);
+      if (linkMatch) {
+        parts.push(
+          <strong key={match.index} className={`font-bold ${isUser ? 'text-white' : 'text-slate-900'}`}>
+            <a
+              href={linkMatch[2]}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`underline break-all inline-flex items-center gap-0.5 cursor-pointer ${
+                isUser ? 'text-white hover:text-blue-200' : 'text-blue-600 hover:text-blue-800'
+              }`}
+            >
+              {linkMatch[1]} <span className="text-[11px] no-underline">↗</span>
+            </a>
+          </strong>
+        );
+      } else {
+        parts.push(token);
+      }
+    }
+    // 4. Markdown link chuẩn: [Tiêu đề](https://...)
+    else if (token.startsWith('[') && token.includes('](')) {
+      const linkMatch = token.match(/^\[(.*?)\]\((https?:\/\/[^\s)]+)\)$/);
+      if (linkMatch) {
+        parts.push(
+          <a
+            key={match.index}
+            href={linkMatch[2]}
+            target="_blank"
+            rel="noopener noreferrer"
+            className={`font-semibold underline break-all inline-flex items-center gap-0.5 cursor-pointer ${
+              isUser ? 'text-white hover:text-blue-100' : 'text-blue-600 hover:text-blue-800'
+            }`}
+          >
+            {linkMatch[1]} <span className="text-[11px] no-underline">↗</span>
+          </a>
+        );
+      } else {
+        parts.push(token);
+      }
+    }
+    // 5. Đường link trực tiếp: https://... hoặc http://...
     else if (token.startsWith('http://') || token.startsWith('https://')) {
       parts.push(
         <a
@@ -130,7 +197,7 @@ function parseInlineFormatting(text, isUser = false) {
           href={token}
           target="_blank"
           rel="noopener noreferrer"
-          className={`font-semibold underline break-all inline-flex items-center gap-0.5 ${
+          className={`font-semibold underline break-all inline-flex items-center gap-0.5 cursor-pointer ${
             isUser ? 'text-white hover:text-blue-100' : 'text-blue-600 hover:text-blue-800'
           }`}
         >
@@ -138,18 +205,19 @@ function parseInlineFormatting(text, isUser = false) {
         </a>
       );
     }
-    // 3. In đậm: **bold**
+    // 6. In đậm: **bold** (Đệ quy phân tích bên trong để nếu có link con thì vẫn bấm được)
     else if (token.startsWith('**') && token.endsWith('**')) {
+      const innerContent = token.slice(2, -2);
       parts.push(
         <strong
           key={match.index}
           className={`font-bold ${isUser ? 'text-white' : 'text-slate-900'}`}
         >
-          {token.slice(2, -2)}
+          {parseInlineFormatting(innerContent, isUser)}
         </strong>
       );
     }
-    // 4. Mã code: `code`
+    // 7. Mã code: `code`
     else if (token.startsWith('`') && token.endsWith('`')) {
       parts.push(
         <code

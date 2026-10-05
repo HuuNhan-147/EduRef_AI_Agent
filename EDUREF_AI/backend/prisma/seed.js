@@ -215,8 +215,8 @@ async function main() {
             ruleDefinition: {
               field: 'student.tuitionDebt',
               operator: 'LTE',
-              value: 10000000,
-              errorMessage: 'Sinh viên nợ học phí quá 10.000.000 VNĐ cần hoàn thành nghĩa vụ tài chính trước khi xin giấy.',
+              value: 0,
+              errorMessage: 'Sinh viên phải hoàn thành 100% nghĩa vụ học phí (nợ 0 VNĐ) trước khi xin giấy.',
             },
             priority: 2,
           },

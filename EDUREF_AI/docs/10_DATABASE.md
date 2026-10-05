@@ -81,7 +81,7 @@ erDiagram
 
     StudentRequest {
         string id PK
-        string requestCode UK "ST-XXXXXX"
+        string requestCode UK "XNSV-XXXXXX"
         string studentId FK
         string requestTypeId FK
         enum status "PENDING, PROCESSING, WAITING_STUDENT, APPROVED, ESCALATED, REJECTED, CANCELLED"

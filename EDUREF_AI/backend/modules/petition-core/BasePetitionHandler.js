@@ -43,11 +43,11 @@ export class BasePetitionHandler {
       };
     }
 
-    if (Number(student.tuitionDebt || 0) > 10000000) {
+    if (Number(student.tuitionDebt || 0) > 0) {
       return {
         passed: false,
         violatedPolicy: { code: 'POL_TUITION_DEBT', name: 'Nợ học phí' },
-        reason: `Sinh viên còn nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} VNĐ (vượt trần 10.000.000 VNĐ), vui lòng hoàn thành nghĩa vụ tài chính trước.`,
+        reason: `Sinh viên còn nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} VNĐ, vui lòng hoàn thành 100% nghĩa vụ tài chính trước.`,
       };
     }
 

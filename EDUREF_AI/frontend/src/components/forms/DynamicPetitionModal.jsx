@@ -27,31 +27,71 @@ export default function DynamicPetitionModal({
   onClose,
   petitionType,
   currentAccountKey,
+  customProfile = null,
   onSubmitToChat,
   onPetitionCreated
 }) {
-  const currentAccount = DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
+  // Lấy hồ sơ ưu tiên: nếu chọn CUSTOM_STUDENT thì lấy customProfile hoặc đọc từ localStorage
+  const getEffectiveAccount = () => {
+    if (currentAccountKey === 'CUSTOM_STUDENT') {
+      if (customProfile) return customProfile;
+      try {
+        const raw = localStorage.getItem('eduref_custom_student') || localStorage.getItem('customProfile');
+        if (raw) return JSON.parse(raw);
+      } catch (e) {}
+    }
+    return DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
+  };
+
+  const currentAccount = getEffectiveAccount();
 
   // Xác định mã thủ tục
   const isConfirmForm = petitionType?.code === 'STUDENT_CONFIRMATION';
   const isGraduationForm = false;
 
+  const initialFaculty = currentAccount.department || currentAccount.faculty || currentAccount.departmentName || 'Khoa Công nghệ thông tin';
+  const initialMajor = currentAccount.major || (initialFaculty.startsWith('Khoa ') ? initialFaculty.replace('Khoa ', '') : initialFaculty);
+
   // State cho Form 1: Giấy Xác Nhận Sinh Viên
   const [confirmData, setConfirmData] = useState({
-    fullName: currentAccount.name || 'Cao Hữu Nhân',
+    fullName: currentAccount.name || currentAccount.fullName || 'Cao Hữu Nhân',
     birthDate: currentAccount.birthDate || '26/07/2003',
     gender: currentAccount.gender || 'Nam',
-    idCard: '079203001234',
-    idCardDate: '2021-08-10',
-    idCardPlace: 'Cục Cảnh sát QLHC về TTXH',
-    major: currentAccount.major || 'Công nghệ thông tin',
-    studentClass: currentAccount.class || '22DTHE4',
-    studentCode: currentAccount.code || '2280602154',
-    faculty: currentAccount.faculty || 'Khoa Công Nghệ Thông Tin',
-    phone: currentAccount.phone || '0900000000',
+    idCard: currentAccount.idCard || '079203001234',
+    idCardDate: currentAccount.idCardDate || '2021-08-10',
+    idCardPlace: currentAccount.idCardPlace || 'Cục Cảnh sát QLHC về TTXH',
+    major: initialMajor,
+    studentClass: currentAccount.studentClass || currentAccount.class || '22DTHE4',
+    studentCode: currentAccount.code || currentAccount.studentCode || '2280602154',
+    faculty: initialFaculty,
+    phone: currentAccount.phone || '0901234567',
     purpose: 'Xác nhận sinh viên để bổ sung hồ sơ học bổng và xin visa.',
     pickupCampus: 'Trụ sở chính: phòng Công tác sinh viên (A-01,01)'
   });
+
+  // Tự động đồng bộ thông tin của sinh viên đang chọn khi mở form
+  useEffect(() => {
+    if (isOpen) {
+      const acc = getEffectiveAccount();
+      const activeFaculty = acc?.department || acc?.faculty || acc?.departmentName || 'Khoa Công nghệ thông tin';
+      const activeMajor = acc?.major || (activeFaculty.startsWith('Khoa ') ? activeFaculty.replace('Khoa ', '') : activeFaculty);
+
+      setConfirmData((prev) => ({
+        ...prev,
+        fullName: acc?.name || acc?.fullName || prev.fullName,
+        studentCode: acc?.code || acc?.studentCode || prev.studentCode,
+        faculty: activeFaculty,
+        major: activeMajor,
+        studentClass: acc?.studentClass || acc?.class || prev.studentClass || '22DTHA1',
+        phone: acc?.phone || prev.phone || '0901234567',
+        birthDate: acc?.birthDate || prev.birthDate || '26/07/2003',
+        gender: acc?.gender || prev.gender || 'Nam',
+        idCard: acc?.idCard || prev.idCard || '079203001234',
+        idCardDate: acc?.idCardDate || prev.idCardDate || '2021-08-10',
+        idCardPlace: acc?.idCardPlace || prev.idCardPlace || 'Cục Cảnh sát QLHC về TTXH',
+      }));
+    }
+  }, [isOpen, currentAccountKey, customProfile]);
 
   // State cho Form 2: Đơn Đề Nghị Xét Tốt Nghiệp
   const [gradData, setGradData] = useState({
@@ -415,36 +455,57 @@ export default function DynamicPetitionModal({
               </div>
 
               {/* Grid CMND/CCCD */}
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">Số CMND/CCCD :</label>
-                  <input
-                    type="text"
-                    value={confirmData.idCard}
-                    onChange={(e) => setConfirmData({ ...confirmData, idCard: e.target.value })}
-                    placeholder="Nhập số CCCD 12 số..."
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-200 focus:border-blue-600 focus:outline-hidden font-mono"
-                  />
+              <div className="space-y-1.5">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                      Số CMND/CCCD :
+                      <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded font-normal border border-amber-200 ml-1.5">
+                        Giả định
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmData.idCard}
+                      onChange={(e) => setConfirmData({ ...confirmData, idCard: e.target.value })}
+                      placeholder="Nhập số CCCD 12 số..."
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-200 focus:border-blue-600 focus:outline-hidden font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                      Ngày cấp CMND/CCCD :
+                      <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded font-normal border border-amber-200 ml-1.5">
+                        Giả định
+                      </span>
+                    </label>
+                    <input
+                      type="date"
+                      value={confirmData.idCardDate}
+                      onChange={(e) => setConfirmData({ ...confirmData, idCardDate: e.target.value })}
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-200 focus:border-blue-600 focus:outline-hidden"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-600 block mb-1">
+                      Nơi cấp CMND/CCCD :
+                      <span className="text-[10px] text-amber-700 bg-amber-50 px-1.5 py-0.2 rounded font-normal border border-amber-200 ml-1.5">
+                        Giả định
+                      </span>
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmData.idCardPlace}
+                      onChange={(e) => setConfirmData({ ...confirmData, idCardPlace: e.target.value })}
+                      placeholder="VD: Cục Cảnh sát QLHC về TTXH"
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-200 focus:border-blue-600 focus:outline-hidden"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">Ngày cấp CMND/CCCD :</label>
-                  <input
-                    type="date"
-                    value={confirmData.idCardDate}
-                    onChange={(e) => setConfirmData({ ...confirmData, idCardDate: e.target.value })}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-200 focus:border-blue-600 focus:outline-hidden"
-                  />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">Nơi cấp CMND/CCCD :</label>
-                  <input
-                    type="text"
-                    value={confirmData.idCardPlace}
-                    onChange={(e) => setConfirmData({ ...confirmData, idCardPlace: e.target.value })}
-                    placeholder="VD: Cục Cảnh sát QLHC về TTXH"
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-200 focus:border-blue-600 focus:outline-hidden"
-                  />
-                </div>
+                <p className="text-[10.5px] text-amber-700 bg-amber-50/80 border border-amber-200/70 rounded px-2.5 py-1 flex items-center gap-1.5">
+                  <span>💡</span>
+                  <span><strong>Lưu ý:</strong> Thông tin CMND/CCCD trên được điền sẵn theo dữ liệu giả định, bạn có thể chỉnh sửa tự do theo thực tế.</span>
+                </p>
               </div>
 
               {/* Ngành học */}
@@ -464,9 +525,10 @@ export default function DynamicPetitionModal({
                   <label className="text-[11px] font-semibold text-slate-600 block mb-1">Lớp học :</label>
                   <input
                     type="text"
-                    disabled
                     value={confirmData.studentClass}
-                    className="w-full px-2.5 py-1.5 rounded border border-slate-200 bg-slate-50 text-slate-700 font-mono"
+                    onChange={(e) => setConfirmData({ ...confirmData, studentClass: e.target.value })}
+                    placeholder="VD: 22DTHA1"
+                    className="w-full px-2.5 py-1.5 rounded border border-slate-200 focus:border-blue-600 focus:outline-hidden text-slate-800 font-mono uppercase"
                   />
                 </div>
                 <div>

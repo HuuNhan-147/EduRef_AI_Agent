@@ -241,4 +241,72 @@ export const getMe = async (req, res) => {
   }
 };
 
-export default { login, demoLogin, getDemoAccounts, getMe };
+/**
+ * POST /api/auth/custom-student
+ * Cho phép sinh viên tạo hồ sơ tùy biến để thử nghiệm hệ thống (lưu database và trả về JWT session)
+ */
+export const registerCustomStudent = async (req, res) => {
+  try {
+    const { fullName, studentCode, departmentName, status = 'ACTIVE', tuitionDebt = 0, phone = '0901234567' } = req.body;
+    if (!fullName || !studentCode) {
+      return res.status(400).json({ success: false, message: 'Vui lòng nhập Họ tên và MSSV.' });
+    }
+    const cleanCode = String(studentCode).trim();
+    const cleanName = String(fullName).trim();
+    const cleanPhone = String(phone || '0901234567').trim();
+    const debtNum = Math.max(0, Number(tuitionDebt) || 0);
+
+    const targetDeptName = String(departmentName || 'Khoa Công nghệ thông tin').trim();
+    // Lấy hoặc tạo Khoa/Viện theo đúng tên sinh viên chọn
+    let dept = await prisma.department.findFirst({
+      where: { name: targetDeptName },
+    });
+    if (!dept) {
+      const rawCode = targetDeptName
+        .split(/\s+/)
+        .map((w) => w[0])
+        .join('')
+        .toUpperCase()
+        .replace(/[^A-Z0-9]/g, '');
+      const uniqueCode = `${rawCode.slice(0, 6) || 'DEPT'}_${Date.now().toString().slice(-4)}`;
+      dept = await prisma.department.create({
+        data: { code: uniqueCode, name: targetDeptName },
+      });
+    }
+
+    // Upsert sinh viên vào database để Policy Engine có thể đọc
+    const student = await prisma.student.upsert({
+      where: { studentCode: cleanCode },
+      update: {
+        fullName: cleanName,
+        phone: cleanPhone,
+        status: status || 'ACTIVE',
+        tuitionDebt: debtNum,
+        departmentId: dept.id,
+      },
+      create: {
+        studentCode: cleanCode,
+        fullName: cleanName,
+        email: `${cleanCode}@hutech.edu.vn`,
+        phone: cleanPhone,
+        status: status || 'ACTIVE',
+        tuitionDebt: debtNum,
+        gpa: 3.2,
+        departmentId: dept.id,
+      },
+      include: { department: true },
+    });
+
+    const jwtSecret = getJwtSecret();
+    const session = buildStudentSession(student, jwtSecret);
+    return res.json({
+      ...session,
+      message: `Đã kích hoạt hồ sơ sinh viên: ${cleanName} (${cleanCode})`,
+    });
+  } catch (error) {
+    console.error('Error registerCustomStudent:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+};
+
+export default { login, demoLogin, getDemoAccounts, getMe, registerCustomStudent };

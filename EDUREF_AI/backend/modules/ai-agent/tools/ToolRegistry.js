@@ -102,7 +102,7 @@ export class ToolRegistry {
           properties: {
             requestId: {
               type: 'STRING',
-              description: 'ID của đơn hoặc mã đơn (ST-XXXXXX)',
+              description: 'ID của đơn hoặc mã đơn (XNSV-XXXXXX)',
             },
           },
           required: ['requestId'],

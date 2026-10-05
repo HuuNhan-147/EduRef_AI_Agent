@@ -142,9 +142,9 @@ export const petitionTools = {
         };
       }
 
-      // Sinh mã đơn ngẫu nhiên ST-XXXXXX
+      // Sinh mã đơn ngẫu nhiên XNSV-XXXXXX
       const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-      const requestCode = `ST-${randomSuffix}`;
+      const requestCode = `XNSV-${randomSuffix}`;
 
       // Case 3: Vượt thẩm quyền / Cần Chuyên viên hoặc Lãnh đạo duyệt
       if (evalResult.decision === 'BEYOND_AUTHORITY') {

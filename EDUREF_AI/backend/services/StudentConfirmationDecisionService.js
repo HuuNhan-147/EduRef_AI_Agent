@@ -41,6 +41,19 @@ export function matchRoutinePurpose(purpose = '') {
 }
 
 export function evaluateStudentConfirmation({ student, inputData = {} }) {
+  if (inputData.isInquiry === true) {
+    return {
+      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+      rule: 'INQUIRY_NOT_PETITION_INTENT',
+      reason: 'Phát hiện câu hỏi tìm hiểu thông tin/thủ tục học vụ. Hệ thống dừng tự động hóa để tư vấn quy chế, tránh tự tiện nộp đơn khi người dùng chưa có chủ đích.',
+      actionableQuestion:
+        'Bạn đang tìm hiểu thủ tục học vụ hay muốn tạo đơn xin Giấy xác nhận sinh viên? Nếu muốn tạo đơn ngay, bạn vui lòng xác nhận để mình hỗ trợ nhé!',
+      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+    };
+  }
+
   const purpose = inputData.purpose || inputData.reason || inputData.REQ_PURPOSE || '';
   const trimmedPurpose = String(purpose).trim();
 
@@ -197,12 +210,22 @@ export function inferStudentConfirmationInput(prompt = '') {
     { code: 'UNLISTED', keywords: ['mua nhà', 'xin việc', 'bảo lãnh', 'định cư', 'hồ sơ khác'] },
   ];
   const match = purposeRules.find((rule) => rule.keywords.some((keyword) => normalized.includes(keyword)));
-  const freeFormPurpose = String(prompt).match(/\b(?:để|nhằm|phục vụ)\s+(.+?)(?:[.!?]|$)/i)?.[1]?.trim() || null;
+  const freeFormPurpose = String(prompt).match(/(?:^|\s)(?:để|nhằm|phục vụ)\s+(.+?)(?:[.!?]|$)/iu)?.[1]?.trim() || null;
 
-  return {
-    purpose: match || freeFormPurpose ? prompt.trim() : null,
+  const inquiryRegex = /(?:cần những gì|cần gì|cần chuẩn bị|điều kiện gì|bao lâu|mất bao lâu|thế nào|ra sao|như thế nào|như nào|ở đâu|nhận ở đâu|có mất phí|có tốn phí|có mất tiền|bao nhiêu tiền|cho em hỏi|cho mình hỏi|tư vấn)/i;
+  const actionRegex = /(?:làm cho em|làm cho mình|tạo đơn|nộp đơn|cấp cho em|cấp cho mình|xin cấp|đồng ý nộp|xác nhận tạo|duyệt ngay|cứ duyệt)/i;
+  const isInquiry = inquiryRegex.test(prompt) && !actionRegex.test(prompt);
+
+  const result = {
+    purpose: isInquiry ? null : (match || freeFormPurpose ? prompt.trim() : null),
     userClaimedOverride: overridePatterns.some((pattern) => normalized.includes(pattern)),
   };
+
+  if (isInquiry) {
+    result.isInquiry = true;
+  }
+
+  return result;
 }
 
 export default {

@@ -7,7 +7,7 @@ Runbook này đi từ repository sạch đến Verify Harness hoạt động. Kh
 - Git và Node.js 18+.
 - Một project Supabase PostgreSQL.
 - Hai terminal riêng cho backend và frontend.
-- Gemini API key chỉ bắt buộc khi trình diễn chat/vision; Verify Harness không phụ thuộc câu trả lời sinh bởi LLM.
+- Gemini API key chỉ bắt buộc khi trình diễn chat AI; Verify Harness không phụ thuộc câu trả lời sinh bởi LLM.
 
 ## 2. Clone đúng phiên bản
 
@@ -39,7 +39,7 @@ Copy-Item .env.example .env
 - `DIRECT_URL`: Supabase Session pooler, cổng `5432`.
 - `JWT_SECRET`: chuỗi ngẫu nhiên đủ mạnh và khác giá trị mẫu.
 - `FRONTEND_URL`: origin frontend, không kèm `/api`.
-- `GEMINI_API_KEY`: khóa thật nếu trình diễn chat hoặc vision.
+- `GEMINI_API_KEY`: khóa thật nếu trình diễn chat AI.
 - `ALLOW_DEMO_ROLE_SWITCH=true`: chỉ dành cho bản hackathon demo công khai. Đặt `false` ngoài môi trường demo.
 
 Kiểm tra và áp dụng migration:

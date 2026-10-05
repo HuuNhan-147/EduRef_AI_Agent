@@ -1,6 +1,3 @@
-// src/components/common/TopNavbar.jsx
-// Thanh tiêu đề chuẩn mực hành chính đại học: Tích hợp Top Navigation Tabs & 1-Click Role Switcher
-
 import React, { useState } from 'react';
 import {
   ShieldCheck,
@@ -14,7 +11,9 @@ import {
   FileText,
   AlertOctagon,
   CheckCircle,
-  Zap
+  Zap,
+  HelpCircle,
+  UserPlus
 } from 'lucide-react';
 import { DEMO_ACCOUNTS } from '../../services/api';
 
@@ -24,19 +23,19 @@ export default function TopNavbar({
   socketConnected,
   activeTab = 'STUDENT_ASSISTANT',
   setActiveTab,
-  pendingCount = 0
+  pendingCount = 0,
+  customProfile = null,
+  onOpenCustomProfile,
+  onOpenOnboarding,
 }) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
-  const currentAccount = DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
+  const currentAccount = currentAccountKey === 'CUSTOM_STUDENT' && customProfile
+    ? customProfile
+    : DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
   const isStaff = ['STAFF', 'DEAN'].includes(currentAccount.type);
 
   // Danh mục Navigation Tabs theo vai trò
   const studentNavItems = [
-    {
-      id: 'VERIFY_HARNESS',
-      label: 'Verify Track A',
-      icon: Zap,
-    },
     {
       id: 'STUDENT_ASSISTANT',
       label: 'Trợ lý Học vụ AI',
@@ -46,6 +45,11 @@ export default function TopNavbar({
       id: 'MY_PETITIONS',
       label: 'Hồ sơ & Đơn của tôi',
       icon: FileText,
+    },
+    {
+      id: 'VERIFY_HARNESS',
+      label: 'Verify Track A',
+      icon: Zap,
     },
     {
       id: 'AUDIT_EXPLORER',
@@ -89,11 +93,16 @@ export default function TopNavbar({
     <header className="bg-slate-900 text-white border-b border-slate-800 sticky top-0 z-40 shadow-md select-none">
       <div className="w-full px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-4">
         
-        {/* Khối Nhận Diện Thương Hiệu Hành Chính */}
+        {/* Khối Nhận Diện Thương Hiệu Hành Chính Chuẩn Chính Quy */}
         <div className="flex items-center gap-3 shrink-0">
-          <div className="w-9 h-9 rounded-lg bg-blue-600 flex items-center justify-center text-white font-bold shadow-xs">
-            <School className="w-5 h-5" />
+          {/* Logo HUTECH đại diện trường */}
+          <div className="h-9 px-2 py-0.5 bg-white rounded-lg flex items-center justify-center shadow-xs border border-slate-700/60 shrink-0">
+            <img src="/hutech_logo.png" alt="HUTECH University" className="h-full w-auto object-contain" />
           </div>
+
+          {/* Vạch phân cách tinh tế */}
+          <div className="h-7 w-px bg-slate-800 hidden sm:block shrink-0" />
+
           <div>
             <div className="flex items-center gap-2">
               <span className="font-bold text-base tracking-tight text-white">EduRef AI</span>
@@ -102,7 +111,7 @@ export default function TopNavbar({
               </span>
             </div>
             <p className="text-[11px] text-slate-400 font-normal hidden lg:block">
-              Trường ĐH HUTECH — Cổng Dịch Vụ Học Vụ Tự Hành
+              Cổng Dịch Vụ Học Vụ Tự Hành
             </p>
           </div>
         </div>
@@ -140,10 +149,20 @@ export default function TopNavbar({
         </nav>
 
         {/* Khối Trạng Thái Kết Nối & 1-Click Role Switcher */}
-        <div className="flex items-center gap-3 shrink-0">
+        <div className="flex items-center gap-2 sm:gap-3 shrink-0">
           
+          {/* Nút Hướng Dẫn Trải Nghiệm 30 Giây */}
+          <button
+            onClick={() => onOpenOnboarding && onOpenOnboarding()}
+            title="Xem lại hướng dẫn trải nghiệm 30 giây"
+            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-xs font-semibold text-blue-300 hover:text-white transition-colors cursor-pointer"
+          >
+            <HelpCircle className="w-4 h-4 text-amber-400" />
+            <span className="hidden md:inline">Hướng dẫn test</span>
+          </button>
+
           {/* Socket.IO Connection Badge */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono">
+          <div className="hidden lg:flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-slate-800 border border-slate-700 text-xs font-mono">
             {socketConnected ? (
               <>
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
@@ -161,17 +180,17 @@ export default function TopNavbar({
           <div className="relative">
             <button
               onClick={() => setDropdownOpen(!dropdownOpen)}
-              className="flex items-center gap-2.5 px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700 transition-colors text-left cursor-pointer"
+              className="flex items-center gap-2 px-2.5 sm:px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700/80 border border-slate-700 transition-colors text-left cursor-pointer"
             >
               <div className="w-7 h-7 rounded-full bg-slate-700 flex items-center justify-center text-xs font-semibold text-blue-400 border border-slate-600">
-                {currentAccount.type === 'STUDENT' ? 'SV' : 'CB'}
+                {currentAccount.type === 'STUDENT' ? (currentAccountKey === 'CUSTOM_STUDENT' ? '⭐' : 'SV') : 'CB'}
               </div>
               <div className="hidden xl:block">
                 <div className="text-xs font-medium text-white flex items-center gap-1.5">
                   {currentAccount.name}
-                  <span className="text-[10px] text-slate-400">({currentAccount.code})</span>
+                  <span className="text-[10px] text-slate-400 font-mono">({currentAccount.code})</span>
                 </div>
-                <div className="text-[10px] text-slate-400 font-normal">
+                <div className="text-[10px] text-slate-400 font-normal truncate max-w-[150px]">
                   {currentAccount.tag}
                 </div>
               </div>
@@ -180,12 +199,54 @@ export default function TopNavbar({
 
             {/* Dropdown Menu */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-80 rounded-lg bg-white text-slate-900 shadow-2xl border border-slate-200 py-2 z-50 animate-in fade-in slide-in-from-top-2 duration-150">
-                <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider">
-                  Chuyển vai trò thử nghiệm (1-Click Switch)
+              <div className="absolute right-0 mt-2 w-76 sm:w-84 max-w-[92vw] rounded-xl bg-white text-slate-900 shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+                
+                {/* Hồ sơ riêng của sinh viên (Nếu đã tạo) */}
+                {customProfile && (
+                  <div className="p-2.5 bg-blue-50/80 border-b border-blue-100">
+                    <div className="flex items-center justify-between text-[11px] font-bold text-blue-800 uppercase tracking-wider mb-1.5">
+                      <span className="flex items-center gap-1">
+                        ⭐ Hồ sơ của bạn (Cục bộ)
+                      </span>
+                      <button
+                        onClick={() => {
+                          setDropdownOpen(false);
+                          if (onOpenCustomProfile) onOpenCustomProfile();
+                        }}
+                        className="text-[10px] font-semibold text-blue-600 hover:underline cursor-pointer"
+                      >
+                        Chỉnh sửa
+                      </button>
+                    </div>
+                    <button
+                      onClick={() => {
+                        onRoleChange('CUSTOM_STUDENT');
+                        setDropdownOpen(false);
+                      }}
+                      className={`w-full text-left p-2 rounded-lg border transition-all cursor-pointer flex items-center justify-between ${
+                        currentAccountKey === 'CUSTOM_STUDENT'
+                          ? 'bg-blue-600 text-white border-blue-700 shadow-2xs'
+                          : 'bg-white text-slate-900 border-blue-200 hover:border-blue-400'
+                      }`}
+                    >
+                      <div>
+                        <div className="text-xs font-bold">{customProfile.name}</div>
+                        <div className={`text-[10px] font-mono ${currentAccountKey === 'CUSTOM_STUDENT' ? 'text-blue-100' : 'text-slate-500'}`}>
+                          MSSV: {customProfile.code} · {customProfile.tag}
+                        </div>
+                      </div>
+                      {currentAccountKey === 'CUSTOM_STUDENT' && (
+                        <Check className="w-4 h-4 text-white" />
+                      )}
+                    </button>
+                  </div>
+                )}
+
+                <div className="px-3 py-1.5 border-b border-slate-100 text-[11px] font-semibold text-slate-400 uppercase tracking-wider bg-slate-50">
+                  Tài khoản mẫu thử nghiệm
                 </div>
                 
-                <div className="max-h-80 overflow-y-auto divide-y divide-slate-50">
+                <div className="max-h-64 overflow-y-auto divide-y divide-slate-50">
                   {Object.entries(DEMO_ACCOUNTS).map(([key, acc]) => {
                     const isSelected = key === currentAccountKey;
                     return (
@@ -195,7 +256,7 @@ export default function TopNavbar({
                           onRoleChange(key);
                           setDropdownOpen(false);
                         }}
-                        className={`w-full text-left px-3 py-2.5 flex items-start justify-between gap-2 hover:bg-blue-50 transition-colors ${
+                        className={`w-full text-left px-3 py-2.5 flex items-start justify-between gap-2 hover:bg-blue-50 transition-colors cursor-pointer ${
                           isSelected ? 'bg-blue-50/70' : ''
                         }`}
                       >
@@ -220,6 +281,20 @@ export default function TopNavbar({
                       </button>
                     );
                   })}
+                </div>
+
+                {/* Nút Tạo Hồ Sơ Riêng */}
+                <div className="p-2 border-t border-slate-100 bg-slate-50">
+                  <button
+                    onClick={() => {
+                      setDropdownOpen(false);
+                      if (onOpenCustomProfile) onOpenCustomProfile();
+                    }}
+                    className="w-full py-2 px-3 rounded-lg border border-dashed border-blue-400 bg-white hover:bg-blue-50 text-blue-700 text-xs font-bold flex items-center justify-center gap-1.5 transition-all cursor-pointer shadow-2xs"
+                  >
+                    <UserPlus className="w-3.5 h-3.5" />
+                    <span>{customProfile ? '+ Đổi hồ sơ sinh viên khác' : '+ Tạo hồ sơ sinh viên của bạn'}</span>
+                  </button>
                 </div>
               </div>
             )}

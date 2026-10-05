@@ -31,12 +31,18 @@ import getSocket from '../services/socket';
 
 export default function StudentWorkspacePage({
   currentAccountKey,
+  customProfile = null,
   onOpenDynamicForm,
   externalPrompt,
   onClearExternalPrompt,
   onSwitchTab,
 }) {
-  const currentAccount = DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
+  const currentAccount = currentAccountKey === 'CUSTOM_STUDENT' && customProfile
+    ? customProfile
+    : DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
+
+  // Tab điều hướng phụ trên Mobile (khi màn hình < 1280px): 'CHAT' | 'PROCEDURES' | 'DECISION'
+  const [mobileTab, setMobileTab] = useState('CHAT');
 
   // Tab điều hướng Cột 3: Mặc định là 'TERMINAL' (Live Console) hiện trước 'DECISION' (Thẩm định 4 chốt)
   const [column3Tab, setColumn3Tab] = useState('TERMINAL');
@@ -323,6 +329,7 @@ export default function StudentWorkspacePage({
     setMessages((prev) => [...prev, userMsg]);
     setInputMessage('');
     setIsProcessing(true);
+    setMobileTab('CHAT');
 
     // Bắt đầu cập nhật cột Decision
     setActiveDecision((prev) => ({
@@ -457,12 +464,57 @@ export default function StudentWorkspacePage({
   };
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-slate-50">
+    <div className="flex-1 flex flex-col xl:flex-row overflow-hidden bg-slate-50">
       
+      {/* ========================================================================= */}
+      {/* THANH ĐIỀU HƯỚNG PHỤ TRÊN MOBILE (Chỉ hiển thị trên màn hình < 1280px / xl:hidden) */}
+      {/* ========================================================================= */}
+      <div className="xl:hidden bg-slate-900 border-b border-slate-800 px-3 py-2 shrink-0">
+        <div className="flex items-center gap-1 bg-slate-800/90 p-1 rounded-xl">
+          <button
+            onClick={() => setMobileTab('CHAT')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              mobileTab === 'CHAT'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <Send className="w-3.5 h-3.5" />
+            <span>Chat AI</span>
+          </button>
+
+          <button
+            onClick={() => setMobileTab('PROCEDURES')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              mobileTab === 'PROCEDURES'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <FileText className="w-3.5 h-3.5" />
+            <span>Thủ tục & Mẫu</span>
+          </button>
+
+          <button
+            onClick={() => setMobileTab('DECISION')}
+            className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
+              mobileTab === 'DECISION'
+                ? 'bg-blue-600 text-white shadow-xs'
+                : 'text-slate-300 hover:text-white'
+            }`}
+          >
+            <Terminal className="w-3.5 h-3.5 text-emerald-400" />
+            <span>Terminal & 4 Chốt</span>
+          </button>
+        </div>
+      </div>
+
       {/* ========================================================================= */}
       {/* CỘT 1: DANH MỤC THỦ TỤC HÀNH CHÍNH & NỘP BIỂU MẪU (Bên trái) */}
       {/* ========================================================================= */}
-      <div className="w-80 bg-white border-r border-slate-200 flex flex-col shrink-0 overflow-y-auto">
+      <div className={`w-full xl:w-80 bg-white border-r border-slate-200 flex-col shrink-0 overflow-y-auto ${
+        mobileTab === 'PROCEDURES' ? 'flex flex-1' : 'hidden xl:flex'
+      }`}>
         <div className="p-4 border-b border-slate-100">
           <h2 className="text-xs font-bold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
             <FileText className="w-4 h-4 text-blue-600" />
@@ -550,7 +602,9 @@ export default function StudentWorkspacePage({
       {/* ========================================================================= */}
       {/* CỘT 2: KHUNG HỘI THOẠI REACT CHAT & STREAMING (Ở giữa) */}
       {/* ========================================================================= */}
-      <div className="flex-1 flex flex-col bg-white border-r border-slate-200 overflow-hidden">
+      <div className={`flex-1 flex-col bg-white border-r border-slate-200 overflow-hidden ${
+        mobileTab === 'CHAT' ? 'flex' : 'hidden xl:flex'
+      }`}>
         
         {/* Chat Header */}
         <div className="px-6 py-3.5 border-b border-slate-200 flex items-center justify-between bg-white shrink-0">
@@ -779,7 +833,9 @@ export default function StudentWorkspacePage({
       {/* ========================================================================= */}
       {/* CỘT 3: BẢNG THẨM ĐỊNH 4 CHỐT CHẶN & LIVE TERMINAL CONSOLE (Bên phải) */}
       {/* ========================================================================= */}
-      <div className="w-[520px] bg-white flex flex-col shrink-0 border-l border-slate-200 overflow-hidden">
+      <div className={`w-full xl:w-[520px] bg-white flex-col shrink-0 border-l border-slate-200 overflow-hidden ${
+        mobileTab === 'DECISION' ? 'flex flex-1' : 'hidden xl:flex'
+      }`}>
         
         {/* Header Tab Switcher Cột 3: Live Terminal hiển thị TRƯỚC */}
         <div className="px-3 py-2.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">

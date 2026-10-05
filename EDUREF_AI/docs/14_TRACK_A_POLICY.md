@@ -9,14 +9,14 @@ Policy version: `STUDENT_CONFIRMATION_V1.0.0`
 - Danh tính, trạng thái sinh viên và nợ học phí lấy từ cơ sở dữ liệu theo phiên đã xác thực.
 - Người dùng bắt buộc nêu mục đích sử dụng giấy.
 - Mục đích thường quy: vé xe buýt, học bổng, vay vốn, nghĩa vụ quân sự, visa và bổ sung hồ sơ học tập.
-- Sinh viên phải ở trạng thái `ACTIVE` và nợ học phí không vượt 10.000.000 VNĐ.
+- Sinh viên phải ở trạng thái `ACTIVE` và đã hoàn thành 100% nghĩa vụ học phí (nợ 0 VNĐ).
 
 ## Bảng quyết định
 
 | Điều kiện | Phân loại | Hành động |
 |---|---|---|
 | Thiếu mục đích | `UNKNOWN_FACT` | `ASK_CLARIFICATION` với câu hỏi cụ thể |
-| Trạng thái không ACTIVE hoặc nợ vượt ngưỡng | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo policy rõ ràng |
+| Trạng thái không ACTIVE hoặc còn nợ học phí | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo policy rõ ràng |
 | Mục đích không nằm trong danh mục | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` với câu hỏi hành động |
 | Yêu cầu bỏ qua quy định/phê duyệt miệng | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` với câu hỏi xác minh |
 | Đủ dữ kiện, đúng policy, mục đích thường quy | `ROUTINE` | `AUTO_APPROVED` |

@@ -219,7 +219,7 @@ class AcademicWorkflowService {
       }
 
       const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-      const requestCode = `ST-${randomSuffix}`;
+      const requestCode = `XNSV-${randomSuffix}`;
 
       const newRequest = await prisma.studentRequest.create({
         data: {
@@ -470,11 +470,11 @@ class AcademicWorkflowService {
         matchedRules.push('POL_STUDENT_ACTIVE');
       }
 
-      // Policy 2: Không nợ học phí quá 10 triệu
-      if (Number(student.tuitionDebt) > 10000000) {
+      // Policy 2: Hoàn thành 100% nghĩa vụ học phí (nợ 0 đ)
+      if (Number(student.tuitionDebt || 0) > 0) {
         violations.push({
           rule: 'POL_NO_TUITION_DEBT',
-          reason: `Sinh viên đang nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ (vượt trần 10.000.000 đ).`,
+          reason: `Sinh viên còn nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ (Quy chế yêu cầu nợ 0 đ).`,
         });
       } else {
         matchedRules.push('POL_NO_TUITION_DEBT');

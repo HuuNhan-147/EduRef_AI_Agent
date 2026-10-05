@@ -1,4 +1,4 @@
-# TÀI LIỆU KIỂM TOÁN VÀ TÁI THIẾT HỆ THỐNG LÕI
+﻿# TÀI LIỆU KIỂM TOÁN VÀ TÁI THIẾT HỆ THỐNG LÕI
 # (SYSTEM CORE RECONSTRUCTION DOCUMENT)
 
 > Tài liệu lịch sử trước đợt chuẩn hóa Track A. Các đường dẫn `DA_IELS_NEW`, nhận định frontend chưa có, demo auth fallback và kết quả Verify 100% không còn là nguồn chân lý. Xem `docs/14_TRACK_A_POLICY.md`, `docs/08_VERIFY.md` và `RUNBOOK.md`.
@@ -105,7 +105,7 @@ Hệ thống hiện tại cài đặt 7 tính năng chính hoàn chỉnh:
   - Ghi: `prisma.studentRequest` (trạng thái `APPROVED`, `decision: 'ROUTINE_AUTO_APPROVED'`, `qrCodeUrl`).
   - Ghi: `prisma.auditLog` (hành động `WORKFLOW_AUTO_APPROVE`, chữ ký `sha256Hash`, `previousHash`).
 - **Side effects:**
-  - Sinh mã hồ sơ `ST-XXXXXX`.
+  - Sinh mã hồ sơ `XNSV-XXXXXX`.
   - Tạo mã QR xác thực số trực tuyến (`https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=EDUREF_VERIFIED...`).
   - Ký chuỗi băm SHA-256 bất biến nối tiếp vào `prisma.studentRequest.sha256Proof`.
 - **Audit:** Ghi bản ghi kiểm toán với đầy đủ 5W1H (Who: `AI_AGENT`, Action: `WORKFLOW_AUTO_APPROVE`, Decision: `APPROVED`, Before/After state, hash SHA-256).
@@ -382,7 +382,7 @@ User / Staff nhấn [Hoàn tác / Rollback]
 AcademicWorkflowService.rollbackRequest({ requestId, reason, staffName })
         │
         ▼ [backend/services/AcademicWorkflowService.js:686]
-Tìm kiếm StudentRequest theo ID hoặc RequestCode (ST-XXXXXX)
+Tìm kiếm StudentRequest theo ID hoặc RequestCode (XNSV-XXXXXX)
 Lấy snapshot trạng thái trước: beforeState = { status, qrCodeUrl }
         │
         ▼ [backend/services/AcademicWorkflowService.js:694-702]
@@ -490,8 +490,8 @@ AgentOrchestrator -> PetitionWorkflowCore.processPetitionWorkflow()
   ├─► Chốt 2: evaluatePolicies() -> SV ACTIVE, nợ phí 0 đ -> PASS
   ├─► Chốt 3: checkAuthority() -> Loại đơn thường quy -> role: 'AI_AGENT', AUTO_APPROVE
   ├─► Chốt 4-5: onApproved()
-  │     - Sinh mã ST-XXXXXX
-  │     - Cấp mã QR trực tuyến: EDUREF_VERIFIED_ST-XXXXXX_2110001
+  │     - Sinh mã XNSV-XXXXXX
+  │     - Cấp mã QR trực tuyến: EDUREF_VERIFIED_XNSV-XXXXXX_2110001
   │     - Ghi AuditLog có chữ ký SHA-256
   ▼
 Trạng thái: APPROVED (Thời gian: ~250-800ms)
@@ -540,13 +540,13 @@ POST /api/petitions/:id/approve ({ note: 'Đã đối chiếu lệnh gọi hợp
   │
   ▼ AcademicWorkflowService.staffDecision()
   - Cập nhật status='APPROVED', decision='STAFF_MANUAL_APPROVED'
-  - Cấp mã QR có mộc cán bộ duyệt: EDUREF_STAFF_APPROVED_ST-XXXXXX
+  - Cấp mã QR có mộc cán bộ duyệt: EDUREF_STAFF_APPROVED_XNSV-XXXXXX
   - Ghi AuditLog: STAFF_APPROVE_REQUEST nối tiếp chuỗi băm SHA-256
 ```
 
 ### FLOW D — ROLLBACK / HUMAN OVERRIDE (Dừng và thu hồi chứng nhận số)
 ```text
-Giám khảo / Cán bộ phát hiện gian lận hoặc sai sót trên hồ sơ ST-XXXXXX
+Giám khảo / Cán bộ phát hiện gian lận hoặc sai sót trên hồ sơ XNSV-XXXXXX
   │
   ▼ Nhấn [Hoàn Tác / Ghi Đè] trên giao diện
 POST /api/petitions/:id/rollback ({ reason: 'Phát hiện sinh viên giả mạo giấy triệu tập' })
@@ -715,7 +715,7 @@ Harness 5 Test Cases chuẩn Sprint 1 tại `verifyTools.js` và endpoint `/api/
  │
  ▼ [CHỐT 4 & 5: EXECUTION & CANONICAL SHA-256 CRYPTOGRAPHIC PROOF]
  ───────────────────────────────────────────────────────────────────────────────────────────────────
-  - Cấp mã số sinh viên ST-XXXXXX
+  - Cấp mã số sinh viên XNSV-XXXXXX
   - Tạo mã QR chứng thực số trực tuyến (EDUREF_VERIFIED_... hoặc EDUREF_STAFF_APPROVED_...)
   - Tính toán mã băm SHA-256 bất biến qua Canonical JSON Stringify
   - Ghi vết Block nối tiếp vào chuỗi khối PostgreSQL (AuditLog.previousHash -> sha256Hash)

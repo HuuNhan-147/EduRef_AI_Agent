@@ -129,13 +129,13 @@ class AcademicPolicyEngine {
     }
 
     // 2.2. Kiểm tra quy định nợ học phí
-    if (Number(student.tuitionDebt) > 10000000) {
+    if (Number(student.tuitionDebt || 0) > 0) {
       return {
         decision: 'EXPLICIT_POLICY_DENY',
         uncertaintyType: null,
         policyCode: 'POL_NO_TUITION_DEBT',
-        reason: `Sinh viên đang nợ học phí quá hạn ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ (vượt trần 10.000.000 đ).`,
-        userMessage: `Yêu cầu bị chặn: Bạn đang nợ học phí quá hạn ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ. Vui lòng hoàn thành nghĩa vụ tài chính với Phòng Kế hoạch - Tài chính trước khi xin cấp giấy tờ.`,
+        reason: `Sinh viên còn nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ (Quy chế yêu cầu hoàn thành 100% nghĩa vụ tài chính - nợ 0 đ).`,
+        userMessage: `Yêu cầu bị chặn: Bạn đang còn nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ. Theo quy định tài chính của Nhà trường, sinh viên phải hoàn thành 100% nghĩa vụ học phí trước khi xin cấp giấy tờ.`,
         decisionTimeMs: Date.now() - startTime,
       };
     }

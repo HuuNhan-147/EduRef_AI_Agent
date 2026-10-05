@@ -1,4 +1,4 @@
-# 📋 BÁO CÁO NGHIỆM THU & TÀI LIỆU KỸ THUẬT GIAI ĐOẠN 1
+﻿# 📋 BÁO CÁO NGHIỆM THU & TÀI LIỆU KỸ THUẬT GIAI ĐOẠN 1
 > **Dự án:** EduRef AI — Autonomous Student Service & Academic Escalation Referee  
 > **Cuộc thi:** MLAI Hackathon 2026 (Track VNG / Bảng 1 — OrganizationAI)  
 > **Đội thi:** KAISER (Cao Hữu Nhân, Trần Minh Quang, Trần Đức Tài)  
@@ -32,7 +32,7 @@
     1. *Điều kiện dữ kiện:* Kiểm tra mục đích sử dụng.
     2. *Quy chế đào tạo:* Trạng thái `ACTIVE`, nợ học phí $\le$ 10.000.000 VNĐ.
     3. *Phân cấp thẩm quyền:* Nhận diện ngoại lệ hoặc ép quyền miệng.
-  - Phê duyệt, tạo mã tra cứu `ST-XXXXXX`, gắn hạn hiệu lực 30 ngày và ký số SHA-256 bất biến chỉ trong **~390ms**.
+  - Phê duyệt, tạo mã tra cứu `XNSV-XXXXXX`, gắn hạn hiệu lực 30 ngày và ký số SHA-256 bất biến chỉ trong **~390ms**.
 
 ### 2. Cổng kiểm soát ý định 4 tầng (Zero-Tool Intent Gate)
 Triệt tiêu hoàn toàn hiện tượng Agent đoán mò hoặc gọi tool bừa bãi khi người dùng không có ý định nộp đơn:
@@ -46,7 +46,7 @@ Triệt tiêu hoàn toàn hiện tượng Agent đoán mò hoặc gọi tool b�
 ### 3. Quy trình Hội thoại 2 bước (Human-Centered Conversational Intake)
 Bám sát hướng dẫn thực tế từ Phòng Công tác Sinh viên HUTECH:
 - **Bước 1 (Intake & Clarify):** Khi sinh viên nêu mục đích xin giấy nhưng chưa chọn cơ sở nhận bản cứng $\rightarrow$ AI chào hỏi, tóm tắt thông tin sinh viên và hỏi sinh viên chọn 1 trong 2 cơ sở (Sai Gon Campus phòng A-01.01 hoặc Thu Duc Campus phòng E1-01.08) (0 Tool Calls).
-- **Bước 2 (Confirm & Approve):** Khi sinh viên xác nhận cơ sở $\rightarrow$ AI gọi `process_student_confirmation` để thẩm định và cấp mã chứng thực số ST-XXXXXX, dặn dò sinh viên đến nhận sau tối đa 02 ngày làm việc.
+- **Bước 2 (Confirm & Approve):** Khi sinh viên xác nhận cơ sở $\rightarrow$ AI gọi `process_student_confirmation` để thẩm định và cấp mã chứng thực số XNSV-XXXXXX, dặn dò sinh viên đến nhận sau tối đa 02 ngày làm việc.
 
 ### 4. Khóa trần an toàn `MAX_AGENT_STEPS = 7` & Two-Tier Fallback
 - **Lớp 1 (Fast-path):** Chạy 1 bước tổng hợp (~390ms).

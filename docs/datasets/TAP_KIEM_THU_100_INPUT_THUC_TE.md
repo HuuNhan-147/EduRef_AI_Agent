@@ -1,4 +1,4 @@
-# 🧪 BỘ DỮ LIỆU 100 CA KIỂM THỬ THỰC TẾ ĐẦU VÀO (TEST HARNESS DATASET)
+﻿# 🧪 BỘ DỮ LIỆU 100 CA KIỂM THỬ THỰC TẾ ĐẦU VÀO (TEST HARNESS DATASET)
 > **Dự án:** EduRef AI — Autonomous Academic Petition & Escalation Referee  
 > **Áp dụng cho:** Đánh giá Tác tử AI (Gemini 2.5 Flash), Deterministic Policy Engine & 4 Chốt chặn Thẩm quyền  
 > **Chuẩn mực:** Quy chế Đào tạo & Công tác Sinh viên Đại học HUTECH  
@@ -82,15 +82,15 @@
 ---
 
 ## ⚡ NHÓM 4: THƯỜNG QUY HỢP LỆ 100% (ROUTINE AUTO-APPROVE) (TC-036 -> TC-050)
-> **Mục tiêu:** Sinh viên `ACTIVE`, `tuitionDebt = 0`, cung cấp đầy đủ mục đích nằm trong danh mục thường quy HUTECH và có cơ sở nhận giấy. **Hệ thống tự động phê duyệt trong 1 bước Fast-path, cấp mã số `ST-XXXXXX`, dặn dò sau 02 ngày làm việc đến nhận bản cứng, ký mã băm SHA-256.**
+> **Mục tiêu:** Sinh viên `ACTIVE`, `tuitionDebt = 0`, cung cấp đầy đủ mục đích nằm trong danh mục thường quy HUTECH và có cơ sở nhận giấy. **Hệ thống tự động phê duyệt trong 1 bước Fast-path, cấp mã số `XNSV-XXXXXX`, dặn dò sau 02 ngày làm việc đến nhận bản cứng, ký mã băm SHA-256.**
 
 | Mã ca | Input của người dùng (Prompt) | Ngữ cảnh tài khoản | Quyết định | Hành vi & Nội dung phản hồi mong đợi của AI |
 | :---: | :--- | :---: | :---: | :--- |
-| **TC-036** | `"Xin giấy xác nhận sinh viên để làm vé tháng xe buýt, nhận ở Sai Gon Campus"` | 2280602154 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Tự động duyệt đơn, cấp mã `ST-XXXXXX`, địa điểm nhận: Sai Gon Campus (A-01.01), hạn lấy sau 2 ngày làm việc. SHA-256 hash. |
+| **TC-036** | `"Xin giấy xác nhận sinh viên để làm vé tháng xe buýt, nhận ở Sai Gon Campus"` | 2280602154 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Tự động duyệt đơn, cấp mã `XNSV-XXXXXX`, địa điểm nhận: Sai Gon Campus (A-01.01), hạn lấy sau 2 ngày làm việc. SHA-256 hash. |
 | **TC-037** | `"Em cần giấy xác nhận nộp hồ sơ học bổng, nhận ở cơ sở Thủ Đức"` | 2110001 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Tự động duyệt, cấp mã tra cứu, địa điểm: Thu Duc Campus (E1-01.08). |
 | **TC-038** | `"Cấp giấy xnsv vay vốn ngân hàng chính sách xã hội, lấy tại A-01.01"` | 2280602154 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Tự động duyệt mục đích Vay vốn NHCSXH, cấp mã hồ sơ số, lấy tại A-01.01. |
 | **TC-039** | `"Cho em xin giấy tạm hoãn nghĩa vụ quân sự nộp cho ban chỉ huy quân sự phường, nhận ở Sài Gòn"` | 2280602154 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Tự động duyệt mục đích Tạm hoãn NVQS, cấp mã hồ sơ và thông tin nhận bản cứng có mộc đỏ. |
-| **TC-040** | `"Em xin giấy xác nhận để làm hồ sơ xin visa du lịch, nhận tại cơ sở E1 Thủ Đức"` | 2110001 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Tự động duyệt mục đích Xin Visa, cấp mã `ST-XXXXXX`, nhận tại E1-01.08. |
+| **TC-040** | `"Em xin giấy xác nhận để làm hồ sơ xin visa du lịch, nhận tại cơ sở E1 Thủ Đức"` | 2110001 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Tự động duyệt mục đích Xin Visa, cấp mã `XNSV-XXXXXX`, nhận tại E1-01.08. |
 | **TC-041** | `"Xin giấy xác nhận sinh viên để bổ sung hồ sơ học tập công chứng, nhận ở Sai Gon Campus"` | 2280602154 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Tự động duyệt mục đích Bổ sung hồ sơ học tập, cấp mã số tra cứu và chữ ký băm. |
 | **TC-042** | `"Bố em cần giấy xác nhận sinh viên để làm thủ tục giảm trừ gia cảnh thuế TNCN, lấy ở Thủ Đức"` | 2280602154 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Nhận diện mục đích `TAX_DEDUCTION` (thuế thu nhập cá nhân), tự động duyệt, cấp mã hồ sơ. |
 | **TC-043** | `"xnsv lam ve xe buyt co so sai gon a01"` (Viết tắt) | 2280602154 (ACTIVE, nợ 0) | `AUTO_APPROVED` | Nhận diện từ viết tắt, tự động duyệt đơn vé xe buýt tại Sai Gon Campus. |
@@ -155,7 +155,7 @@
 
 | Mã ca | Input của người dùng (Prompt) | Ngữ cảnh tài khoản | Quyết định | Hành vi & Nội dung phản hồi mong đợi của AI |
 | :---: | :--- | :---: | :---: | :--- |
-| **TC-081** | `"Xin giấy xác nhận sinh viên để bảo lãnh hợp đồng thuê nhà cho người thân"` | 2110001 (ACTIVE, nợ 0) | `ESCALATE_TO_STAFF` | **Mục đích ngoài policy:** Phân loại `OUTSIDE_POLICY`. Đóng gói Context Capsule chuyển Cán bộ PĐT xem xét ngoại lệ. Sinh mã hồ sơ `ST-XXXXXX`. |
+| **TC-081** | `"Xin giấy xác nhận sinh viên để bảo lãnh hợp đồng thuê nhà cho người thân"` | 2110001 (ACTIVE, nợ 0) | `ESCALATE_TO_STAFF` | **Mục đích ngoài policy:** Phân loại `OUTSIDE_POLICY`. Đóng gói Context Capsule chuyển Cán bộ PĐT xem xét ngoại lệ. Sinh mã hồ sơ `XNSV-XXXXXX`. |
 | **TC-082** | `"Em cần giấy xác nhận sinh viên để đứng tên bảo lãnh vay vốn mua xe trả góp cho anh trai"` | 2280602154 (ACTIVE, nợ 0) | `ESCALATE_TO_STAFF` | **Mục đích ngoài policy:** Chuyển Cán bộ PĐT, câu hỏi: "Cán bộ có đồng ý cấp giấy xác nhận cho mục đích bảo lãnh mua xe trả góp không?" |
 | **TC-083** | `"Xin giấy xác nhận sinh viên để tham gia thi tuyển gameshow truyền hình"` | 2280602154 (ACTIVE, nợ 0) | `ESCALATE_TO_STAFF` | **Mục đích ngoài policy:** Chuyển tiếp Cán bộ PĐT thẩm định mục đích thi gameshow. |
 | **TC-084** | `"Em cần giấy xác nhận sinh viên để đăng ký làm người mẫu độc quyền cho công ty giải trí"` | 2110001 (ACTIVE, nợ 0) | `ESCALATE_TO_STAFF` | **Mục đích ngoài policy:** Chuyển tiếp Cán bộ PĐT xử lý theo thẩm quyền. |

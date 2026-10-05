@@ -68,7 +68,7 @@ Hệ thống cung cấp 11 công cụ khai báo chuẩn Function Calling:
 2. `get_student_requests({ studentCode })`: Lấy lịch sử 10 đơn gần nhất của sinh viên để chống nộp trùng lặp hoặc lách luật.
 
 ### B. Nhóm Khởi tạo & Tra cứu Đơn (Request Context)
-3. `create_request({ studentCode, requestTypeCode, purpose, inputData })`: Khởi tạo hồ sơ đơn mới ở trạng thái `PENDING` và cấp mã đơn `ST-XXXXXX`.
+3. `create_request({ studentCode, requestTypeCode, purpose, inputData })`: Khởi tạo hồ sơ đơn mới ở trạng thái `PENDING` và cấp mã đơn `XNSV-XXXXXX`.
 4. `get_request({ requestId })`: Context Aggregator - lấy toàn bộ trạng thái chi tiết của đơn (chứng từ, thông tin sinh viên, kết quả thẩm định).
 
 ### C. Nhóm Thẩm định Hồ sơ (Requirement & Policy Gate)
@@ -102,7 +102,7 @@ Sinh viên thường dùng tiếng lóng hoặc từ viết tắt khi trao đổ
 ### 2. Xử lý đại từ chỉ định ngữ cảnh (Anaphora Resolution):
 Khi sinh viên hỏi: *"Đơn đó của em duyệt chưa?"* hoặc *"Hồ sơ này cần thêm gì?"*:
 - `ConversationMemory` lưu lại `lastRequestId` và `lastRequestType` của phiên.
-- Hệ thống tự động thay thế cụm "đơn đó", "hồ sơ đó" thành mã đơn cụ thể (ví dụ: `ST-340510`) trước khi đưa vào LLM suy luận.
+- Hệ thống tự động thay thế cụm "đơn đó", "hồ sơ đó" thành mã đơn cụ thể (ví dụ: `XNSV-340510`) trước khi đưa vào LLM suy luận.
 
 ---
 

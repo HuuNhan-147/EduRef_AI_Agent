@@ -124,7 +124,7 @@ export class PetitionWorkflowCore {
           include: { documents: true, student: true, requestType: true },
         });
       } else {
-        const requestCode = `ST-${Math.floor(100000 + Math.random() * 900000)}`;
+        const requestCode = `XNSV-${Math.floor(100000 + Math.random() * 900000)}`;
         request = await prisma.studentRequest.create({
           data: {
             requestCode,

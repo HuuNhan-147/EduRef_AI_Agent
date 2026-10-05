@@ -152,7 +152,7 @@ model AuthorityRule {
 // 8. StudentRequests (Hồ sơ đơn phiếu trung tâm)
 model StudentRequest {
   id                String            @id @default(cuid())
-  requestCode       String            @unique // Mã đơn ST-XXXXXX
+  requestCode       String            @unique // Mã đơn XNSV-XXXXXX chuẩn HUTECH
   studentId         String
   student           Student           @relation(fields: [studentId], references: [id])
   requestTypeId     String
