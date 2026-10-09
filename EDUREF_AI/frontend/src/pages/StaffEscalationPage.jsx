@@ -135,6 +135,24 @@ export default function StaffEscalationPage() {
     }
   };
 
+  const handleResetTestData = async () => {
+    const studentCodeToReset = selectedPetition?.student?.studentCode || '2280602154';
+    if (!window.confirm(`Bạn có chắc muốn xóa sạch toàn bộ đơn thử nghiệm của sinh viên [${studentCodeToReset}] để test lại từ đầu không?`)) {
+      return;
+    }
+    try {
+      setLoading(true);
+      const res = await api.post('/petitions/reset-test', { studentCode: studentCodeToReset });
+      alert(res.data?.message || 'Đã làm sạch dữ liệu đơn test thành công!');
+      setSelectedPetition(null);
+      await fetchEscalations();
+    } catch (err) {
+      alert('Không thể xóa đơn test: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const escalatedList = petitions.filter((p) => p.status === 'ESCALATED');
   const approvedList = petitions.filter((p) => p.status === 'APPROVED');
   const rejectedList = petitions.filter((p) => p.status === 'REJECTED');
@@ -182,13 +200,23 @@ export default function StaffEscalationPage() {
               <span className="font-semibold text-amber-700">{escalatedList.length} hồ sơ</span> chờ cán bộ thẩm định
             </p>
           </div>
-          <button
-            onClick={fetchEscalations}
-            disabled={loading}
-            className="text-xs text-[#0B3B82] hover:text-[#082C64] font-semibold cursor-pointer px-2 py-1 rounded hover:bg-blue-50 transition-colors"
-          >
-            {loading ? 'Đang tải...' : 'Làm mới'}
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleResetTestData}
+              disabled={loading}
+              title="Xóa nhanh các đơn thử nghiệm để bắt đầu lại kịch bản test"
+              className="text-xs text-rose-600 hover:text-rose-800 font-semibold cursor-pointer px-2 py-1 rounded hover:bg-rose-50 border border-rose-200 transition-colors"
+            >
+              🧹 Reset
+            </button>
+            <button
+              onClick={fetchEscalations}
+              disabled={loading}
+              className="text-xs text-[#0B3B82] hover:text-[#082C64] font-semibold cursor-pointer px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+            >
+              {loading ? 'Đang tải...' : 'Làm mới'}
+            </button>
+          </div>
         </div>
 
         {/* Ô Tìm Kiếm Nhanh */}
@@ -655,6 +683,30 @@ export default function StaffEscalationPage() {
 
                       {/* Thông tin chi tiết */}
                       <div className="pt-3.5 space-y-3 text-xs">
+                        {/* Banner thông báo Cấp lại lần 2 (Kế thừa dữ liệu & Ngoại lệ hạn ngạch) */}
+                        {Boolean(input.isReissue || capsule?.isReissue || String(capsule?.reason || '').includes('lần thứ 2') || String(selectedPetition.escalationReason || '').includes('lần thứ 2')) && (
+                          <div className="p-3 rounded-lg bg-amber-500/10 border border-amber-500/30 text-amber-950 text-xs flex items-start gap-2.5">
+                            <AlertTriangle className="w-4 h-4 text-amber-600 shrink-0 mt-0.5" />
+                            <div className="space-y-1">
+                              <div className="font-bold flex flex-wrap items-center gap-2">
+                                <span className="px-2 py-0.5 rounded bg-amber-100 text-amber-900 font-extrabold text-[10px] border border-amber-300">
+                                  CẤP LẠI LẦN 2 (NGOẠI LỆ HẠN NGẠCH)
+                                </span>
+                                {input.originalRequestCode && (
+                                  <span className="font-mono text-slate-700 font-medium">
+                                    Kế thừa từ đơn gốc: <strong className="text-blue-700">{input.originalRequestCode}</strong>
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-slate-700 leading-relaxed">
+                                <strong>Lý do xin cấp lại:</strong> {input.reissueReason || input.repeatReason || input.explanation || 'Sinh viên giải trình làm mất bản chính hoặc cần bổ sung nộp cơ quan khác.'}
+                              </p>
+                              <p className="text-[11px] text-amber-800 italic">
+                                ℹ️ Toàn bộ thông tin hành chính đã được hệ thống tự động kế thừa từ đơn đã được duyệt trong học kỳ, giúp Cán bộ thẩm định nhanh chóng không cần hỏi lại sinh viên.
+                              </p>
+                            </div>
+                          </div>
+                        )}
                         
                         {/* 1. Thông tin sinh viên & Nhân thân */}
                         <div>

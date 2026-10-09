@@ -624,17 +624,19 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     }
 
     // Nếu đã có lý do giải trình -> CHUYỂN TIẾP CHO CÁN BỘ (ESCALATE_TO_STAFF), KHÔNG ĐƯỢC TỰ DUYỆT
+    const prevCode = inputData.originalRequestCode ? ` (Đơn lần 1 mã: ${inputData.originalRequestCode})` : '';
+    const inheritedNote = inputData.isReissue ? ' Dữ liệu hành chính (địa chỉ, cơ sở nhận, nơi gửi) đã được hệ thống kế thừa nguyên vẹn từ lần 1.' : '';
     return {
       classification: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
       uncertaintyType: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
       decision: TRACK_A_DECISION.ESCALATE_STAFF,
       targetRole: 'STAFF',
       rule: 'POLICY_REISSUE_QUOTA_ESCALATE',
-      reason: `Sinh viên xin cấp lại lần thứ 2 trong cùng học kỳ cho biểu mẫu [${targetForm.code}] với lý do giải trình: "${reissueReason}". Vượt hạn ngạch tự động 1 bản/kỳ, bắt buộc chuyển Cán bộ Phòng CTSV/PĐT xem xét phê duyệt ngoại lệ.`,
+      reason: `Sinh viên xin cấp lại lần thứ 2 trong cùng học kỳ cho biểu mẫu [${targetForm.code}] với lý do giải trình: "${reissueReason}". Vượt hạn ngạch tự động 1 bản/kỳ, bắt buộc chuyển Cán bộ Phòng CTSV/PĐT xem xét phê duyệt ngoại lệ.${inheritedNote}`,
       actionableQuestion:
-        `Sinh viên ${student.fullName} (${student.studentCode}) xin cấp lại lần 2 biểu mẫu "${targetForm.name}" với lý do: "${reissueReason}". Cán bộ CTSV/PĐT có chấp thuận phê duyệt cấp lại không?`,
+        `Sinh viên ${student.fullName} (${student.studentCode}) xin cấp lại lần 2 biểu mẫu "${targetForm.name}" do: "${reissueReason}"${prevCode}.${inheritedNote} Cán bộ CTSV/PĐT có chấp thuận phê duyệt cấp lại không?`,
       userMessage:
-        `Yêu cầu xin cấp lại lần 2 của bạn đã được tiếp nhận kèm lý do giải trình ("${reissueReason}"). Theo quy định, hồ sơ đã được chuyển tiếp lên Cán bộ Phòng CTSV/PĐT để xem xét và phê duyệt ngoại lệ. Bạn vui lòng chờ thông báo từ Nhà trường nhé!`,
+        `Yêu cầu xin cấp lại lần 2 biểu mẫu ${targetForm.name} của bạn đã được tiếp nhận kèm lý do giải trình ("${reissueReason}"). Hệ thống đã tự động giữ nguyên các thông tin như lần cấp trước và chuyển tiếp hồ sơ lên Cán bộ Phòng CTSV/PĐT để xem xét phê duyệt ngoại lệ. Bạn vui lòng chờ thông báo từ Nhà trường nhé!`,
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }

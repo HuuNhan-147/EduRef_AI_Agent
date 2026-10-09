@@ -23,6 +23,7 @@ import {
   Play,
   ExternalLink,
   Square,
+  Trash2,
 } from 'lucide-react';
 import MarkdownRenderer from '../components/common/MarkdownRenderer';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
@@ -121,6 +122,60 @@ export default function StudentWorkspacePage({
       setVerifyFeedback('Lỗi chạy verify: ' + (err.response?.data?.message || err.message));
     } finally {
       setIsVerifying90s(false);
+    }
+  };
+
+  // State và hàm xử lý Xóa dữ liệu thử nghiệm (Reset Test Data) 1-click
+  const [isResetting, setIsResetting] = useState(false);
+  const handleResetTestData = async () => {
+    if (!currentAccount.code) return;
+    const confirmMsg = `Bạn có chắc muốn xóa toàn bộ đơn thử nghiệm của sinh viên ${currentAccount.name} (${currentAccount.code}) để kiểm thử lại từ đầu không?`;
+    if (!window.confirm(confirmMsg)) return;
+
+    setIsResetting(true);
+    try {
+      const res = await api.post('/petitions/reset-test', { studentCode: currentAccount.code });
+      if (res.data?.success) {
+        // Xóa sạch bộ nhớ tạm sessionStorage của sinh viên này
+        try {
+          sessionStorage.removeItem(`eduref_messages_${currentAccount.code}`);
+          sessionStorage.removeItem(`eduref_decision_${currentAccount.code}`);
+        } catch (e) {}
+
+        // Đặt lại hộp thoại hội thoại về trạng thái chào mừng ban đầu
+        setMessages([
+          {
+            id: `welcome_${Date.now()}`,
+            sender: 'agent',
+            text: `Chào bạn **${currentAccount.name}** nhé! 👋\n\nMình là **EduRef AI** — Trợ lý học vụ số của trường.\n\nDữ liệu thử nghiệm đã được dọn sạch. Bạn có thể kiểm thử lại quy trình cấp giấy xác nhận ngay bây giờ nhé!`,
+            timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+          },
+        ]);
+
+        // Đặt lại Cột 3 (Bảng Thẩm định)
+        setActiveDecision({
+          status: 'IDLE',
+          requirementsCheck: 'PENDING',
+          policiesCheck: 'PENDING',
+          authorityCheck: 'PENDING',
+          finalDecision: null,
+          reason: null,
+          requestCode: null,
+          qrCodeUrl: null,
+          sha256Proof: null,
+          missingFields: [],
+        });
+
+        // Cấp sessionId mới
+        setSessionId(`sess_${currentAccount.code}_${Date.now()}`);
+        alert(`Đã xóa thành công ${res.data.deletedCount} đơn thử nghiệm của sinh viên ${currentAccount.code}!`);
+      } else {
+        alert(res.data?.message || 'Không thể xóa dữ liệu kiểm thử.');
+      }
+    } catch (err) {
+      alert('Lỗi khi xóa dữ liệu test: ' + (err.response?.data?.message || err.message));
+    } finally {
+      setIsResetting(false);
     }
   };
 
@@ -696,6 +751,13 @@ export default function StudentWorkspacePage({
               <span className="w-2 h-2 rounded-full bg-rose-500 shrink-0"></span>
               <span className="truncate">Không có TKB kỳ này: Thôi học (REJECT)</span>
             </button>
+            <button
+              onClick={() => handleSendMessage('Em xin cấp lại Giấy chứng nhận tạm hoãn nghĩa vụ quân sự lần 2 do em làm thất lạc bản chính')}
+              className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-amber-50/80 border border-amber-300 hover:bg-amber-100 text-amber-950 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
+            >
+              <span className="w-2 h-2 rounded-full bg-amber-500 shrink-0"></span>
+              <span className="truncate">Cấp lại lần 2: Tự động kế thừa đơn cũ (REISSUE)</span>
+            </button>
           </div>
         </div>
       </div>
@@ -729,27 +791,38 @@ export default function StudentWorkspacePage({
             </div>
           </div>
 
-          <button
-            onClick={() => {
-              try {
-                sessionStorage.removeItem(`eduref_messages_${currentAccount.code}`);
-              } catch (e) {}
-              setMessages([
-                {
-                  id: `welcome_${Date.now()}`,
-                  sender: 'agent',
-                  text: `Chào bạn **${currentAccount.name}** nhé! 👋\n\nMình là **EduRef AI** — Trợ lý học vụ số của trường.\n\nMình có thể hỗ trợ bạn cấp **Giấy xác nhận sinh viên** siêu tốc (để vay vốn ngân hàng, tạm hoãn NVQS, làm vé xe buýt, bổ sung hồ sơ học bổng, xin visa...) hoặc giải đáp các thắc mắc về quy chế đào tạo.\n\nHôm nay bạn cần mình hỗ trợ thủ tục gì nè?`,
-                  timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-                },
-              ]);
-              setSessionId(`sess_${Date.now()}`);
-            }}
-            className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-            title="Làm mới cuộc trò chuyện"
-          >
-            <RefreshCw className="w-3.5 h-3.5" />
-            <span className="text-[11px] font-medium">Làm mới</span>
-          </button>
+          <div className="flex items-center gap-1.5">
+            <button
+              onClick={handleResetTestData}
+              disabled={isResetting}
+              className="text-xs text-rose-600 hover:text-rose-700 flex items-center gap-1 px-2.5 py-1.5 rounded-lg hover:bg-rose-50 border border-transparent hover:border-rose-200 transition-colors cursor-pointer"
+              title="Xóa toàn bộ đơn thử nghiệm của sinh viên này để kiểm thử lại từ đầu"
+            >
+              <Trash2 className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-medium">{isResetting ? 'Đang xóa...' : 'Xóa đơn test'}</span>
+            </button>
+            <button
+              onClick={() => {
+                try {
+                  sessionStorage.removeItem(`eduref_messages_${currentAccount.code}`);
+                } catch (e) {}
+                setMessages([
+                  {
+                    id: `welcome_${Date.now()}`,
+                    sender: 'agent',
+                    text: `Chào bạn **${currentAccount.name}** nhé! 👋\n\nMình là **EduRef AI** — Trợ lý học vụ số của trường.\n\nMình có thể hỗ trợ bạn cấp **Giấy xác nhận sinh viên** siêu tốc (để vay vốn ngân hàng, tạm hoãn NVQS, làm vé xe buýt, bổ sung hồ sơ học bổng, xin visa...) hoặc giải đáp các thắc mắc về quy chế đào tạo.\n\nHôm nay bạn cần mình hỗ trợ thủ tục gì nè?`,
+                    timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+                  },
+                ]);
+                setSessionId(`sess_${Date.now()}`);
+              }}
+              className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
+              title="Làm mới cuộc trò chuyện"
+            >
+              <RefreshCw className="w-3.5 h-3.5" />
+              <span className="text-[11px] font-medium">Làm mới</span>
+            </button>
+          </div>
         </div>
 
         {/* Khung tin nhắn cuộn */}

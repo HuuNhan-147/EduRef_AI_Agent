@@ -362,4 +362,59 @@ router.post('/:id/resume', authenticateToken, async (req, res) => {
   }
 });
 
+/**
+ * POST /api/petitions/reset-test (Xóa sạch các đơn thử nghiệm của sinh viên để test lại từ đầu)
+ */
+router.post('/reset-test', authenticateToken, async (req, res) => {
+  try {
+    const studentCode = req.body?.studentCode || req.user?.studentCode;
+    if (!studentCode) {
+      return res.status(400).json({ success: false, message: 'Thiếu studentCode để làm sạch dữ liệu test.' });
+    }
+
+    const student = await prisma.student.findUnique({
+      where: { studentCode: String(studentCode).trim() },
+      select: { id: true, studentCode: true, fullName: true },
+    });
+
+    if (!student) {
+      return res.status(404).json({ success: false, message: `Không tìm thấy sinh viên [${studentCode}] trong hệ thống.` });
+    }
+
+    // 1. Tìm tất cả đơn của sinh viên này
+    const studentRequests = await prisma.studentRequest.findMany({
+      where: { studentId: student.id },
+      select: { id: true },
+    });
+    const requestIds = studentRequests.map((r) => r.id);
+
+    let deletedCount = 0;
+    if (requestIds.length > 0) {
+      // 2. Xóa các bản ghi AuditLog liên quan
+      await prisma.auditLog.deleteMany({
+        where: { requestId: { in: requestIds } },
+      });
+
+      // 3. Xóa các RequestDocument nếu có
+      await prisma.requestDocument.deleteMany({
+        where: { requestId: { in: requestIds } },
+      });
+
+      // 4. Xóa các đơn StudentRequest
+      const deleteResult = await prisma.studentRequest.deleteMany({
+        where: { id: { in: requestIds } },
+      });
+      deletedCount = deleteResult.count;
+    }
+
+    res.json({
+      success: true,
+      deletedCount,
+      message: `Đã xóa sạch ${deletedCount} đơn thử nghiệm của sinh viên ${student.fullName} (${student.studentCode}). Bạn có thể bắt đầu nộp đơn test lại từ đầu!`,
+    });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 export default router;

@@ -111,7 +111,7 @@ class AcademicWorkflowService {
         };
       }
 
-      // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY (CHỐNG SPAM BIỂU MẪU LẦN 2)
+      // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY & KẾ THỪA THÔNG MINH (SMART PREFILL) KHI CẤP LẦN 2
       let historyRequests = [];
       if (studentRec?.id) {
         try {
@@ -122,14 +122,27 @@ class AcademicWorkflowService {
               status: { in: ['APPROVED', 'COMPLETED', 'ESCALATED'] },
             },
             select: { id: true, requestCode: true, status: true, inputData: true, createdAt: true },
+            orderBy: { createdAt: 'desc' },
           });
         } catch (_e) {
           historyRequests = inputData?.historyRequests || [];
         }
+      } else {
+        historyRequests = inputData?.historyRequests || [];
       }
 
-      // 2. Kiểm tra bắt buộc: Cơ sở nhận giấy (Bắt buộc chọn 1 trong 2 cơ sở thực tế HUTECH)
-      const campusRaw = String(pickupCampus || inputData?.pickupCampus || inputData?.campus || '').trim();
+      // Tìm đơn đã duyệt gần nhất của cùng biểu mẫu này để kế thừa dữ liệu
+      const previousApproved = historyRequests.find(
+        (r) => ['APPROVED', 'COMPLETED'].includes(r.status) &&
+               (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === activeFormCode
+      );
+      const prevInput = previousApproved?.inputData || {};
+
+      // 2. Kiểm tra cơ sở nhận giấy (ưu tiên dữ liệu nhập -> dữ liệu kế thừa từ đơn cũ -> hỏi nếu cả 2 đều không có)
+      const campusRaw = String(
+        pickupCampus || inputData?.pickupCampus || inputData?.campus || prevInput.pickupCampus || prevInput.campus || ''
+      ).trim();
+
       if (!campusRaw) {
         return {
           success: true,
@@ -153,20 +166,32 @@ class AcademicWorkflowService {
         ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
         : campusRaw;
 
-      // Không hardcode '22DTHE4'
-      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || studentRec?.studentClass || null;
+      // Kế thừa các trường hành chính từ đơn cũ nếu lần này sinh viên không nhập lại
+      const resolvedAddress = permanentAddress || inputData?.permanentAddress || inputData?.address || prevInput.permanentAddress || prevInput.address || null;
+      const resolvedRecipientAgency = inputData?.recipientAgency || prevInput.recipientAgency || null;
+      const resolvedDebtCourses = debtCourses || inputData?.debtCourses || prevInput.debtCourses || null;
+      const resolvedPhone = phone || inputData?.phone || prevInput.phone || null;
+      const resolvedIdCard = idCard || inputData?.idCard || prevInput.idCard || null;
+      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || prevInput.studentClass || studentRec?.studentClass || null;
+
+      const isReissueCase = Boolean(previousApproved);
 
       const payload = {
         ...inputData,
         formCode: activeFormCode,
         purpose: finalPurpose,
         pickupCampus: normalizedCampus,
-        permanentAddress: permanentAddress || inputData?.permanentAddress || null,
-        debtCourses: debtCourses || inputData?.debtCourses || null,
-        phone: phone || inputData?.phone || null,
-        idCard: idCard || inputData?.idCard || null,
+        permanentAddress: resolvedAddress,
+        recipientAgency: resolvedRecipientAgency,
+        debtCourses: resolvedDebtCourses,
+        phone: resolvedPhone,
+        idCard: resolvedIdCard,
         studentClass: resolvedStudentClass,
         historyRequests,
+        isReissue: isReissueCase,
+        originalRequestId: previousApproved?.id || null,
+        originalRequestCode: previousApproved?.requestCode || null,
+        originalApprovedAt: previousApproved?.createdAt || null,
       };
 
       // ⚡ GỌI TRỰC TIẾP QUA PETITION WORKFLOW CORE DUY NHẤT (SINGLE SOURCE OF TRUTH)
