@@ -486,7 +486,7 @@ export default function StaffEscalationPage() {
                 <div>
                   <span className="text-slate-400 block text-[10px]">Lớp sinh hoạt / Ngành:</span>
                   <span className="font-medium text-slate-800 font-mono">
-                    {selectedPetition.inputData?.studentClass || selectedPetition.student?.studentClass || '22DTHA1'} • {selectedPetition.inputData?.major || 'CNTT'}
+                    {selectedPetition.inputData?.studentClass || selectedPetition.student?.studentClass || '22DTHE4'} • {selectedPetition.inputData?.major || 'CNTT'}
                   </span>
                 </div>
               </div>
@@ -617,7 +617,7 @@ export default function StaffEscalationPage() {
                 const studentCode = input.studentCode || student.studentCode || '2280602154';
                 const birthDate = input.birthDate || '26/07/2003';
                 const gender = input.gender || 'Nam';
-                const studentClass = input.studentClass || student.studentClass || '22DTHA1';
+                const studentClass = input.studentClass || student.studentClass || '22DTHE4';
                 const faculty = input.faculty || student.department?.name || 'Khoa Công nghệ Thông tin';
                 const major = input.major || 'Công nghệ Thông tin';
                 const phone = input.phone || student.phone || '0901234567';

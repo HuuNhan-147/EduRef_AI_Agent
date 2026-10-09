@@ -58,11 +58,23 @@ export default function DynamicPetitionModal({
     { code: 'GENERAL_CONFIRMATION', badge: 'DV-05', name: 'Mục đích chung (Xe buýt, Visa...)', shortName: 'Mục đích chung' },
   ];
 
+  const FORM_AGENCY_DEFAULTS = {
+    TAX_DEDUCTION: 'Chi cục Thuế Quận Bình Thạnh',
+    BANK_LOAN: 'Phòng giao dịch NHCSXH Quận Bình Thạnh',
+    MILITARY_DEFERMENT: 'Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh',
+    COURSE_DEBT: 'Giải trình Ban Chỉ huy Quân sự & Tiếp tục hoàn thành học phần',
+    GENERAL_CONFIRMATION: '',
+  };
+
   const [activeFormCode, setActiveFormCode] = useState(petitionType?.formCode || 'GENERAL_CONFIRMATION');
 
   useEffect(() => {
     if (petitionType?.formCode) {
       setActiveFormCode(petitionType.formCode);
+      setConfirmData((prev) => ({
+        ...prev,
+        recipientAgency: FORM_AGENCY_DEFAULTS[petitionType.formCode] || '',
+      }));
     }
   }, [petitionType]);
 
@@ -83,7 +95,7 @@ export default function DynamicPetitionModal({
     faculty: initialFaculty,
     phone: currentAccount.phone || '0901234567',
     purpose: 'Làm vé tháng xe buýt và bổ sung hồ sơ học tập',
-    recipientAgency: 'Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh',
+    recipientAgency: FORM_AGENCY_DEFAULTS[petitionType?.formCode || 'GENERAL_CONFIRMATION'] || '',
     permanentAddress: '180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
     debtCourses: 'Lập trình Web, Cơ sở dữ liệu',
     completionDeadline: 'Tháng 12/2026',
@@ -103,7 +115,7 @@ export default function DynamicPetitionModal({
         studentCode: acc?.code || acc?.studentCode || prev.studentCode,
         faculty: activeFaculty,
         major: activeMajor,
-        studentClass: acc?.studentClass || acc?.class || prev.studentClass || '22DTHA1',
+        studentClass: acc?.studentClass || acc?.class || prev.studentClass || '22DTHE4',
         phone: acc?.phone || prev.phone || '0901234567',
         birthDate: acc?.birthDate || prev.birthDate || '26/07/2003',
         gender: acc?.gender || prev.gender || 'Nam',
@@ -478,13 +490,35 @@ export default function DynamicPetitionModal({
                         onClick={() => {
                           setActiveFormCode(hf.code);
                           if (hf.code === 'TAX_DEDUCTION') {
-                            setConfirmData((prev) => ({ ...prev, recipientAgency: prev.recipientAgency || 'Chi cục Thuế Quận Bình Thạnh', purpose: 'Giảm trừ gia cảnh thuế TNCN' }));
+                            setConfirmData((prev) => ({
+                              ...prev,
+                              recipientAgency: FORM_AGENCY_DEFAULTS.TAX_DEDUCTION,
+                              purpose: 'Giảm trừ gia cảnh thuế TNCN cho phụ huynh',
+                            }));
                           } else if (hf.code === 'BANK_LOAN') {
-                            setConfirmData((prev) => ({ ...prev, recipientAgency: prev.recipientAgency || 'Phòng giao dịch NHCSXH Quận Bình Thạnh', purpose: 'Vay vốn Ngân hàng Chính sách Xã hội' }));
+                            setConfirmData((prev) => ({
+                              ...prev,
+                              recipientAgency: FORM_AGENCY_DEFAULTS.BANK_LOAN,
+                              purpose: 'Vay vốn học tập tại Ngân hàng Chính sách Xã hội theo Mẫu 01/TDSV',
+                            }));
                           } else if (hf.code === 'MILITARY_DEFERMENT') {
-                            setConfirmData((prev) => ({ ...prev, recipientAgency: prev.recipientAgency || 'Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh', purpose: 'Tạm hoãn nghĩa vụ quân sự' }));
+                            setConfirmData((prev) => ({
+                              ...prev,
+                              recipientAgency: FORM_AGENCY_DEFAULTS.MILITARY_DEFERMENT,
+                              purpose: 'Đăng ký tạm hoãn nghĩa vụ quân sự theo Luật NVQS',
+                            }));
                           } else if (hf.code === 'COURSE_DEBT') {
-                            setConfirmData((prev) => ({ ...prev, purpose: 'Xác nhận còn nợ môn để kéo dài tiến độ đào tạo' }));
+                            setConfirmData((prev) => ({
+                              ...prev,
+                              recipientAgency: FORM_AGENCY_DEFAULTS.COURSE_DEBT,
+                              purpose: 'Xác nhận sinh viên còn nợ môn và đang tiếp tục hoàn thành học phần',
+                            }));
+                          } else {
+                            setConfirmData((prev) => ({
+                              ...prev,
+                              recipientAgency: '',
+                              purpose: 'Làm vé tháng xe buýt và bổ sung hồ sơ học tập',
+                            }));
                           }
                         }}
                         className={`py-2 px-2 rounded-lg text-[11px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer border ${

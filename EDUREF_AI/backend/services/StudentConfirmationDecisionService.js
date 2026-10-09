@@ -156,21 +156,21 @@ export function isOverdueCohort(student = {}) {
 export function detectFormIntent(prompt = '') {
   const normalized = normalizeText(prompt);
 
-  // 1. Biểu mẫu Nợ môn
-  if (HUTECH_FORMS.COURSE_DEBT.keywords.some((k) => normalized.includes(k))) {
-    return HUTECH_FORMS.COURSE_DEBT;
+  // 1. Giảm thuế TNCN (Ưu tiên kiểm tra trước để tránh nhầm khi prompt có chứa nơi nộp lạ)
+  if (HUTECH_FORMS.TAX_DEDUCTION.keywords.some((k) => normalized.includes(k))) {
+    return HUTECH_FORMS.TAX_DEDUCTION;
   }
-  // 2. Tạm hoãn NVQS
-  if (HUTECH_FORMS.MILITARY_DEFERMENT.keywords.some((k) => normalized.includes(k))) {
-    return HUTECH_FORMS.MILITARY_DEFERMENT;
-  }
-  // 3. Vay vốn NHCSXH
+  // 2. Vay vốn NHCSXH
   if (HUTECH_FORMS.BANK_LOAN.keywords.some((k) => normalized.includes(k))) {
     return HUTECH_FORMS.BANK_LOAN;
   }
-  // 4. Giảm thuế TNCN
-  if (HUTECH_FORMS.TAX_DEDUCTION.keywords.some((k) => normalized.includes(k))) {
-    return HUTECH_FORMS.TAX_DEDUCTION;
+  // 3. Biểu mẫu Nợ môn
+  if (HUTECH_FORMS.COURSE_DEBT.keywords.some((k) => normalized.includes(k))) {
+    return HUTECH_FORMS.COURSE_DEBT;
+  }
+  // 4. Tạm hoãn NVQS
+  if (HUTECH_FORMS.MILITARY_DEFERMENT.keywords.some((k) => normalized.includes(k))) {
+    return HUTECH_FORMS.MILITARY_DEFERMENT;
   }
   // 5. Xác nhận sinh viên chung
   if (HUTECH_FORMS.GENERAL_CONFIRMATION.keywords.some((k) => normalized.includes(k))) {
@@ -249,8 +249,7 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
  * Phát hiện trường hợp sinh viên xin giấy này mà điền biểu mẫu kia (Cross-form mismatch)
  */
 export function detectCrossFormMismatch({ currentFormCode = null, text = '', student = {}, inputData = {} }) {
-  const normalizedText = normalizeText(`${text} ${inputData.purpose || ''} ${inputData.reason || ''}`);
-  const detectedForm = detectFormIntent(normalizedText);
+  const normalizedText = normalizeText(`${text} ${inputData.purpose || ''} ${inputData.reason || ''} ${inputData.recipientAgency || ''}`);
   const isOverdue = isOverdueCohort(student);
 
   // Trường hợp 1: Sinh viên đang trong diện nợ môn nhưng lại nộp biểu mẫu khác ngoài COURSE_DEBT
@@ -269,21 +268,39 @@ export function detectCrossFormMismatch({ currentFormCode = null, text = '', stu
     };
   }
 
+  // Trường hợp đặc biệt: Xung đột đơn Thuế TNCN nhưng nơi tiếp nhận lại ghi Ban Chỉ huy Quân sự
+  const hasTaxIntent = /giảm trừ gia cảnh|thuế tncn|thue tncn|thuế thu nhập/i.test(normalizedText);
+  const hasMilitaryAgency = /ban chỉ huy quân sự|ban chi huy quan su|quân sự phường|quan su phuong|bchqs/i.test(normalizedText);
+  if ((currentFormCode === 'TAX_DEDUCTION' || hasTaxIntent) && hasMilitaryAgency) {
+    return {
+      isMismatch: true,
+      reason: 'Xung đột mục đích: Bạn đang xin Giấy giảm trừ gia cảnh thuế TNCN nhưng cơ quan tiếp nhận lại là Ban Chỉ huy Quân sự.',
+      targetForm: HUTECH_FORMS.TAX_DEDUCTION,
+      guidanceMessage:
+        `Dạ hệ thống phát hiện có sự chưa thống nhất trong thông tin đơn của bạn:\n` +
+        `- Bạn đang chọn: **Đơn giảm trừ gia cảnh (Thuế TNCN)**\n` +
+        `- Cơ quan tiếp nhận bạn ghi: **Ban Chỉ huy Quân sự**\n\n` +
+        `Bạn vui lòng xác nhận lại giúp mình nhé:\n` +
+        `👉 Nếu bạn xin giảm thuế cho phụ huynh nộp Cơ quan Thuế: Vui lòng sửa lại nơi nhận là **Chi cục Thuế** (Ví dụ: "Chi cục Thuế Quận Bình Thạnh").\n` +
+        `👉 Nếu bạn xin hoãn nghĩa vụ quân sự: Vui lòng bấm vào mục **"Tạm hoãn NVQS"** ở danh mục bên tay trái để được cấp đúng biểu mẫu hợp lệ nhé!`,
+    };
+  }
+
   // Trường hợp 2: Kiểm tra chéo mục đích cụ thể với biểu mẫu hiện tại (Cross-Form Purpose Mismatch)
   let explicitTargetForm = null;
-  if (/visa|thị thực|thi thuc|du học|du lich|vé xe buýt|xe buyt|vé tháng|ve thang|học bổng|hoc bong/i.test(normalizedText)) {
-    explicitTargetForm = HUTECH_FORMS.GENERAL_CONFIRMATION;
+  if (/giảm trừ gia cảnh|thuế tncn|thue tncn|thuế thu nhập|chi cục thuế/i.test(normalizedText)) {
+    explicitTargetForm = HUTECH_FORMS.TAX_DEDUCTION;
   } else if (/nghĩa vụ quân sự|nghia vu quan su|nvqs|tạm hoãn nvqs|tam hoan nvqs|hoãn quân sự/i.test(normalizedText)) {
     explicitTargetForm = HUTECH_FORMS.MILITARY_DEFERMENT;
   } else if (/vay vốn|vay von|ngân hàng chính sách|ngan hang chinh sach|nhcsxh|mẫu 01|mau 01/i.test(normalizedText)) {
     explicitTargetForm = HUTECH_FORMS.BANK_LOAN;
-  } else if (/giảm trừ gia cảnh|thuế tncn|thue tncn|thuế thu nhập|chi cục thuế/i.test(normalizedText)) {
-    explicitTargetForm = HUTECH_FORMS.TAX_DEDUCTION;
   } else if (/nợ môn|no mon|trả nợ môn|kéo dài tiến độ|hoàn thành môn nợ/i.test(normalizedText)) {
     explicitTargetForm = HUTECH_FORMS.COURSE_DEBT;
+  } else if (/visa|thị thực|thi thuc|du học|du lich|vé xe buýt|xe buyt|vé tháng|ve thang|học bổng|hoc bong/i.test(normalizedText)) {
+    explicitTargetForm = HUTECH_FORMS.GENERAL_CONFIRMATION;
   }
 
-  const effectiveTarget = explicitTargetForm || detectedForm;
+  const effectiveTarget = explicitTargetForm || detectFormIntent(normalizedText);
   if (currentFormCode && effectiveTarget && effectiveTarget.code !== currentFormCode) {
     const guide = getFormFieldsGuide(effectiveTarget.code);
     return {

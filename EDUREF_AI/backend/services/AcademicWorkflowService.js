@@ -21,6 +21,7 @@ class AcademicWorkflowService {
     debtCourses = null,
     phone = null,
     idCard = null,
+    studentClass = null,
     inputData = {},
   }) {
     const startTime = Date.now();
@@ -113,6 +114,8 @@ class AcademicWorkflowService {
         ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
         : campusRaw;
 
+      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || '22DTHE4';
+
       const payload = {
         ...inputData,
         formCode: activeFormCode,
@@ -122,6 +125,7 @@ class AcademicWorkflowService {
         debtCourses: debtCourses || inputData?.debtCourses || null,
         phone: phone || inputData?.phone || null,
         idCard: idCard || inputData?.idCard || null,
+        studentClass: resolvedStudentClass,
         historyRequests,
       };
 

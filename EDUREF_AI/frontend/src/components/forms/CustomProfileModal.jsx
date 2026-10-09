@@ -73,7 +73,7 @@ export default function CustomProfileModal({
   const source = currentProfile || initialData;
   const [fullName, setFullName] = useState(source?.name || source?.fullName || '');
   const [studentCode, setStudentCode] = useState(source?.code || source?.studentCode || '');
-  const [studentClass, setStudentClass] = useState(source?.studentClass || source?.class || '22DTHA1');
+  const [studentClass, setStudentClass] = useState(source?.studentClass || source?.class || '22DTHE4');
   const [phone, setPhone] = useState(source?.phone || '0901234567');
   const [departmentName, setDepartmentName] = useState(source?.department || source?.faculty || source?.departmentName || 'Khoa Công nghệ thông tin');
   const [birthDate, setBirthDate] = useState(source?.birthDate || '26/07/2003');
@@ -120,7 +120,7 @@ export default function CustomProfileModal({
         status: scenario.status,
         tuitionDebt: scenario.debt,
         phone: phone.trim() || '0901234567',
-        studentClass: studentClass.trim() || '22DTHA1',
+        studentClass: studentClass.trim() || '22DTHE4',
       });
 
       if (response.data?.success && response.data?.user) {
@@ -137,8 +137,8 @@ export default function CustomProfileModal({
           department: departmentName.trim(),
           faculty: departmentName.trim(),
           departmentName: departmentName.trim(),
-          class: studentClass.trim() || '22DTHA1',
-          studentClass: studentClass.trim() || '22DTHA1',
+          class: studentClass.trim() || '22DTHE4',
+          studentClass: studentClass.trim() || '22DTHE4',
           phone: phone.trim() || '0901234567',
           birthDate: birthDate.trim() || '26/07/2003',
           gender: gender || 'Nam',
@@ -241,7 +241,7 @@ export default function CustomProfileModal({
                 type="text"
                 value={studentClass}
                 onChange={(e) => setStudentClass(e.target.value)}
-                placeholder="Ví dụ: 22DTHA1"
+                placeholder="Ví dụ: 22DTHE4"
                 className="w-full px-3 py-2 text-xs font-mono rounded-lg border border-slate-300 focus:outline-none focus:border-blue-600 focus:ring-1 focus:ring-blue-600 uppercase"
               />
             </div>

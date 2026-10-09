@@ -290,7 +290,11 @@ export class AgentOrchestrator {
 
         // Điều phối thực thi qua ToolResolver
         const toolStart = Date.now();
-        const toolResult = await ToolResolver.resolve(toolName, toolArgs);
+        const mergedArgs = {
+          ...toolArgs,
+          studentClass: toolArgs.studentClass || currentUser?.studentClass || currentUser?.class || '22DTHE4',
+        };
+        const toolResult = await ToolResolver.resolve(toolName, mergedArgs);
         const toolDuration = Date.now() - toolStart;
         lastToolResult = toolResult;
 

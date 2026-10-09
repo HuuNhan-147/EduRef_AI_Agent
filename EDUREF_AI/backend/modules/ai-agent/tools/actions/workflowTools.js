@@ -11,6 +11,7 @@ export const workflowTools = {
     debtCourses = null,
     phone = null,
     idCard = null,
+    studentClass = null,
     inputData = {},
   }) {
     return await AcademicWorkflowService.processStudentConfirmation({
@@ -22,6 +23,7 @@ export const workflowTools = {
       debtCourses,
       phone,
       idCard,
+      studentClass,
       inputData,
     });
   },
