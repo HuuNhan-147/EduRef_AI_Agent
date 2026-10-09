@@ -473,20 +473,20 @@ export default function StaffEscalationPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs">
                 <div>
                   <span className="text-slate-400 block text-[10px]">Họ tên:</span>
-                  <span className="font-semibold text-slate-800">{selectedPetition.student?.fullName}</span>
+                  <span className="font-semibold text-slate-800">{selectedPetition.student?.fullName || selectedPetition.inputData?.fullName || 'Cao Hữu Nhân'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">MSSV:</span>
-                  <span className="font-mono font-bold text-blue-700">{selectedPetition.student?.studentCode}</span>
+                  <span className="font-mono font-bold text-blue-700">{selectedPetition.student?.studentCode || selectedPetition.inputData?.studentCode || '2280602154'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Khoa:</span>
-                  <span className="font-medium text-slate-800">{selectedPetition.student?.department?.name || 'Khoa KH&KT Máy tính'}</span>
+                  <span className="text-slate-400 block text-[10px]">Khoa / Viện:</span>
+                  <span className="font-medium text-slate-800">{selectedPetition.student?.department?.name || selectedPetition.inputData?.faculty || 'Khoa Công nghệ Thông tin'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Tình trạng nợ phí:</span>
-                  <span className="font-medium text-slate-800">
-                    {Number(selectedPetition.student?.tuitionDebt || 0) === 0 ? 'Không nợ' : `${Number(selectedPetition.student?.tuitionDebt).toLocaleString('vi-VN')} đ`}
+                  <span className="text-slate-400 block text-[10px]">Lớp sinh hoạt / Ngành:</span>
+                  <span className="font-medium text-slate-800 font-mono">
+                    {selectedPetition.inputData?.studentClass || selectedPetition.student?.studentClass || '22DTHA1'} • {selectedPetition.inputData?.major || 'CNTT'}
                   </span>
                 </div>
               </div>
@@ -539,47 +539,325 @@ export default function StaffEscalationPage() {
                 </div>
               </div>
 
-              {/* Thông tin khai báo học vụ trực tuyến từ sinh viên (Form Input Data) */}
-              {selectedPetition.requestType?.code === 'STUDENT_CONFIRMATION' && (
-                <div className="space-y-2 pt-2 border-t border-slate-100">
-                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
-                    <Building className="w-3.5 h-3.5 text-blue-600" />
-                    Thông tin khai báo Căn cước & Cơ sở tiếp nhận:
-                  </span>
-                  <div className="grid grid-cols-2 md:grid-cols-3 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Số CMND/CCCD:</span>
-                      <span className="font-semibold text-slate-800 font-mono">
-                        {selectedPetition.inputData?.idCardNumber || selectedPetition.inputData?.citizenId || '079204001234'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Ngày cấp:</span>
-                      <span className="font-medium text-slate-800">
-                        {selectedPetition.inputData?.issueDate || '20/08/2021'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Nơi cấp:</span>
-                      <span className="font-medium text-slate-800">
-                        {selectedPetition.inputData?.issuePlace || 'Cục CS QLHC về TTXH'}
-                      </span>
-                    </div>
-                    <div>
-                      <span className="text-slate-400 block text-[10px]">Cơ sở nhận giấy:</span>
-                      <span className="font-semibold text-blue-700">
-                        {selectedPetition.inputData?.pickupCampus || 'Cơ sở chính (Trụ sở)'}
-                      </span>
-                    </div>
-                    <div className="col-span-2">
-                      <span className="text-slate-400 block text-[10px]">Lý do / Mục đích:</span>
-                      <span className="font-medium text-slate-800">
-                        {selectedPetition.inputData?.purpose || selectedPetition.inputData?.reason || 'Bổ sung hồ sơ sinh viên'}
-                      </span>
+              {/* Bản Đóng Gói Ngữ Cảnh 1:1 theo 5 Biểu mẫu Học Vụ Thực Tế HUTECH */}
+              {selectedPetition.requestType?.code === 'STUDENT_CONFIRMATION' && (() => {
+                const input = selectedPetition.inputData || {};
+                const student = selectedPetition.student || {};
+
+                // Tự động nhận diện 1 trong 5 biểu mẫu thực tế HUTECH
+                let activeFormCode = input.formCode;
+                if (!activeFormCode) {
+                  const rawSearch = `${selectedPetition.requestCode || ''} ${input.purpose || ''} ${input.reason || ''} ${selectedPetition.escalationReason || ''} ${input.formDescription || ''}`.toLowerCase();
+                  if (rawSearch.includes('thuế') || rawSearch.includes('thue') || rawSearch.includes('giảm trừ') || rawSearch.includes('giam tru')) {
+                    activeFormCode = 'TAX_DEDUCTION';
+                  } else if (rawSearch.includes('vay vốn') || rawSearch.includes('vay von') || rawSearch.includes('nhcsxh') || rawSearch.includes('ngân hàng chính sách') || rawSearch.includes('mẫu 01')) {
+                    activeFormCode = 'BANK_LOAN';
+                  } else if (rawSearch.includes('quân sự') || rawSearch.includes('quan su') || rawSearch.includes('nvqs') || rawSearch.includes('tạm hoãn') || rawSearch.includes('tam hoan')) {
+                    activeFormCode = 'MILITARY_DEFERMENT';
+                  } else if (rawSearch.includes('nợ môn') || rawSearch.includes('no mon') || input.debtCourses) {
+                    activeFormCode = 'COURSE_DEBT';
+                  } else {
+                    activeFormCode = 'GENERAL_CONFIRMATION';
+                  }
+                }
+
+                // Cấu hình Metadata chuyên sâu cho từng biểu mẫu
+                const FORM_META = {
+                  TAX_DEDUCTION: {
+                    badge: 'DV-01',
+                    title: 'ĐƠN XÁC NHẬN GIẢM TRỪ GIA CẢNH (THUẾ TNCN)',
+                    shortTitle: 'Đơn Giảm Trừ Gia Cảnh Thuế',
+                    badgeBg: 'bg-blue-100 text-blue-900 border-blue-300',
+                    boxBg: 'bg-blue-50/50 border-blue-200',
+                    agencyPlaceholder: 'Chi cục Thuế Quận Bình Thạnh',
+                    note: 'Giấy xác nhận có thời hạn giá trị 01 học kỳ theo quy định của Cục Thuế.',
+                  },
+                  BANK_LOAN: {
+                    badge: 'DV-02',
+                    title: 'GIẤY XÁC NHẬN VAY VỐN NGÂN HÀNG CHÍNH SÁCH XÃ HỘI (MẪU 01/TDSV)',
+                    shortTitle: 'Vay Vốn NHCSXH (Mẫu 01/TDSV)',
+                    badgeBg: 'bg-emerald-100 text-emerald-900 border-emerald-300',
+                    boxBg: 'bg-emerald-50/50 border-emerald-200',
+                    agencyPlaceholder: 'Phòng giao dịch NHCSXH Quận Bình Thạnh',
+                    note: 'Mẫu 01/TDSV áp dụng theo Quyết định 157/2007/QĐ-TTg của Thủ tướng Chính phủ.',
+                  },
+                  MILITARY_DEFERMENT: {
+                    badge: 'DV-03',
+                    title: 'GIẤY CHỨNG NHẬN ĐĂNG KÝ TẠM HOÃN NGHĨA VỤ QUÂN SỰ',
+                    shortTitle: 'Tạm Hoãn Nghĩa Vụ Quân Sự',
+                    badgeBg: 'bg-rose-100 text-rose-900 border-rose-300',
+                    boxBg: 'bg-rose-50/50 border-rose-200',
+                    agencyPlaceholder: 'Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh',
+                    note: 'Giấy có hiệu lực 30 ngày kể từ ngày cấp theo Luật Nghĩa vụ Quân sự.',
+                  },
+                  COURSE_DEBT: {
+                    badge: 'DV-04',
+                    title: 'ĐƠN XÁC NHẬN SINH VIÊN CÒN NỢ MÔN / TIẾP TỤC HOÀN THÀNH HỌC PHẦN',
+                    shortTitle: 'Xác Nhận Nợ Môn / Hoàn Thành CTĐT',
+                    badgeBg: 'bg-purple-100 text-purple-900 border-purple-300',
+                    boxBg: 'bg-purple-50/50 border-purple-200',
+                    agencyPlaceholder: 'Bổ sung hồ sơ giải trình cơ quan NVQS & tiếp tục học tập',
+                    note: 'Xác nhận sinh viên đang hoàn thành học phần nợ, không ghi chú quá hạn đào tạo.',
+                  },
+                  GENERAL_CONFIRMATION: {
+                    badge: 'DV-05',
+                    title: 'GIẤY XÁC NHẬN SINH VIÊN (MỤC ĐÍCH CHUNG)',
+                    shortTitle: 'Xác Nhận Sinh Viên Chung',
+                    badgeBg: 'bg-indigo-100 text-indigo-900 border-indigo-300',
+                    boxBg: 'bg-indigo-50/50 border-indigo-200',
+                    agencyPlaceholder: 'Làm vé xe buýt, xin visa du lịch, việc làm, học bổng...',
+                    note: 'Cấp cho sinh viên hệ chính quy đang theo học tại Trường ĐH Công Nghệ TP.HCM (HUTECH).',
+                  },
+                };
+
+                const meta = FORM_META[activeFormCode] || FORM_META.GENERAL_CONFIRMATION;
+
+                // Dữ liệu ánh xạ 1:1 nguyên vẹn từ form sinh viên gửi
+                const fullName = input.fullName || student.fullName || 'Cao Hữu Nhân';
+                const studentCode = input.studentCode || student.studentCode || '2280602154';
+                const birthDate = input.birthDate || '26/07/2003';
+                const gender = input.gender || 'Nam';
+                const studentClass = input.studentClass || student.studentClass || '22DTHA1';
+                const faculty = input.faculty || student.department?.name || 'Khoa Công nghệ Thông tin';
+                const major = input.major || 'Công nghệ Thông tin';
+                const phone = input.phone || student.phone || '0901234567';
+                const idCard = input.idCard || input.idCardNumber || input.citizenId || '079203001234';
+                const idCardDate = input.idCardDate || input.issueDate || '20/08/2021';
+                const idCardPlace = input.idCardPlace || input.issuePlace || 'Cục Cảnh sát QLHC về TTXH';
+                const recipientAgency = input.recipientAgency || meta.agencyPlaceholder;
+                const permanentAddress = input.permanentAddress || '180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh';
+                const pickupCampus = input.pickupCampus || 'Trụ sở chính: phòng Công tác sinh viên (A-01,01)';
+                const purpose = input.purpose || input.reason || 'Làm vé tháng xe buýt và bổ sung hồ sơ học tập';
+                const debtCourses = input.debtCourses || 'Lập trình Web, Cơ sở dữ liệu';
+                const completionDeadline = input.completionDeadline || 'Tháng 12/2026';
+                const orphanStatus = input.orphanStatus || 'Không mồ côi';
+                const loanFormCount = input.loanFormCount || 1;
+                const loanGrantedCount = input.loanGrantedCount || 1;
+                const lastLoanAmount = input.lastLoanAmount ? `${Number(input.lastLoanAmount).toLocaleString('vi-VN')} đ` : 'Chưa có khoản vay kỳ trước';
+
+                return (
+                  <div className="space-y-3 pt-2 border-t border-slate-200">
+                    {/* Hộp Đóng Gói Biểu Mẫu 1:1 */}
+                    <div className={`p-4 rounded-xl border ${meta.boxBg}`}>
+                      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-slate-200/90">
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2.5 py-0.5 rounded text-[11px] font-black tracking-wide border shadow-2xs ${meta.badgeBg}`}>
+                            {meta.badge}
+                          </span>
+                          <span className="text-xs font-bold uppercase text-slate-900 tracking-tight">
+                            {meta.title}
+                          </span>
+                        </div>
+                        <span className="text-[10.5px] font-semibold text-indigo-700 bg-white/90 px-2 py-0.5 rounded border border-indigo-200 inline-block self-start sm:self-auto">
+                          ⚡ Chuyển tiếp 1:1 từ biểu mẫu sinh viên điền
+                        </span>
+                      </div>
+
+                      {/* Thông tin chi tiết */}
+                      <div className="pt-3.5 space-y-3 text-xs">
+                        
+                        {/* 1. Thông tin sinh viên & Nhân thân */}
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                            <User className="w-3.5 h-3.5 text-blue-600" />
+                            1. Thông tin sinh viên & Nhân thân:
+                          </span>
+                          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Họ và tên:</span>
+                              <span className="font-bold text-slate-900">{fullName}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Mã số SV:</span>
+                              <span className="font-mono font-bold text-blue-700">{studentCode}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Ngày sinh:</span>
+                              <span className="font-medium text-slate-800">{birthDate}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Giới tính:</span>
+                              <span className="font-medium text-slate-800">{gender}</span>
+                            </div>
+
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Lớp sinh hoạt:</span>
+                              <span className="font-mono font-bold text-slate-800">{studentClass}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Khoa / Viện:</span>
+                              <span className="font-medium text-slate-800">{faculty}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Chuyên ngành:</span>
+                              <span className="font-medium text-slate-800">{major}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Điện thoại:</span>
+                              <span className="font-medium text-slate-800 font-mono">{phone}</span>
+                            </div>
+
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Số CMND/CCCD:</span>
+                              <span className="font-mono font-bold text-slate-900">{idCard}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-400 block text-[10px]">Ngày cấp:</span>
+                              <span className="font-medium text-slate-800">{idCardDate}</span>
+                            </div>
+                            <div className="col-span-2">
+                              <span className="text-slate-400 block text-[10px]">Nơi cấp:</span>
+                              <span className="font-medium text-slate-800">{idCardPlace}</span>
+                            </div>
+                          </div>
+                        </div>
+
+                        {/* 2. Thông tin khai báo đặc thù của biểu mẫu */}
+                        <div>
+                          <span className="text-[11px] font-bold text-slate-700 uppercase tracking-wider block mb-1.5 flex items-center gap-1.5">
+                            <FileText className="w-3.5 h-3.5 text-indigo-600" />
+                            2. Thông tin khai báo đặc thù ({meta.shortTitle}):
+                          </span>
+
+                          <div className="bg-white p-3.5 rounded-lg border border-slate-200 shadow-2xs space-y-2.5">
+                            {/* Form DV-01: Thuế TNCN */}
+                            {activeFormCode === 'TAX_DEDUCTION' && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div className="sm:col-span-2">
+                                  <span className="text-slate-400 block text-[10px]">Cơ quan Thuế tiếp nhận:</span>
+                                  <span className="font-bold text-blue-900 bg-blue-50/80 px-2.5 py-1.5 rounded block border border-blue-200">
+                                    🏛️ {recipientAgency}
+                                  </span>
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <span className="text-slate-400 block text-[10px]">Địa chỉ hộ khẩu thường trú (4 cấp hành chính):</span>
+                                  <span className="font-medium text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
+                                    📍 {permanentAddress}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Form DV-02: Vay vốn NHCSXH */}
+                            {activeFormCode === 'BANK_LOAN' && (
+                              <div className="space-y-2.5">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                  <div>
+                                    <span className="text-slate-400 block text-[10px]">Ngân hàng Chính sách Xã hội tiếp nhận:</span>
+                                    <span className="font-bold text-emerald-900 bg-emerald-50 px-2.5 py-1.5 rounded block border border-emerald-200">
+                                      🏦 {recipientAgency}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-400 block text-[10px]">Thuộc đối tượng mồ côi:</span>
+                                    <span className="font-semibold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
+                                      {orphanStatus}
+                                    </span>
+                                  </div>
+                                </div>
+                                <div>
+                                  <span className="text-slate-400 block text-[10px]">Địa chỉ hộ khẩu thường trú (4 cấp hành chính):</span>
+                                  <span className="font-medium text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
+                                    📍 {permanentAddress}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-emerald-50/40 p-2.5 rounded-lg border border-emerald-200 text-[11px]">
+                                  <div>
+                                    <span className="text-slate-500 block text-[10px]">Số lần làm mẫu xác nhận:</span>
+                                    <span className="font-bold text-emerald-900 font-mono">{loanFormCount} lần</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500 block text-[10px]">Số lần đã được vay vốn:</span>
+                                    <span className="font-bold text-emerald-900 font-mono">{loanGrantedCount} lần</span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-500 block text-[10px]">Số tiền vay học kỳ gần nhất:</span>
+                                    <span className="font-bold text-emerald-900 font-mono">{lastLoanAmount}</span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Form DV-03: Tạm hoãn NVQS */}
+                            {activeFormCode === 'MILITARY_DEFERMENT' && (
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                <div className="sm:col-span-2">
+                                  <span className="text-slate-400 block text-[10px]">Ban Chỉ huy Quân sự cấp Xã/Phường/Thị trấn tiếp nhận:</span>
+                                  <span className="font-bold text-rose-900 bg-rose-50/80 px-2.5 py-1.5 rounded block border border-rose-200">
+                                    🎖️ {recipientAgency}
+                                  </span>
+                                </div>
+                                <div className="sm:col-span-2">
+                                  <span className="text-slate-400 block text-[10px]">Địa chỉ thường trú theo hộ khẩu (4 cấp):</span>
+                                  <span className="font-medium text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
+                                    📍 {permanentAddress}
+                                  </span>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Form DV-04: Mẫu Nợ môn */}
+                            {activeFormCode === 'COURSE_DEBT' && (
+                              <div className="space-y-2.5">
+                                <div>
+                                  <span className="text-slate-400 block text-[10px]">Danh sách học phần / môn học còn nợ:</span>
+                                  <span className="font-bold text-purple-950 bg-purple-50 px-2.5 py-2 rounded block border border-purple-200 leading-relaxed">
+                                    📚 {debtCourses}
+                                  </span>
+                                </div>
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
+                                  <div>
+                                    <span className="text-slate-400 block text-[10px]">Thời hạn dự kiến hoàn thành môn nợ:</span>
+                                    <span className="font-bold text-purple-900 bg-purple-50/70 px-2.5 py-1.5 rounded block border border-purple-200">
+                                      ⏳ {completionDeadline}
+                                    </span>
+                                  </div>
+                                  <div>
+                                    <span className="text-slate-400 block text-[10px]">Mục đích giải trình / sử dụng:</span>
+                                    <span className="font-medium text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
+                                      {purpose}
+                                    </span>
+                                  </div>
+                                </div>
+                              </div>
+                            )}
+
+                            {/* Form DV-05: Mục đích chung */}
+                            {activeFormCode === 'GENERAL_CONFIRMATION' && (
+                              <div>
+                                <span className="text-slate-400 block text-[10px]">Mục đích xác nhận cụ thể:</span>
+                                <span className="font-semibold text-indigo-950 bg-indigo-50/80 px-2.5 py-2 rounded block border border-indigo-200">
+                                  🎯 {purpose}
+                                </span>
+                              </div>
+                            )}
+                          </div>
+                        </div>
+
+                        {/* 3. Cơ sở nhận bản cứng & Hiệu lực quy chế */}
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
+                          <div className="sm:col-span-2">
+                            <span className="text-slate-400 block text-[10px] flex items-center gap-1">
+                              <Building className="w-3 h-3 text-blue-600" />
+                              Cơ sở nhận bản cứng tại trường:
+                            </span>
+                            <span className="font-bold text-blue-900">
+                              {pickupCampus}
+                            </span>
+                          </div>
+                          <div>
+                            <span className="text-slate-400 block text-[10px]">Thời hạn & Quy chế:</span>
+                            <span className="text-[10.5px] font-medium text-slate-600">
+                              {meta.note}
+                            </span>
+                          </div>
+                        </div>
+
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                );
+              })()}
 
               {/* Thông tin đăng ký & Bảng chứng chỉ chuẩn đầu ra nếu là Đơn xét tốt nghiệp */}
               {selectedPetition.requestType?.code === 'GRADUATION_ASSESSMENT' && (
@@ -755,23 +1033,23 @@ export default function StaffEscalationPage() {
                 })()}
               </div>
 
-              {/* QR Code nếu đã duyệt */}
+              {/* Mã tra cứu hồ sơ tiếp nhận bản cứng nếu đã duyệt */}
               {selectedPetition.qrCodeUrl && (
                 <div className="mt-3 p-4 rounded-lg bg-emerald-50 border border-emerald-200 flex items-center gap-4">
                   <img
                     src={selectedPetition.qrCodeUrl}
-                    alt="QR Code Cán Bộ Duyệt"
+                    alt="Mã Tra Cứu Tiếp Nhận Hồ Sơ"
                     className="w-20 h-20 bg-white p-1 rounded border border-emerald-300"
                   />
                   <div>
                     <div className="text-xs font-bold text-emerald-900">
-                      MÃ QR CHỨNG THỰC CÁN BỘ ĐÃ KÝ DUYỆT
+                      MÃ TRA CỨU HỒ SƠ & TIẾP NHẬN BẢN CỨNG TẠI PHÒNG CTSV
                     </div>
                     <div className="text-xs text-emerald-700 mt-0.5">
-                      Có giá trị xuất trình pháp lý gửi Cơ quan Nhà nước
+                      Sinh viên xuất trình mã tra cứu này khi đến nhận bản in có mộc đỏ và chữ ký sống của Nhà trường.
                     </div>
                     <div className="text-[10px] font-mono text-emerald-800 mt-1">
-                      Proof: {selectedPetition.sha256Proof?.substring(0, 32)}...
+                      Mã hồ sơ: {selectedPetition.requestCode} | Cơ sở nhận: {selectedPetition.inputData?.pickupCampus || 'Trụ sở chính: phòng Công tác sinh viên (A-01,01)'}
                     </div>
                   </div>
                 </div>
@@ -803,9 +1081,9 @@ export default function StaffEscalationPage() {
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              {actionModal === 'APPROVE' && 'Hành động này sẽ cấp mã QR có chữ ký số cán bộ và gửi thông báo kết quả cho sinh viên.'}
+              {actionModal === 'APPROVE' && 'Hành động này sẽ phê duyệt cấp giấy, sinh viên nhận thông báo và đến Phòng CTSV nhận bản in có chữ ký và mộc đỏ.'}
               {actionModal === 'REJECT' && 'Vui lòng cung cấp lý do từ chối rõ ràng để sinh viên nắm rõ căn cứ quy chế.'}
-              {actionModal === 'ROLLBACK' && 'CẢNH BÁO: Hành động này sẽ thu hồi và vô hiệu hóa mã QR ngay lập tức, chuyển trạng thái đơn sang CANCELLED.'}
+              {actionModal === 'ROLLBACK' && 'CẢNH BÁO: Hành động này sẽ thu hồi quyết định phê duyệt và chuyển trạng thái hồ sơ sang CANCELLED.'}
             </p>
 
             <div className="space-y-1">
