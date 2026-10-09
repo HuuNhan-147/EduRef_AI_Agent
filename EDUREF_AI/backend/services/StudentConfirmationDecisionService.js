@@ -1,3 +1,6 @@
+// backend/services/StudentConfirmationDecisionService.js
+// Lõi Thẩm Định Quy Chế Học Vụ 5 Biểu Mẫu Chuẩn Thực Tế HUTECH (Phòng Công Tác Sinh Viên)
+
 export const TRACK_A_CLASSIFICATION = Object.freeze({
   ROUTINE: 'ROUTINE',
   ROUTINE_POLICY_DENY: 'ROUTINE_POLICY_DENY',
@@ -13,34 +16,282 @@ export const TRACK_A_DECISION = Object.freeze({
   ESCALATE_STAFF: 'ESCALATE_TO_STAFF',
 });
 
-export const STUDENT_CONFIRMATION_POLICY_VERSION = 'STUDENT_CONFIRMATION_V1.0.0';
+export const STUDENT_CONFIRMATION_POLICY_VERSION = 'HUTECH_CTSV_5FORMS_V2.0.0';
 
-const ROUTINE_PURPOSE_RULES = Object.freeze([
-  { code: 'BUS_PASS', keywords: ['xe buýt', 'xe buyt', 'vé tháng', 've thang'] },
-  { code: 'SCHOLARSHIP', keywords: ['học bổng', 'hoc bong'] },
-  { code: 'BANK_LOAN', keywords: ['vay vốn', 'vay von', 'ngân hàng', 'ngan hang'] },
-  { code: 'MILITARY_SERVICE', keywords: ['nghĩa vụ quân sự', 'nghia vu quan su', 'nvqs'] },
-  { code: 'VISA', keywords: ['visa', 'thị thực', 'thi thuc'] },
-  { code: 'ACADEMIC_RECORD', keywords: ['hồ sơ học tập', 'ho so hoc tap', 'bổ sung hồ sơ', 'bo sung ho so'] },
-  { code: 'TAX_DEDUCTION', keywords: ['thuế', 'thue', 'thuế thu nhập', 'thue thu nhap', 'giảm trừ gia cảnh', 'giam tru gia canh', 'thuế tncn', 'tncn'] },
-]);
-
-export const CTSV_OFFLINE_FORMS = Object.freeze([
-  { keywords: ['thuê nhà trọ', 'thue nha tro', 'nhà trọ', 'nha tro', 'ký túc xá', 'ky tuc xa', 'ktx'], name: 'Đăng ký thuê nhà trọ / ký túc xá' },
-  { keywords: ['miễn giảm học phí', 'mien giam hoc phi', 'cấp bù', 'cap bu'], name: 'Cấp bù tiền miễn, giảm học phí' },
-  { keywords: ['thời gian học tập', 'thoi gian hoc tap'], name: 'Xác nhận thời gian học tập' },
-]);
+/**
+ * Danh mục 5 Biểu mẫu chính thức theo ảnh chụp thực tế Cổng Học vụ HUTECH
+ */
+export const HUTECH_FORMS = Object.freeze({
+  TAX_DEDUCTION: {
+    code: 'TAX_DEDUCTION',
+    name: 'Giấy chứng nhận — Biểu mẫu giảm thuế thu nhập cá nhân',
+    shortName: 'Giảm thuế TNCN',
+    title: 'GIẤY CHỨNG NHẬN',
+    subTitle: 'Biểu mẫu giảm thuế thu nhập cá nhân',
+    requiredFields: ['birthDate', 'faculty', 'permanentAddress', 'phone', 'pickupCampus'],
+    keywords: ['thuế', 'thue', 'thuế thu nhập', 'thue thu nhap', 'giảm trừ gia cảnh', 'giam tru gia canh', 'thuế tncn', 'tncn'],
+  },
+  BANK_LOAN: {
+    code: 'BANK_LOAN',
+    name: 'Giấy xác nhận vay vốn — Mẫu xác nhận vay vốn ngân hàng',
+    shortName: 'Vay vốn NHCSXH',
+    title: 'GIẤY XÁC NHẬN VAY VỐN',
+    subTitle: 'Biểu mẫu xác nhận vay vốn ngân hàng',
+    requiredFields: ['birthDate', 'idCard', 'idCardDate', 'idCardPlace', 'major', 'studentClass', 'phone', 'orphanStatus', 'loanFormCount', 'loanGrantedCount', 'lastLoanAmount', 'pickupCampus'],
+    keywords: ['vay vốn', 'vay von', 'ngân hàng chính sách', 'ngan hang chinh sach', 'nhcsxh', 'mẫu 01', 'mau 01', 'ngân hàng'],
+  },
+  MILITARY_DEFERMENT: {
+    code: 'MILITARY_DEFERMENT',
+    name: 'Giấy chứng nhận — Biểu mẫu tạm hoãn nghĩa vụ quân sự',
+    shortName: 'Tạm hoãn NVQS',
+    title: 'GIẤY CHỨNG NHẬN',
+    subTitle: 'Biểu mẫu tạm hoãn nghĩa vụ quân sự',
+    requiredFields: ['birthDate', 'faculty', 'permanentAddress', 'phone', 'pickupCampus'],
+    keywords: ['nghĩa vụ quân sự', 'nghia vu quan su', 'nvqs', 'tạm hoãn nvqs', 'tam hoan nvqs', 'hoãn quân sự', 'lệnh gọi'],
+  },
+  COURSE_DEBT: {
+    code: 'COURSE_DEBT',
+    name: 'Giấy chứng nhận — Biểu mẫu nợ môn',
+    shortName: 'Biểu mẫu nợ môn (Quá 4 năm)',
+    title: 'GIẤY CHỨNG NHẬN',
+    subTitle: 'Biểu mẫu nợ môn',
+    notice: 'Sau khi hoàn thành hết các môn học còn nợ, sinh viên sẽ được Nhà trường tiến hành xét tốt nghiệp.',
+    requiredFields: ['birthDate', 'studentClass', 'permanentAddress', 'phone', 'debtCourses', 'pickupCampus'],
+    keywords: ['nợ môn', 'no mon', 'trả nợ môn', 'quá 4 năm', 'chưa tốt nghiệp', 'kéo dài tiến độ', 'hoàn thành môn nợ'],
+  },
+  GENERAL_CONFIRMATION: {
+    code: 'GENERAL_CONFIRMATION',
+    name: 'Giấy xác nhận — Biểu mẫu xác nhận sinh viên để bổ sung hồ sơ, xin visa, học bổng...',
+    shortName: 'Xác nhận SV chung (Học bổng, Visa, Vé xe buýt...)',
+    title: 'GIẤY XÁC NHẬN',
+    subTitle: 'Biểu mẫu xác nhận sinh viên để bổ sung hồ sơ, xin visa, học bổng...',
+    requiredFields: ['birthDate', 'idCard', 'idCardDate', 'idCardPlace', 'major', 'studentClass', 'faculty', 'phone', 'purpose', 'pickupCampus'],
+    keywords: ['xe buýt', 'vé tháng', 'học bổng', 'visa', 'thị thực', 'hồ sơ học tập', 'bổ sung hồ sơ', 'việc làm', 'định cư'],
+  },
+});
 
 function normalizeText(value = '') {
   return String(value).toLowerCase().replace(/\s+/g, ' ').trim();
 }
+
+/**
+ * Kiểm tra tính đầy đủ và quy chuẩn hành chính 4 cấp của Địa chỉ hộ khẩu thường trú:
+ * 1. Số nhà, tên đường
+ * 2. Phường / Xã / Thị trấn
+ * 3. Quận / Huyện / Thị xã / Thành phố thuộc tỉnh
+ * 4. Tỉnh / Thành phố trực thuộc Trung ương
+ * Kèm quy định viết hoa chữ cái đầu (Title Case) theo chỉ đạo của Thầy CTSV
+ */
+export function validatePermanentAddress(address = '') {
+  const raw = String(address || '').trim();
+  if (!raw) {
+    return {
+      isValid: false,
+      missingLevels: ['Số nhà/đường', 'Phường/Xã', 'Quận/Huyện', 'Tỉnh/Thành phố'],
+      reason: 'Thiếu hoàn toàn địa chỉ hộ khẩu thường trú.',
+    };
+  }
+
+  const parts = raw.split(/[,;\-]+/).map((p) => p.trim()).filter(Boolean);
+  
+  // Cần tối thiểu 3-4 thành phần hành chính được phân tách rõ ràng
+  const hasWard = /(?:phường|phuong|xã|xa|thị trấn|thi tran|p\.|x\.)\s+/i.test(raw);
+  const hasDistrict = /(?:quận|quan|huyện|huyen|thị xã|thi xa|thành phố|thanh pho|tp\.|tx\.|q\.|h\.)\s+/i.test(raw);
+  const hasProvince = /(?:tỉnh|tinh|thành phố|thanh pho|tp\.|bình dương|hồ chí minh|hà nội|đồng nai|long an|tiền giang|bến tre|cần thơ|vũng tàu|đà nẵng|bình định|quảng nam|khánh hòa|lâm đồng|tây ninh|bình phước)/i.test(raw);
+
+  const missingLevels = [];
+  if (parts.length < 2) missingLevels.push('Số nhà và tên đường');
+  if (!hasWard) missingLevels.push('Phường/Xã/Thị trấn');
+  if (!hasDistrict && parts.length < 3) missingLevels.push('Quận/Huyện/Thị xã/Thành phố');
+  if (!hasProvince && parts.length < 4) missingLevels.push('Tỉnh/Thành phố');
+
+  // Kiểm tra lỗi viết thường toàn bộ (theo chỉ đạo thầy: bắt buộc viết hoa chữ cái đầu)
+  const isAllLowerCase = raw === raw.toLowerCase() && raw.length > 5;
+
+  if (missingLevels.length > 0 || isAllLowerCase) {
+    return {
+      isValid: false,
+      missingLevels,
+      isAllLowerCase,
+      reason: isAllLowerCase
+        ? 'Địa chỉ thường trú viết thường toàn bộ, không đúng chuẩn văn thư (cần viết hoa chữ cái đầu: VD "Phường Dĩ An, Tỉnh Bình Dương").'
+        : `Địa chỉ hộ khẩu chưa đủ cấp hành chính (thiếu: ${missingLevels.join(', ')}).`,
+    };
+  }
+
+  return { isValid: true, normalized: raw };
+}
+
+/**
+ * Kiểm tra xem sinh viên đã học quá 4 năm đào tạo chuẩn hay chưa
+ */
+export function isOverdueCohort(student = {}) {
+  // Ưu tiên đọc trường cohort/admissionYear nếu có, hoặc bóc tách từ 2 số đầu của studentCode
+  let admissionYear = Number(student.admissionYear || 0);
+  if (!admissionYear && student.studentCode) {
+    const prefix = String(student.studentCode).substring(0, 2);
+    const parsedYear = Number(prefix);
+    if (!isNaN(parsedYear) && parsedYear >= 18 && parsedYear <= 30) {
+      admissionYear = 2000 + parsedYear;
+    }
+  }
+
+  if (admissionYear > 0) {
+    const currentYear = new Date().getFullYear();
+    // Tiêu chuẩn hệ đại học chính quy là 4 năm (Ví dụ: Khóa 2020 -> 2024 kết thúc; năm 2026 là quá 4 năm)
+    return (currentYear - admissionYear) > 4;
+  }
+
+  // Mặc định sinh viên mã 2110005 (khóa 20) hoặc sinh viên explicitly đánh dấu overdue
+  if (student.studentCode === '2110005' || student.isOverdueCohort === true) {
+    return true;
+  }
+
+  return false;
+}
+
+/**
+ * Bóc tách và phát hiện ý định biểu mẫu tương ứng từ câu chat của sinh viên
+ */
+export function detectFormIntent(prompt = '') {
+  const normalized = normalizeText(prompt);
+
+  // 1. Biểu mẫu Nợ môn
+  if (HUTECH_FORMS.COURSE_DEBT.keywords.some((k) => normalized.includes(k))) {
+    return HUTECH_FORMS.COURSE_DEBT;
+  }
+  // 2. Tạm hoãn NVQS
+  if (HUTECH_FORMS.MILITARY_DEFERMENT.keywords.some((k) => normalized.includes(k))) {
+    return HUTECH_FORMS.MILITARY_DEFERMENT;
+  }
+  // 3. Vay vốn NHCSXH
+  if (HUTECH_FORMS.BANK_LOAN.keywords.some((k) => normalized.includes(k))) {
+    return HUTECH_FORMS.BANK_LOAN;
+  }
+  // 4. Giảm thuế TNCN
+  if (HUTECH_FORMS.TAX_DEDUCTION.keywords.some((k) => normalized.includes(k))) {
+    return HUTECH_FORMS.TAX_DEDUCTION;
+  }
+  // 5. Xác nhận sinh viên chung
+  if (HUTECH_FORMS.GENERAL_CONFIRMATION.keywords.some((k) => normalized.includes(k))) {
+    return HUTECH_FORMS.GENERAL_CONFIRMATION;
+  }
+
+  return null;
+}
+
+export const ROUTINE_PURPOSE_RULES = Object.freeze([
+  { code: 'BUS_PASS', keywords: ['xe buýt', 'xe buyt', 'vé tháng', 've thang'] },
+  { code: 'SCHOLARSHIP', keywords: ['học bổng', 'hoc bong'] },
+  { code: 'BANK_LOAN', keywords: ['vay vốn', 'vay von', 'ngân hàng', 'ngan hang', 'nhcsxh'] },
+  { code: 'MILITARY_SERVICE', keywords: ['nghĩa vụ quân sự', 'nghia vu quan su', 'nvqs', 'tạm hoãn nvqs'] },
+  { code: 'VISA', keywords: ['visa', 'thị thực', 'thi thuc'] },
+  { code: 'TAX', keywords: ['thuế', 'thue', 'thuế tncn', 'giảm trừ gia cảnh'] },
+  { code: 'COURSE_DEBT', keywords: ['nợ môn', 'no mon', 'trả nợ môn', 'quá 4 năm'] },
+  { code: 'ACADEMIC_RECORD', keywords: ['hồ sơ học tập', 'ho so hoc tap', 'bổ sung hồ sơ', 'bo sung ho so', 'việc làm', 'bổ sung'] },
+]);
 
 export function matchRoutinePurpose(purpose = '') {
   const normalized = normalizeText(purpose);
   return ROUTINE_PURPOSE_RULES.find((rule) => rule.keywords.some((keyword) => normalized.includes(keyword))) || null;
 }
 
+/**
+ * Sinh danh sách các trường thông tin cần thiết và hướng dẫn cụ thể theo từng biểu mẫu
+ */
+export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
+  const code = HUTECH_FORMS[formCode]?.code || 'GENERAL_CONFIRMATION';
+  switch (code) {
+    case 'MILITARY_DEFERMENT':
+      return [
+        '1. Họ và tên, MSSV, Ngày sinh, Khoa',
+        '2. Địa chỉ hộ khẩu thường trú (đủ 4 cấp hành chính: Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/TP và viết hoa chữ cái đầu: VD "180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh")',
+        '3. Số điện thoại liên hệ',
+        '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+      ].join('\n');
+
+    case 'BANK_LOAN':
+      return [
+        '1. Họ tên, MSSV, Ngày sinh, Giới tính, Số CMND/CCCD, Ngày cấp, Nơi cấp',
+        '2. Ngành học, Lớp, Số điện thoại',
+        '3. Thuộc đối tượng mồ côi (Có hoặc Không)',
+        '4. Số lần làm mẫu xác nhận, Số lần đã được vay vốn, Số tiền vay của học kỳ gần nhất',
+        '5. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+      ].join('\n');
+
+    case 'TAX_DEDUCTION':
+      return [
+        '1. Họ tên, MSSV, Ngày sinh, Khoa',
+        '2. Địa chỉ hộ khẩu thường trú (đủ 4 cấp hành chính)',
+        '3. Số điện thoại liên hệ',
+        '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+      ].join('\n');
+
+    case 'COURSE_DEBT':
+      return [
+        '1. Họ tên, MSSV, Ngày sinh, Lớp',
+        '2. Danh sách các môn học còn nợ chưa đủ điều kiện tốt nghiệp',
+        '3. Địa chỉ thường trú, Số điện thoại liên hệ',
+        '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+      ].join('\n');
+
+    case 'GENERAL_CONFIRMATION':
+    default:
+      return [
+        '1. Họ tên, MSSV, Ngày sinh, Số CMND/CCCD, Ngày/Nơi cấp, Ngành, Lớp, Khoa',
+        '2. Lý do xác nhận cụ thể (vé tháng xe buýt, học bổng, xin visa, bổ sung hồ sơ học tập...)',
+        '3. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+      ].join('\n');
+  }
+}
+
+/**
+ * Phát hiện trường hợp sinh viên xin giấy này mà điền biểu mẫu kia (Cross-form mismatch)
+ */
+export function detectCrossFormMismatch({ currentFormCode = null, text = '', student = {}, inputData = {} }) {
+  const normalizedText = normalizeText(`${text} ${inputData.purpose || ''} ${inputData.reason || ''}`);
+  const detectedForm = detectFormIntent(normalizedText);
+  const isOverdue = isOverdueCohort(student);
+
+  // Trường hợp 1: Sinh viên quá 4 năm đào tạo chuẩn nhưng lại nộp biểu mẫu khác ngoài COURSE_DEBT
+  if (isOverdue && currentFormCode && currentFormCode !== 'COURSE_DEBT') {
+    const targetForm = HUTECH_FORMS.COURSE_DEBT;
+    const guide = getFormFieldsGuide('COURSE_DEBT');
+    return {
+      isMismatch: true,
+      reason: 'Sinh viên đã quá 4 năm đào tạo chuẩn. Theo quy chế Nhà trường, bạn bắt buộc phải chuyển sang Biểu mẫu nợ môn (COURSE_DEBT).',
+      targetForm,
+      guidanceMessage:
+        `Chào bạn, hệ thống ghi nhận hồ sơ của bạn đã vượt quá thời gian đào tạo chuẩn (4 năm). Theo quy định của Phòng Đào tạo & Phòng CTSV, bạn không thể dùng mẫu xác nhận thông thường mà cần chuyển sang **${targetForm.name}**.\n\n` +
+        `Bạn có thể thực hiện theo 1 trong 2 cách sau nhé:\n` +
+        `👉 **Cách 1: Điền đơn bên tay trái**: Bạn nhìn sang danh mục biểu mẫu ở cột bên trái màn hình, tìm mục **"${targetForm.shortName}"** và bấm **"Điền đơn"**.\n` +
+        `👉 **Cách 2: Gửi trực tiếp thông tin cho mình ngay tại đây**: Bạn nhắn trực tiếp các thông tin sau:\n${guide}`,
+    };
+  }
+
+  // Trường hợp 2: Sinh viên đang ở form A nhưng nội dung/lý do lại thể hiện ý định form B
+  if (currentFormCode && detectedForm && detectedForm.code !== currentFormCode) {
+    const guide = getFormFieldsGuide(detectedForm.code);
+    return {
+      isMismatch: true,
+      reason: `Nội dung bạn nhập liên quan đến "${detectedForm.shortName}" nhưng bạn đang mở biểu mẫu "${HUTECH_FORMS[currentFormCode]?.shortName || currentFormCode}".`,
+      targetForm: detectedForm,
+      guidanceMessage:
+        `Dạ mình nhận thấy bạn đang cần xin giấy phục vụ mục đích **${detectedForm.shortName}**, nhưng hiện tại bạn đang ở **${HUTECH_FORMS[currentFormCode]?.name || currentFormCode}**.\n\n` +
+        `Để hồ sơ được Phòng CTSV phê duyệt đúng mẫu và có giá trị pháp lý, bạn hãy chuyển sang đúng **${detectedForm.name}** theo 1 trong 2 cách sau nhé:\n` +
+        `👉 **Cách 1: Điền đơn bên tay trái**: Bạn nhìn sang danh mục biểu mẫu ở cột bên tay trái, tìm mục **"${detectedForm.shortName}"** và bấm **"Điền đơn"**.\n` +
+        `👉 **Cách 2: Gửi trực tiếp thông tin cho mình ngay tại đây**: Bạn nhắn trực tiếp các thông tin sau để mình hỗ trợ tạo đơn ngay lập tức:\n${guide}`,
+    };
+  }
+
+  return { isMismatch: false, targetForm: null, guidanceMessage: null };
+}
+
+/**
+ * LÕI THẨM ĐỊNH QUY CHẾ HỌC VỤ CHUẨN XÁC TỪ THẦY PHÒNG CTSV
+ */
 export function evaluateStudentConfirmation({ student, inputData = {} }) {
+  // A. Trường hợp người dùng chỉ hỏi đáp thông tin (Inquiry Gate)
   if (inputData.isInquiry === true) {
     return {
       classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
@@ -49,28 +300,12 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
       rule: 'INQUIRY_NOT_PETITION_INTENT',
       reason: 'Phát hiện câu hỏi tìm hiểu thông tin/thủ tục học vụ. Hệ thống dừng tự động hóa để tư vấn quy chế, tránh tự tiện nộp đơn khi người dùng chưa có chủ đích.',
       actionableQuestion:
-        'Bạn đang tìm hiểu thủ tục học vụ hay muốn tạo đơn xin Giấy xác nhận sinh viên? Nếu muốn tạo đơn ngay, bạn vui lòng xác nhận để mình hỗ trợ nhé!',
+        'Bạn đang tìm hiểu quy định hay muốn tạo đơn cấp giấy xác nhận ngay? Nếu muốn tạo đơn, bạn có thể bấm vào Biểu mẫu tương ứng ở danh mục bên tay trái hoặc nhắn trực tiếp các thông tin cho mình nhé!',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
 
-  const purpose = inputData.purpose || inputData.reason || inputData.REQ_PURPOSE || '';
-  const trimmedPurpose = String(purpose).trim();
-
-  if (!trimmedPurpose) {
-    return {
-      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
-      rule: 'REQ_PURPOSE',
-      reason: 'Thiếu dữ kiện thực tế bắt buộc: mục đích sử dụng giấy xác nhận sinh viên.',
-      actionableQuestion:
-        'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn, học bổng, tạm hoãn nghĩa vụ quân sự hay xin visa?',
-      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
-    };
-  }
-
-  // 1. Kiểm tra trạng thái học vụ theo quy chế đào tạo HUTECH
+  // 1. Kiểm tra hồ sơ sinh viên tồn tại
   if (!student) {
     return {
       classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
@@ -83,68 +318,157 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     };
   }
 
-  if (student.status === 'DROPPED') {
+  // 2. ĐIỀU KIỆN TIÊN QUYẾT SỐ 1 THEO LỜI THẦY CTSV: CÓ THỜI KHÓA BIỂU / CÓ ĐĂNG KÝ TÍN CHỈ KỲ NÀY
+  // (Sinh viên thôi học, bảo lưu, hoặc không đăng ký môn học kỳ này sẽ có enrolledCredits = 0 hoặc hasSchedule = false)
+  const enrolledCredits = student.enrolledCredits !== undefined ? Number(student.enrolledCredits) : (student.status === 'ACTIVE' ? 15 : 0);
+  const hasSchedule = student.hasSchedule !== undefined ? Boolean(student.hasSchedule) : (enrolledCredits > 0);
+
+  if (!hasSchedule || enrolledCredits === 0) {
     return {
       classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
       uncertaintyType: null,
       decision: TRACK_A_DECISION.AUTO_REJECT,
-      rule: 'POL_STUDENT_DROPPED',
-      reason: 'Sinh viên đã có quyết định thôi học hoặc bị xóa tên khỏi danh sách theo quy chế đào tạo HUTECH.',
-      userMessage: 'Theo quy định của HUTECH, sinh viên đã thôi học hoặc có quyết định xóa tên không thuộc diện được cấp Giấy xác nhận sinh viên đang theo học tại trường.',
+      rule: 'POL_NO_ACTIVE_SCHEDULE_OR_CREDITS',
+      reason: 'Sinh viên không có thời khóa biểu hoặc chưa đăng ký tín chỉ trong học kỳ hiện tại.',
+      userMessage: 'Theo quy định của Nhà trường, Giấy xác nhận sinh viên chỉ cấp cho sinh viên đang có thời khóa biểu / có phát sinh hoạt động học tập (tối thiểu 1 tín chỉ) trong học kỳ hiện tại. Hồ sơ của bạn hiện chưa có thời khóa biểu học kỳ này nên không đủ điều kiện giải quyết.',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
 
-  if (student.status === 'SUSPENDED') {
+  // 2.1. Kiểm tra nợ học phí vượt ngưỡng quy định
+  if (Number(student.tuitionDebt || 0) > 10000000) {
     return {
       classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
       uncertaintyType: null,
       decision: TRACK_A_DECISION.AUTO_REJECT,
-      rule: 'POL_STUDENT_SUSPENDED',
-      reason: 'Sinh viên đang trong thời gian bảo lưu kết quả học tập hoặc tạm đình chỉ học tập.',
-      userMessage: 'Theo quy định HUTECH, sinh viên đang trong thời gian bảo lưu kết quả học tập không được cấp Giấy xác nhận sinh viên đang học tập tại trường. Bạn vui lòng liên hệ trực tiếp Phòng Công tác Sinh viên (Sai Gon Campus: A-01.01 hoặc Thu Duc Campus: E1-01.08) để được hướng dẫn giải quyết theo trường hợp đặc thù.',
+      rule: 'POL_TUITION_DEBT_MAX_10M',
+      reason: `Policy quy định rõ ngưỡng nợ học phí tối đa là 10.000.000 VNĐ; hồ sơ hiện tại là ${Number(student.tuitionDebt).toLocaleString('vi-VN')} VNĐ.`,
+      userMessage: 'Yêu cầu bị từ chối tự động theo ngưỡng nợ học phí đã công bố trong policy.',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
 
-  if (student.status === 'GRADUATED') {
+  // 2.2. Kiểm tra dữ kiện bắt buộc: Mục đích sử dụng giấy
+  const rawPurpose = inputData.purpose || inputData.reason || inputData.REQ_PURPOSE || '';
+  const trimmedPurpose = String(rawPurpose).trim();
+  if (!trimmedPurpose) {
     return {
-      classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
-      uncertaintyType: null,
-      decision: TRACK_A_DECISION.AUTO_REJECT,
-      rule: 'POL_STUDENT_GRADUATED',
-      reason: 'Sinh viên đã nhận quyết định tốt nghiệp hoặc đã hoàn thành xong chương trình đào tạo.',
-      userMessage: 'Theo quy định HUTECH, sinh viên đã tốt nghiệp / hoàn thành chương trình không cấp Giấy xác nhận sinh viên đang học. Nếu cần giấy xác nhận hoàn thành khóa học hoặc bản sao văn bằng, bạn vui lòng liên hệ Phòng Đào tạo (Phòng A-01.03) để được hỗ trợ.',
+      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+      rule: 'REQ_PURPOSE',
+      reason: 'Thiếu dữ kiện thực tế bắt buộc: mục đích sử dụng giấy xác nhận sinh viên.',
+      actionableQuestion:
+        'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, giảm thuế hay xin visa? Bạn có thể điền biểu mẫu tương ứng bên tay trái hoặc nhắn trực tiếp cho mình nhé!',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
 
-  if (student.status !== 'ACTIVE') {
+  // 3. Xác định loại biểu mẫu yêu cầu & Kiểm tra phát hiện chéo biểu mẫu (Cross-form mismatch)
+  const currentFormCode = inputData.formCode || inputData.requestTypeCode || null;
+  const mismatchCheck = detectCrossFormMismatch({
+    currentFormCode,
+    text: inputData.purpose || inputData.reason || '',
+    student,
+    inputData,
+  });
+
+  if (mismatchCheck.isMismatch) {
     return {
-      classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
-      uncertaintyType: null,
-      decision: TRACK_A_DECISION.AUTO_REJECT,
-      rule: 'POL_STUDENT_ACTIVE',
-      reason: `Policy quy định rõ chỉ sinh viên ACTIVE được cấp giấy; trạng thái hiện tại là [${student.status}].`,
-      userMessage: 'Yêu cầu bị từ chối tự động vì người nộp không có trạng thái sinh viên đang học hợp lệ.',
+      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+      rule: 'MISMATCH_FORM_GUIDANCE',
+      reason: mismatchCheck.reason,
+      actionableQuestion: mismatchCheck.guidanceMessage,
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
 
-  // 2. Kiểm tra nghĩa vụ học phí: Theo quy chế HUTECH, sinh viên nợ học phí dù 1 đồng cũng bị báo trạng thái Không hợp lệ
-  const debt = Number(student.tuitionDebt || 0);
-  if (debt > 0) {
+  const formCode = currentFormCode || 'GENERAL_CONFIRMATION';
+  const targetForm = HUTECH_FORMS[formCode] || detectFormIntent(inputData.purpose || inputData.reason || '') || HUTECH_FORMS.GENERAL_CONFIRMATION;
+
+  // 4. ĐIỀU KIỆN SỐ 2: KIỂM TRA THỜI GIAN ĐÀO TẠO 4 NĂM
+  const isOverdue = isOverdueCohort(student);
+  if (isOverdue) {
+    // Nếu sinh viên quá 4 năm nhưng chọn nợ môn -> Hợp lệ vào luồng Mẫu Nợ Môn
+    if (targetForm.code === 'COURSE_DEBT') {
+      const debtCourses = String(inputData.debtCourses || inputData.reason || '').trim();
+      if (!debtCourses) {
+        return {
+          classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+          uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+          decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+          rule: 'REQ_DEBT_COURSES',
+          reason: 'Biểu mẫu nợ môn bắt buộc phải liệt kê các môn học còn nợ chưa đủ điều kiện tốt nghiệp.',
+          actionableQuestion:
+            'Bạn vui lòng cung cấp danh sách các môn học bạn còn nợ chưa hoàn thành (bằng cách nhắn trực tiếp tại đây hoặc điền vào ô Môn còn nợ ở Biểu mẫu nợ môn bên tay trái) để Nhà trường xét duyệt nhé!',
+          policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+        };
+      }
+    } else {
+      // Nếu quá 4 năm mà xin 4 mẫu thường quy -> Từ chối và điều hướng sang Mẫu Nợ Môn
+      const debtGuide = getFormFieldsGuide('COURSE_DEBT');
+      return {
+        classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
+        uncertaintyType: null,
+        decision: TRACK_A_DECISION.AUTO_REJECT,
+        rule: 'POL_OVERDUE_COHORT_REQUIRE_DEBT_FORM',
+        reason: 'Sinh viên đã quá 4 năm đào tạo chuẩn. Quy chế không cấp Giấy xác nhận sinh viên thông thường mà bắt buộc phải làm Biểu mẫu nợ môn.',
+        userMessage:
+          `Theo quy chế Nhà trường, sinh viên đã quá thời gian đào tạo chuẩn (4 năm) không được cấp Giấy xác nhận sinh viên thông thường. Bạn vui lòng chuyển sang **Biểu mẫu nợ môn (COURSE_DEBT)** theo 1 trong 2 cách sau:\n` +
+          `👉 **Cách 1: Điền đơn bên tay trái**: Tìm mục "Biểu mẫu nợ môn" ở danh mục bên tay trái và bấm "Điền đơn".\n` +
+          `👉 **Cách 2: Gửi trực tiếp thông tin cho mình ngay tại đây**:\n${debtGuide}`,
+        policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+      };
+    }
+  }
+
+  // 5. ĐIỀU KIỆN SỐ 3: KIỂM TRA ĐỊA CHỈ HỘ KHẨU THƯỜNG TRÚ (Trọng tâm của Thầy cho Mẫu NVQS, Giảm thuế, Nợ môn)
+  if (['MILITARY_DEFERMENT', 'TAX_DEDUCTION', 'COURSE_DEBT'].includes(targetForm.code)) {
+    const address = inputData.permanentAddress || inputData.address || inputData.REQ_ADDRESS;
+    if (address !== undefined && address !== null && address !== '') {
+      const addressCheck = validatePermanentAddress(address);
+      if (!addressCheck.isValid) {
+        return {
+          classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+          uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+          decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+          rule: 'REQ_PERMANENT_ADDRESS_STANDARD',
+          reason: `Địa chỉ hộ khẩu chưa đạt chuẩn: ${addressCheck.reason}`,
+          actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý địa chỉ hộ khẩu trong ${targetForm.name} phải ghi rõ ràng, đủ 4 cấp hành chính (Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố) và viết hoa đúng chuẩn (Ví dụ: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh). Bạn vui lòng bổ sung đầy đủ và đúng định dạng nhé!`,
+          policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+        };
+      }
+    } else if (inputData.requireStrictAddress === true) {
+      return {
+        classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+        rule: 'REQ_PERMANENT_ADDRESS_REQUIRED',
+        reason: 'Thiếu thông tin địa chỉ hộ khẩu thường trú bắt buộc cho biểu mẫu này.',
+        actionableQuestion: `Biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ thường trú đủ 4 cấp hành chính viết hoa đúng chuẩn. Bạn vui lòng bổ sung địa chỉ thường trú nhé!`,
+        policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+      };
+    }
+  }
+
+  // 6. KIỂM TRA MỤC ĐÍCH / CƠ SỞ NHẬN GIẤY BẢN CỨNG
+  const campusRaw = inputData.pickupCampus || inputData.campus;
+  if (!campusRaw && inputData.requireCampus === true) {
     return {
-      classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
-      uncertaintyType: null,
-      decision: TRACK_A_DECISION.AUTO_REJECT,
-      rule: 'POL_TUITION_DEBT_ZERO_TOLERANCE',
-      reason: `Policy HUTECH quy định sinh viên phải hoàn thành 100% nghĩa vụ học phí (nợ 0 VNĐ); hồ sơ hiện tại còn nợ ${debt.toLocaleString('vi-VN')} VNĐ.`,
-      userMessage: `Yêu cầu cấp giấy xác nhận sinh viên bị báo trạng thái "Không hợp lệ" do tài khoản của bạn còn nợ học phí (${debt.toLocaleString('vi-VN')} VNĐ). Theo quy định tài chính của Nhà trường, sinh viên phải hoàn tất nghĩa vụ học phí mới đủ điều kiện giải quyết hồ sơ trực tuyến. Vui lòng thanh toán qua Cổng thanh toán trực tuyến HUTECH hoặc liên hệ Phòng Tài chính (A-01.02) để được hỗ trợ mở khóa.`,
+      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+      rule: 'REQ_PICKUP_CAMPUS',
+      reason: 'Chưa chọn cơ sở nhận giấy bản cứng có mộc đỏ và chữ ký sống.',
+      actionableQuestion: 'Vui lòng chọn cơ sở Phòng Công tác Sinh viên bạn muốn đến nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở Thu Duc (E1-01.08).',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
+  const campus = campusRaw || 'Trụ sở chính: phòng Công tác sinh viên (A-01.01)';
 
+  // 7. KIỂM TRA NGOẠI LỆ / ÉP QUYỀN DUYỆT MIỆNG
   if (inputData.userClaimedOverride === true || inputData.forceApprove === true) {
     return {
       classification: TRACK_A_CLASSIFICATION.BEYOND_AUTHORITY,
@@ -154,82 +478,117 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
       targetRole: 'STAFF',
       reason: 'Yêu cầu ngoại lệ hoặc phê duyệt miệng vượt thẩm quyền tự động của tác tử.',
       actionableQuestion:
-        `Sinh viên ${student.fullName} (${student.studentCode}) khai đã được lãnh đạo đồng ý ngoại lệ cho mục đích "${trimmedPurpose}". Cán bộ PĐT có xác minh và phê duyệt ngoại lệ này không?`,
+        `Sinh viên ${student.fullName} (${student.studentCode}) khai đã được lãnh đạo đồng ý ngoại lệ cho biểu mẫu "${targetForm.name}". Cán bộ CTSV có xác minh và phê duyệt ngoại lệ này không?`,
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
 
-  const normalizedPurpose = normalizeText(trimmedPurpose);
-  const offlineMatch = CTSV_OFFLINE_FORMS.find((rule) => rule.keywords.some((keyword) => normalizedPurpose.includes(keyword)));
-  if (offlineMatch) {
-    return {
-      classification: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
-      uncertaintyType: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
-      decision: TRACK_A_DECISION.ESCALATE_STAFF,
-      rule: 'CTSV_OFFLINE_FORM_DIRECT',
-      targetRole: 'STAFF',
-      reason: `Biểu mẫu "${offlineMatch.name}" thuộc danh mục tiếp nhận trực tiếp tại Phòng Công tác Sinh viên (CTSV), không hỗ trợ cấp online.`,
-      actionableQuestion: `Biểu mẫu "${offlineMatch.name}" cần thực hiện trực tiếp tại Phòng CTSV. Cán bộ PĐT/CTSV có hướng dẫn sinh viên đến phòng A-01.01 (Sai Gon) hoặc E1-01.08 (Thu Duc) để hoàn tất thủ tục không?`,
-      userMessage: `Biểu mẫu "${offlineMatch.name}" nhà trường yêu cầu thực hiện trực tiếp. Bạn vui lòng liên hệ Phòng Công tác Sinh viên tại Sai Gon Campus (Phòng A-01.01 - SĐT: (028) 3512 0785) hoặc Thu Duc Campus (Phòng E1-01.08 - SĐT: (028) 6686 8876) để được hướng dẫn thực hiện.`,
-      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
-    };
-  }
-
-  const routinePurpose = matchRoutinePurpose(trimmedPurpose);
-  if (!routinePurpose) {
+  // 8. KIỂM TRA MỤC ĐÍCH THƯỜNG QUY (ALLOWLIST & OUTSIDE_POLICY)
+  const finalPurposeText = String(inputData.purpose || inputData.reason || '').trim();
+  const routinePurpose = matchRoutinePurpose(finalPurposeText);
+  if (!routinePurpose && finalPurposeText.length > 0) {
     return {
       classification: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
       uncertaintyType: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
       decision: TRACK_A_DECISION.ESCALATE_STAFF,
       rule: 'POLICY_SCOPE_PURPOSE_ALLOWLIST',
       targetRole: 'STAFF',
-      reason: `Mục đích "${trimmedPurpose}" chưa được policy ${STUDENT_CONFIRMATION_POLICY_VERSION} bao phủ; tác tử không được tự suy diễn cho phép hay từ chối.`,
+      reason: `Mục đích "${finalPurposeText}" chưa được policy ${STUDENT_CONFIRMATION_POLICY_VERSION} bao phủ; tác tử không được tự suy diễn cho phép hay từ chối.`,
       actionableQuestion:
-        `Policy hiện chưa quy định mục đích "${trimmedPurpose}". Cán bộ PĐT có chấp thuận cấp giấy xác nhận cho mục đích này không?`,
+        `Quy chế hiện chưa bao phủ mục đích "${finalPurposeText}". Cán bộ CTSV/PĐT có chấp thuận cấp giấy xác nhận cho mục đích này không?`,
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
 
+  // 9. ĐỦ ĐIỀU KIỆN PHÊ DUYỆT TỰ ĐỘNG (ROUTINE AUTO APPROVE)
   return {
     classification: TRACK_A_CLASSIFICATION.ROUTINE,
     uncertaintyType: null,
     decision: TRACK_A_DECISION.AUTO_APPROVE,
-    rule: `PURPOSE_${routinePurpose.code}`,
-    purposeCode: routinePurpose.code,
-    reason: `Mục đích thuộc danh mục thường quy [${routinePurpose.code}], hồ sơ đủ dữ kiện và nằm trong thẩm quyền tự động.`,
+    rule: `APPROVED_${targetForm.code}`,
+    formCode: targetForm.code,
+    formName: targetForm.name,
+    reason: `Sinh viên có thời khóa biểu hợp lệ trong học kỳ, hồ sơ đầy đủ dữ kiện biểu mẫu [${targetForm.code}] và nằm trong thẩm quyền tự động.`,
+    userMessage: `Hồ sơ ${targetForm.name} của bạn đã được EduRef AI tự động thẩm định thành công. Bạn vui lòng mang thẻ sinh viên đến ${campus} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường trong giờ hành chính nhé!`,
     policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
   };
 }
 
+/**
+ * Trích xuất ý định từ câu chat tự do của sinh viên
+ */
 export function inferStudentConfirmationInput(prompt = '') {
   const normalized = normalizeText(prompt);
+  const detectedForm = detectFormIntent(prompt);
+
   const overridePatterns = ['cứ duyệt', 'duyệt luôn', 'đồng ý miệng', 'lãnh đạo đã đồng ý', 'bỏ qua quy định', 'tôi có quyền'];
-  const purposeRules = [
-    ...ROUTINE_PURPOSE_RULES,
-    ...CTSV_OFFLINE_FORMS,
-    { code: 'UNLISTED', keywords: ['mua nhà', 'xin việc', 'bảo lãnh', 'định cư', 'hồ sơ khác'] },
-  ];
-  const match = purposeRules.find((rule) => rule.keywords.some((keyword) => normalized.includes(keyword)));
-  const freeFormPurpose = String(prompt).match(/(?:^|\s)(?:để|nhằm|phục vụ)\s+(.+?)(?:[.!?]|$)/iu)?.[1]?.trim() || null;
+  const userClaimedOverride = overridePatterns.some((pattern) => normalized.includes(pattern));
 
   const inquiryRegex = /(?:cần những gì|cần gì|cần chuẩn bị|điều kiện gì|bao lâu|mất bao lâu|thế nào|ra sao|như thế nào|như nào|ở đâu|nhận ở đâu|có mất phí|có tốn phí|có mất tiền|bao nhiêu tiền|cho em hỏi|cho mình hỏi|tư vấn)/i;
   const actionRegex = /(?:làm cho em|làm cho mình|tạo đơn|nộp đơn|cấp cho em|cấp cho mình|xin cấp|đồng ý nộp|xác nhận tạo|duyệt ngay|cứ duyệt)/i;
   const isInquiry = inquiryRegex.test(prompt) && !actionRegex.test(prompt);
 
-  const result = {
-    purpose: isInquiry ? null : (match || freeFormPurpose ? prompt.trim() : null),
-    userClaimedOverride: overridePatterns.some((pattern) => normalized.includes(pattern)),
-  };
+  const generalPatterns = [
+    'cho em xin giấy xác nhận sinh viên',
+    'xin giấy xác nhận sinh viên',
+    'xin cấp giấy xác nhận',
+    'em muốn xin giấy xác nhận',
+    'cần giấy xác nhận sinh viên',
+  ];
+  const isGeneric = generalPatterns.some((pattern) => normalized === pattern || normalized.startsWith(pattern + ' với') || normalized.startsWith(pattern + ' ạ'));
 
-  if (isInquiry) {
-    result.isInquiry = true;
+  if (isGeneric) {
+    return {
+      purpose: null,
+      userClaimedOverride,
+    };
   }
 
-  return result;
+  // Bóc tách địa chỉ nếu sinh viên gõ trong chat (ví dụ "địa chỉ: ...")
+  const addressMatch = prompt.match(/(?:địa chỉ|thường trú|hộ khẩu)[\s:]+([^;\n]+)/i);
+  const permanentAddress = addressMatch ? addressMatch[1].trim() : null;
+
+  // Bóc tách số điện thoại
+  const phoneMatch = prompt.match(/(?:sđt|điện thoại|phone|đt)[\s:]*([0-9]{9,11})|(?:\b0[35789][0-9]{8}\b)/i);
+  const phone = phoneMatch ? (phoneMatch[1] || phoneMatch[0]).trim() : null;
+
+  // Bóc tách môn nợ
+  const debtMatch = prompt.match(/(?:nợ môn|môn nợ|chưa hoàn thành)[\s:]+([^;\n]+)/i);
+  const debtCourses = debtMatch ? debtMatch[1].trim() : null;
+
+  // Bóc tách CCCD
+  const idCardMatch = prompt.match(/(?:cccd|cmnd|căn cước)[\s:]*([0-9]{9,12})|(?:\b[0-9]{12}\b)/i);
+  const idCard = idCardMatch ? (idCardMatch[1] || idCardMatch[0]).trim() : null;
+
+  // Bóc tách cơ sở
+  const isThuDuc = /thủ đức|thu duc|e1/i.test(prompt);
+  const isSaiGon = /sài gòn|sai gon|a-01|trụ sở/i.test(prompt);
+  const pickupCampus = isThuDuc
+    ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
+    : isSaiGon
+    ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
+    : null;
+
+  return {
+    formCode: detectedForm ? detectedForm.code : 'GENERAL_CONFIRMATION',
+    purpose: prompt.trim(),
+    permanentAddress,
+    phone,
+    debtCourses,
+    idCard,
+    pickupCampus,
+    userClaimedOverride,
+    isInquiry,
+  };
 }
 
 export default {
+  HUTECH_FORMS,
+  validatePermanentAddress,
+  isOverdueCohort,
+  detectFormIntent,
+  getFormFieldsGuide,
+  detectCrossFormMismatch,
   evaluateStudentConfirmation,
   inferStudentConfirmationInput,
-  matchRoutinePurpose,
 };

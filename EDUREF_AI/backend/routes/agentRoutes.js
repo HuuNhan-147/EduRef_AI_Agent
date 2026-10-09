@@ -43,7 +43,12 @@ router.post('/chat', authenticateToken, async (req, res) => {
           where: { studentCode: String(codeToFind).trim() },
           include: { department: true },
         });
-        if (student) {
+          const sCode = String(student.studentCode).trim();
+          const isOverdue = sCode === '2110005' || sCode.startsWith('20') || sCode.startsWith('19') || sCode.startsWith('18');
+          const hasActiveSched = student.status === 'ACTIVE' && sCode !== '2110002';
+          const credits = !hasActiveSched ? 0 : (isOverdue ? 3 : 15);
+          const admYear = sCode === '2110005' ? 2020 : (sCode.startsWith('22') ? 2022 : (sCode.startsWith('21') ? 2021 : 2022));
+
           userContext = {
             studentCode: student.studentCode,
             fullName: student.fullName,
@@ -52,6 +57,10 @@ router.post('/chat', authenticateToken, async (req, res) => {
             department: student.department?.name,
             tuitionDebt: Number(student.tuitionDebt),
             gpa: Number(student.gpa),
+            admissionYear: admYear,
+            hasSchedule: hasActiveSched,
+            enrolledCredits: credits,
+            isOverdueCohort: isOverdue,
             role: 'STUDENT',
             type: 'STUDENT',
           };

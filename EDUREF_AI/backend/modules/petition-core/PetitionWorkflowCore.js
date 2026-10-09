@@ -193,6 +193,43 @@ export class PetitionWorkflowCore {
     const policyResult = await handler.evaluatePolicies(student, request);
 
     if (!policyResult.passed) {
+      if (policyResult.decision === 'ASK_CLARIFICATION') {
+        const question = policyResult.actionableQuestion || policyResult.reason;
+        console.log(`  🟡 [Core Chốt 2] Cần làm rõ/lệch biểu mẫu -> Chuyển WAITING_STUDENT. Câu hỏi: "${question}"`);
+
+        await AuditLogService.recordLogWithMutation({
+          requestId: request.id,
+          actorType,
+          action: 'POLICY_ASK_CLARIFICATION',
+          decision: 'ASK_CLARIFICATION',
+          reason: policyResult.reason,
+          inputSnapshot: { inputData, reason: policyResult.reason },
+          decisionTimeMs: Date.now() - startTime,
+        }, async (tx) => {
+          await tx.studentRequest.update({
+            where: { id: request.id },
+            data: {
+              status: 'WAITING_STUDENT',
+              decision: 'ASK_CLARIFICATION',
+              escalationReason: question,
+            },
+          });
+        });
+
+        return {
+          success: true,
+          decision: 'ASK_CLARIFICATION',
+          classification: policyResult.classification || 'UNKNOWN_FACT',
+          uncertaintyType: policyResult.uncertaintyType || 'UNKNOWN_FACT',
+          status: 'WAITING_STUDENT',
+          requestId: request.id,
+          requestCode: request.requestCode,
+          question,
+          actionableQuestion: question,
+          message: question,
+        };
+      }
+
       console.log(`  🚨 [Core Chốt 2] Vi phạm quy chế -> Chuyển REJECTED. Lý do: ${policyResult.reason}`);
 
       await AuditLogService.recordLogWithMutation({
@@ -303,7 +340,7 @@ export class PetitionWorkflowCore {
       decision: 'APPROVED',
       reason: 'Đơn đáp ứng toàn bộ điều kiện đầu vào, quy chế đào tạo và nằm trong thẩm quyền tự chủ của Tác tử AI.',
       inputSnapshot: { inputData, requestCode: request.requestCode },
-      afterState: { status: 'APPROVED', qrCodeUrl: approvalResult.qrCodeUrl },
+      afterState: { status: 'APPROVED', qrCodeUrl: approvalResult?.qrCodeUrl || null },
       decisionTimeMs: Date.now() - startTime,
     }, async (tx, log) => {
       await tx.studentRequest.update({
@@ -311,7 +348,7 @@ export class PetitionWorkflowCore {
         data: {
           status: 'APPROVED',
           decision: 'ROUTINE_AUTO_APPROVED',
-          qrCodeUrl: approvalResult.qrCodeUrl,
+          qrCodeUrl: approvalResult?.qrCodeUrl || null,
           sha256Proof: log.sha256Hash,
         },
       });
@@ -328,14 +365,15 @@ export class PetitionWorkflowCore {
       status: 'APPROVED',
       requestId: request.id,
       requestCode: request.requestCode,
-      qrCodeUrl: approvalResult.qrCodeUrl,
+      qrCodeUrl: null,
       sha256Proof: auditLog?.sha256Hash,
       totalDuration,
-      message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công trong ${totalDuration}ms. Mã QR chứng thực số đã sẵn sàng.`,
+      message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công trong ${totalDuration}ms. Bạn vui lòng mang thẻ sinh viên đến ${inputData?.pickupCampus || 'Phòng CTSV'} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường trong giờ hành chính nhé!`,
       confirmationDetails: {
         studentName: student.fullName,
         studentCode: student.studentCode,
         department: student.department?.name,
+        formCode: inputData?.formCode || 'GENERAL_CONFIRMATION',
         purpose: inputData?.purpose || inputData?.reason,
         pickupCampus: inputData?.pickupCampus,
         issuedDate: new Date().toLocaleDateString('vi-VN'),

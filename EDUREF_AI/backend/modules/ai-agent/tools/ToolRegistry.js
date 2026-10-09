@@ -1,17 +1,28 @@
 export class ToolRegistry {
   static getDeclarations() {
     return [
-      // ⚡ Fast-Path Master Tool: Thẩm định & Cấp Giấy Xác Nhận Sinh Viên trong 1 bước
+      // ⚡ Fast-Path Master Tool: Thẩm định & Cấp Giấy Xác Nhận Sinh Viên trong 1 bước (5 Biểu Mẫu Chuẩn HUTECH)
       {
         name: 'process_student_confirmation',
         description:
-          'CÔNG CỤ DUYỆT VÀ CẤP GIẤY XÁC NHẬN SINH VIÊN (XNSV): Chỉ được gọi công cụ này khi sinh viên ĐÃ CUNG CẤP ĐỦ CẢ MỤC ĐÍCH VÀ ĐÃ CHỌN 1 TRONG 2 CƠ SỞ NHẬN GIẤY BẢN CỨNG. TUYỆT ĐỐI KHÔNG ĐƯỢC TỰ BỊA ĐẶT CƠ SỞ HOẶC GỌI TOOL KHI SINH VIÊN CHƯA CHỌN CƠ SỞ! Nếu sinh viên chưa chọn cơ sở hoặc chưa nêu mục đích, BẮT BUỘC PHẢI HỎI LẠI SINH VIÊN BẰNG VĂN BẢN (0 TOOL CALLS).',
+          'CÔNG CỤ DUYỆT VÀ CẤP GIẤY XÁC NHẬN SINH VIÊN (XNSV): Chỉ được gọi công cụ này khi sinh viên ĐÃ CUNG CẤP ĐỦ CẢ MỤC ĐÍCH VÀ ĐÃ CHỌN 1 TRONG 2 CƠ SỞ NHẬN GIẤY BẢN CỨNG. Hỗ trợ bóc tách trực tiếp thông tin sinh viên nhắn trong chat (địa chỉ thường trú, môn nợ, số điện thoại, CCCD...) theo 5 biểu mẫu chuẩn HUTECH.',
         parameters: {
           type: 'OBJECT',
           properties: {
             studentCode: {
               type: 'STRING',
               description: 'Mã số sinh viên (ví dụ: 2280602154)',
+            },
+            formCode: {
+              type: 'STRING',
+              enum: [
+                'MILITARY_DEFERMENT',
+                'BANK_LOAN',
+                'TAX_DEDUCTION',
+                'COURSE_DEBT',
+                'GENERAL_CONFIRMATION',
+              ],
+              description: 'Mã biểu mẫu học vụ chuẩn HUTECH tương ứng với nhu cầu của sinh viên.',
             },
             purpose: {
               type: 'STRING',
@@ -26,6 +37,22 @@ export class ToolRegistry {
               ],
               description:
                 'Cơ sở nhận giấy bản cứng do sinh viên trực tiếp chọn (BẮT BUỘC: phải là "Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)" hoặc "Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)"). TUYỆT ĐỐI KHÔNG ĐƯỢC tự ý chọn thay sinh viên!',
+            },
+            permanentAddress: {
+              type: 'STRING',
+              description: 'Địa chỉ hộ khẩu thường trú 4 cấp hành chính viết hoa đúng chuẩn (bắt buộc cho Tạm hoãn NVQS, Giảm thuế TNCN, Nợ môn).',
+            },
+            debtCourses: {
+              type: 'STRING',
+              description: 'Danh sách các môn học còn nợ chưa đủ điều kiện tốt nghiệp (bắt buộc cho sinh viên quá 4 năm dùng biểu mẫu COURSE_DEBT).',
+            },
+            phone: {
+              type: 'STRING',
+              description: 'Số điện thoại liên hệ của sinh viên.',
+            },
+            idCard: {
+              type: 'STRING',
+              description: 'Số CMND/CCCD của sinh viên.',
             },
             inputData: {
               type: 'OBJECT',

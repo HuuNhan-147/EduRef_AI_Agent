@@ -102,8 +102,8 @@ export class BasePetitionHandler {
    * @returns {Promise<Object>}
    */
   async onApproved(request) {
-    const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=EDUREF_VERIFIED_${request.requestCode}_${request.student?.studentCode || 'STUDENT'}`;
-    return { qrCodeUrl };
+    // Theo chỉ đạo của Thầy CTSV: Giấy xác nhận cần nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường, không dùng QR server ngoài.
+    return { qrCodeUrl: null };
   }
 }
 

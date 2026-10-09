@@ -2,18 +2,34 @@ import prisma from '../config/prisma.js';
 import AuditLogService from './AuditLogService.js';
 import {
   evaluateStudentConfirmation,
+  detectFormIntent,
+  detectCrossFormMismatch,
+  getFormFieldsGuide,
   TRACK_A_DECISION,
 } from './StudentConfirmationDecisionService.js';
 
 class AcademicWorkflowService {
   /**
-   * ⚡ FAST-PATH MASTER TOOL: Xử lý trọn gói quy trình Cấp Giấy Xác Nhận Sinh Viên trong 1 bước duy nhất
+   * ⚡ FAST-PATH MASTER TOOL: Xử lý trọn gói quy trình Cấp Giấy Xác Nhận Sinh Viên trong 1 bước duy nhất (5 Biểu Mẫu Chuẩn HUTECH)
    */
-  static async processStudentConfirmation({ studentCode, purpose = '', pickupCampus = '', inputData = {} }) {
+  static async processStudentConfirmation({
+    studentCode,
+    formCode = null,
+    purpose = '',
+    pickupCampus = '',
+    permanentAddress = null,
+    debtCourses = null,
+    phone = null,
+    idCard = null,
+    inputData = {},
+  }) {
     const startTime = Date.now();
     try {
-      // 1. Kiểm tra bắt buộc: Mục đích sử dụng giấy xác nhận
       const finalPurpose = String(purpose || inputData?.purpose || inputData?.reason || '').trim();
+      const detectedForm = detectFormIntent(finalPurpose);
+      const activeFormCode = formCode || inputData?.formCode || (detectedForm ? detectedForm.code : 'GENERAL_CONFIRMATION');
+
+      // 1. Kiểm tra bắt buộc: Mục đích sử dụng giấy xác nhận
       if (!finalPurpose) {
         return {
           success: true,
@@ -21,8 +37,15 @@ class AcademicWorkflowService {
           status: 'WAITING_STUDENT',
           classification: 'UNKNOWN_FACT',
           uncertaintyType: 'UNKNOWN_FACT',
-          actionableQuestion: 'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, học bổng hay xin visa?',
-          message: 'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, học bổng hay xin visa?',
+          actionableQuestion:
+            'Bạn cần cấp giấy xác nhận sinh viên cho mục đích nào:\n' +
+            '1. Tạm hoãn nghĩa vụ quân sự (MILITARY_DEFERMENT)\n' +
+            '2. Vay vốn ngân hàng chính sách xã hội (BANK_LOAN)\n' +
+            '3. Giảm trừ thuế thu nhập cá nhân (TAX_DEDUCTION)\n' +
+            '4. Hoàn thành môn nợ quá 4 năm (COURSE_DEBT)\n' +
+            '5. Xác nhận sinh viên chung: vé xe buýt, học bổng, visa (GENERAL_CONFIRMATION)?\n\n' +
+            '👉 Bạn có thể bấm chọn mục tương ứng ở danh mục bên tay trái hoặc nhắn trực tiếp cho mình nhé!',
+          message: 'Vui lòng cung cấp mục đích sử dụng Giấy xác nhận sinh viên.',
         };
       }
 
@@ -35,13 +58,16 @@ class AcademicWorkflowService {
           status: 'WAITING_STUDENT',
           classification: 'UNKNOWN_FACT',
           uncertaintyType: 'UNKNOWN_FACT',
-          actionableQuestion: 'Vui lòng chọn cơ sở bạn muốn nhận Giấy xác nhận sinh viên bản cứng: Sai Gon Campus (A-01.01) hoặc Thu Duc Campus (E1-01.08).',
-          message: 'Dạ, hệ thống đã tiếp nhận yêu cầu xin cấp Giấy xác nhận sinh viên của bạn. Vui lòng chọn 1 trong 2 cơ sở sau để nhận giấy bản cứng:\n1. 🏢 Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)\n2. 🏢 Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)',
+          actionableQuestion:
+            'Để Nhà trường chuẩn bị bản cứng có chữ ký sống và mộc đỏ của Phòng CTSV, bạn vui lòng chọn 1 trong 2 cơ sở sau để nhận giấy nhé:\n' +
+            '1. 🏢 Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)\n' +
+            '2. 🏢 Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)',
+          message: 'Dạ, hệ thống đã tiếp nhận yêu cầu xin cấp Giấy xác nhận sinh viên của bạn. Vui lòng chọn cơ sở nhận giấy bản cứng.',
         };
       }
 
       const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
-      const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm/i.test(campusRaw);
+      const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm|trụ sở/i.test(campusRaw);
       const normalizedCampus = isThuDuc
         ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
         : isSaiGon
@@ -50,8 +76,13 @@ class AcademicWorkflowService {
 
       const payload = {
         ...inputData,
+        formCode: activeFormCode,
         purpose: finalPurpose,
         pickupCampus: normalizedCampus,
+        permanentAddress: permanentAddress || inputData?.permanentAddress || null,
+        debtCourses: debtCourses || inputData?.debtCourses || null,
+        phone: phone || inputData?.phone || null,
+        idCard: idCard || inputData?.idCard || null,
       };
 
       // ⚡ GỌI TRỰC TIẾP QUA PETITION WORKFLOW CORE DUY NHẤT (SINGLE SOURCE OF TRUTH)
@@ -66,6 +97,7 @@ class AcademicWorkflowService {
 
       return {
         ...coreResult,
+        formCode: activeFormCode,
         actionableQuestion: coreResult.question || coreResult.actionableQuestion || coreResult.contextCapsule?.actionableQuestion,
       };
     } catch (err) {

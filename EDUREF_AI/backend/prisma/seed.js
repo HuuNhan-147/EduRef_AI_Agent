@@ -115,14 +115,14 @@ async function main() {
       fullName: 'Hoàng Thị Mai',
       email: 'mai.hoang@edu.vn',
       phone: '0905678901',
-      status: 'GRADUATED', // Đã tốt nghiệp
+      status: 'ACTIVE', // Khóa 2020 quá 4 năm đào tạo chuẩn, đang học lại trả nợ môn
       tuitionDebt: 0,
-      gpa: 3.65,
+      gpa: 2.75,
       departmentId: ddt.id,
     },
   });
 
-  console.log('✅ Đã tạo 6 sinh viên mẫu (2280602154: Cao Hữu Nhân [Chính], 2110001: Active, 2110002: Thôi học, 2110003: Nợ phí, 2110004: Bảo lưu, 2110005: Tốt nghiệp).');
+  console.log('✅ Đã tạo 6 sinh viên mẫu (2280602154: Cao Hữu Nhân [Chính], 2110001: Active, 2110002: Thôi học, 2110003: Nợ phí, 2110004: Bảo lưu, 2110005: Khóa cũ quá 4 năm nợ môn).');
 
   // 4. Tạo Tài khoản Cán bộ & Lãnh đạo
   const defaultPassword = await bcrypt.hash('123456', 10);

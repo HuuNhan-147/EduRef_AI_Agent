@@ -1,33 +1,43 @@
-# Policy chuẩn — Giấy xác nhận sinh viên
+# Policy chuẩn — Giấy xác nhận sinh viên (Quy chuẩn Phòng CTSV HUTECH)
 
-Policy version: `STUDENT_CONFIRMATION_V1.0.0`
+Policy version: `STUDENT_CONFIRMATION_V2.0.0`
 
-Đây là quy trình hẹp được chọn cho Track A. Nguồn chân lý thực thi là `backend/services/StudentConfirmationDecisionService.js`.
+Đây là quy trình thẩm định học vụ theo chuẩn thực tế của Trường Đại học HUTECH. Nguồn chân lý thực thi là `backend/services/StudentConfirmationDecisionService.js`.
 
-## Dữ kiện và phạm vi
+## 1. Dữ kiện và phạm vi 5 biểu mẫu thực tế
 
-- Danh tính, trạng thái sinh viên và nợ học phí lấy từ cơ sở dữ liệu theo phiên đã xác thực.
-- Người dùng bắt buộc nêu mục đích sử dụng giấy.
-- Mục đích thường quy: vé xe buýt, học bổng, vay vốn, nghĩa vụ quân sự, visa và bổ sung hồ sơ học tập.
-- Sinh viên phải ở trạng thái `ACTIVE` và đã hoàn thành 100% nghĩa vụ học phí (nợ 0 VNĐ).
+- **Danh tính, tiến độ và tài chính:** Lấy từ cơ sở dữ liệu theo phiên đã xác thực (Mã sinh viên, trạng thái, khóa tuyển sinh, thời khóa biểu/tín chỉ học kỳ này, nợ học phí).
+- **5 Biểu mẫu học vụ chuẩn hóa:**
+  1. `TAX_DEDUCTION`: Đơn xin xác nhận giảm trừ gia cảnh Thuế TNCN (Thời hạn 1 học kỳ; bắt buộc nơi nhận/cơ quan thuế).
+  2. `BANK_LOAN`: Đơn xin xác nhận vay vốn Ngân hàng CSXH (Mẫu 01/TDSV theo TT 27/2019/TT-NHCS; thời hạn 1 học kỳ; bắt buộc địa chỉ thường trú 4 cấp Title Case).
+  3. `MILITARY_DEFERMENT`: Đơn xin tạm hoãn Nghĩa vụ Quân sự (Hiệu lực 30 ngày / 1 tháng theo Luật NVQS; bắt buộc BCH Quân sự Xã/Phường tiếp nhận).
+  4. `COURSE_DEBT`: Đơn xin xác nhận sinh viên còn nợ môn / Kéo dài tiến độ (Dành riêng cho sinh viên học quá 4 năm chuẩn; bắt buộc danh sách môn nợ và cam kết hoàn thành).
+  5. `GENERAL_CONFIRMATION`: Đơn xin xác nhận sinh viên thông thường (Làm vé xe buýt, visa, bổ sung hồ sơ học tập...; thời hạn 1 học kỳ).
 
-## Bảng quyết định
+## 2. Điều kiện tiên quyết học vụ
+
+- **Hoạt động học tập hiện tại:** Bắt buộc có Thời khóa biểu hoặc đã đăng ký ít nhất 1 tín chỉ trong học kỳ này (`hasSchedule === true`, `enrolledCredits > 0`). Sinh viên thôi học (`DROPPED`) hoặc đang bảo lưu (`SUSPENDED`) đều bị từ chối tự động.
+- **Quy chế 4 năm đào tạo:** Sinh viên đã quá 4 năm đào tạo chuẩn tuyệt đối không được cấp Giấy hoãn NVQS thông thường; hệ thống tự động hướng dẫn chuyển đổi sang **Biểu mẫu nợ môn / Kéo dài tiến độ** (`COURSE_DEBT`).
+- **Nghĩa vụ tài chính:** Nợ học phí tích lũy phải nằm trong ngưỡng quy chế cho phép ($\le 10.000.000$ VNĐ); vượt ngưỡng sẽ bị từ chối tự động.
+- **Cơ chế nhận bản cứng:** Nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường tại Phòng Công tác Sinh viên (Sài Gòn Campus: A-01.01 hoặc Thủ Đức Campus: E1-01.08), lưu mã công văn `XNSV-XXXXXX` vào sổ kiểm toán SHA-256.
+
+## 3. Bảng quyết định trọng tài
 
 | Điều kiện | Phân loại | Hành động |
 |---|---|---|
-| Thiếu mục đích | `UNKNOWN_FACT` | `ASK_CLARIFICATION` với câu hỏi cụ thể |
-| Trạng thái không ACTIVE hoặc còn nợ học phí | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo policy rõ ràng |
-| Mục đích không nằm trong danh mục | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` với câu hỏi hành động |
-| Yêu cầu bỏ qua quy định/phê duyệt miệng | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` với câu hỏi xác minh |
-| Đủ dữ kiện, đúng policy, mục đích thường quy | `ROUTINE` | `AUTO_APPROVED` |
+| Thiếu cơ quan tiếp nhận / thiếu môn nợ / lệch form | `UNKNOWN_FACT` | `ASK_CLARIFICATION` hướng dẫn 2 cách: điền form trái hoặc chat trực tiếp |
+| Trạng thái không ACTIVE, nợ phí > 10M, không có TKB | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo quy chế rõ ràng |
+| Sinh viên quá 4 năm xin NVQS thường quy | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` hướng dẫn chuyển sang Form nợ môn (`COURSE_DEBT`) |
+| Mục đích ngoài danh mục hoặc xin cấp lần 2 cùng kỳ | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` kèm lý do giải trình |
+| Yêu cầu bỏ qua quy định / phê duyệt miệng | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` với cảnh báo ép quyền |
+| Đủ dữ kiện, đúng biểu mẫu, đạt chuẩn học vụ | `ROUTINE` | `AUTO_APPROVED` (Cấp mã công văn `XNSV-XXXXXX`) |
 
-`OUTSIDE_POLICY` không đồng nghĩa với vi phạm policy. Tác tử không được tự từ chối hoặc tự cho phép trường hợp policy chưa bao phủ.
+## 4. Bất biến an toàn (Safety Invariants)
 
-## Bất biến an toàn
-
-- Không có mục đích thì không duyệt.
+- Không có mục đích / cơ quan tiếp nhận hợp lệ thì không duyệt.
+- Sinh viên mở form này nhưng xin giấy khác (`Cross-Form Mismatch`) phải được chặn lại hỏi làm rõ trước khi tạo đơn.
 - Ca bị gắn cờ không được công bố là đã đạt.
 - Hồ sơ `WAITING_STUDENT` không thể được cán bộ duyệt tắt.
 - Chỉ hồ sơ `ESCALATED` mới nhận quyết định của con người.
-- Quyết định cuối và audit hash của auto-approve được ghi trong cùng transaction.
+- Quyết định cuối và audit hash của auto-approve được ghi trong cùng database transaction.
 - Chứng từ mới luôn bắt đầu ở `PENDING`, không tự mang nhãn `VERIFIED`.

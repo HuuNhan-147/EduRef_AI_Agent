@@ -79,12 +79,12 @@ Hệ thống cung cấp 11 công cụ khai báo chuẩn Function Calling:
 7. `check_authority({ requestId, action })`: Kiểm tra xem loại đơn và hành động này có thuộc thẩm quyền tự chủ của AI (`AI_AGENT`) hay thuộc cấp Cán bộ (`STAFF`) hoặc Lãnh đạo (`DEAN`).
 
 ### E. Nhóm Hành động & HITL (Action & Decision)
-8. `process_request({ requestId })`: Thực thi phê duyệt tự động đối với đơn thường quy hợp lệ. **Backend tự động re-check 3 lớp an toàn trước khi cấp mã QR**.
-9. `ask_student({ requestId, question })`: Chuyển đơn sang `WAITING_STUDENT` và gửi câu hỏi cụ thể hướng dẫn sinh viên bổ sung thông tin còn thiếu.
+8. `process_request({ requestId })` & `process_student_confirmation({ formCode, purpose, recipientAgency, permanentAddress, debtCourses, phone, idCard })`: Thực thi thẩm định theo quy chuẩn 5 biểu mẫu học vụ HUTECH. Tự động kiểm tra chéo lệch form (`detectCrossFormMismatch`), rà soát TKB và trần 4 năm đào tạo trước khi cấp mã công văn `XNSV-XXXXXX`.
+9. `ask_student({ requestId, question })`: Chuyển đơn sang `WAITING_STUDENT` và gửi câu hỏi cụ thể hướng dẫn sinh viên bổ sung thông tin hoặc điều hướng biểu mẫu đúng.
 10. `escalate_request({ requestId, reason, actionableQuestion, requiredRole })`: Chuyển tiếp đơn lên Cán bộ hoặc Lãnh đạo kèm Context Capsule và câu hỏi hành động trực diện.
 
 ### F. Nhóm Giám sát & Đổi mới (Observability & Rollback)
-11. `rollback_request({ requestCode, reason })`: Can thiệp dừng khẩn cấp, thu hồi mã chứng thực số và vô hiệu hóa mã QR khi phát hiện sai phạm.
+11. `rollback_request({ requestCode, reason })`: Can thiệp dừng khẩn cấp, thu hồi mã công văn chứng thực số khi phát hiện sai phạm.
 12. `run_verify_90s()`: Kích hoạt bộ chạy kiểm thử 5 Test Cases chuẩn Track 2 Option A trong 90 giây phục vụ Ban Giám Khảo.
 
 ---

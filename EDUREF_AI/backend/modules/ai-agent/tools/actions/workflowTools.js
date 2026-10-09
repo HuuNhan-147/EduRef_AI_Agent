@@ -1,9 +1,29 @@
 import AcademicWorkflowService from '../../../../services/AcademicWorkflowService.js';
 
 export const workflowTools = {
-  // ⚡ Fast-Path Master Tool
-  async process_student_confirmation({ studentCode, purpose = '', pickupCampus = '', inputData = {} }) {
-    return await AcademicWorkflowService.processStudentConfirmation({ studentCode, purpose, pickupCampus, inputData });
+  // ⚡ Fast-Path Master Tool (5 Biểu Mẫu Chuẩn HUTECH)
+  async process_student_confirmation({
+    studentCode,
+    formCode = null,
+    purpose = '',
+    pickupCampus = '',
+    permanentAddress = null,
+    debtCourses = null,
+    phone = null,
+    idCard = null,
+    inputData = {},
+  }) {
+    return await AcademicWorkflowService.processStudentConfirmation({
+      studentCode,
+      formCode,
+      purpose,
+      pickupCampus,
+      permanentAddress,
+      debtCourses,
+      phone,
+      idCard,
+      inputData,
+    });
   },
   // A. Student Context
   async get_student_profile({ studentCode }) {

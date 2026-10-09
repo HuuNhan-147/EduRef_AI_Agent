@@ -1,39 +1,47 @@
-# 03. Quy Trình Bản Chung Kết
+# 03. Quy Trình Nghiệp Vụ Bản Chung Kết
 
-> Phạm vi duy nhất: `STUDENT_CONFIRMATION` - Cấp Giấy Xác Nhận Sinh Viên.
+> Quy trình duy nhất: `STUDENT_CONFIRMATION` — Cấp Giấy Xác Nhận Sinh Viên (5 Biểu Mẫu Chuẩn HUTECH).
 
-## Luồng chính
+## 1. Sơ đồ luồng thẩm định học vụ tự hành
 
 ```text
-Sinh viên nhập yêu cầu
+Sinh viên nhập yêu cầu / mở biểu mẫu
         |
         v
-Chuẩn hóa mục đích và cơ sở nhận giấy
-        |
-        +--> Thiếu dữ kiện ------> ASK_CLARIFICATION
+AI Agent trích xuất thực thể & nhận diện biểu mẫu
         |
         v
-Đọc hồ sơ sinh viên
+Đối soát chéo biểu mẫu (Cross-Form Mismatch Gate)
+        |
+        +--> Lệch biểu mẫu ---------> Dừng lại, hướng dẫn 2 cách: điền form trái HOẶC chat trực tiếp
         |
         v
-StudentConfirmationDecisionService
+Kiểm tra tính đầy đủ dữ kiện (Fact Completeness Gate)
         |
-        +--> Vi phạm policy -----> REJECTED_POLICY
-        +--> Ngoài danh mục ------> ESCALATE_TO_STAFF
-        +--> Vượt thẩm quyền -----> ESCALATE_TO_STAFF
-        +--> Đủ điều kiện --------> AUTO_APPROVED
+        +--> Thiếu cơ quan/môn nợ ---> ASK_CLARIFICATION (WAITING_STUDENT)
         |
         v
-Audit log SHA-256 + mã hồ sơ/QR nếu được duyệt
+Deterministic Policy Engine (HUTECH Rules)
+        |
+        +--> Không có TKB / Thôi học / Bảo lưu ----> REJECTED_POLICY
+        +--> Quá 4 năm đào tạo xin NVQS thường ------> REJECTED_POLICY (Điều hướng Form nợ môn)
+        +--> Nợ học phí > 10.000.000 đ --------------> REJECTED_POLICY
+        +--> Ngoài danh mục / Cấp lần 2 cùng kỳ -----> ESCALATE_TO_STAFF
+        +--> Bỏ qua quy định / Vượt quyền -----------> ESCALATE_TO_STAFF
+        +--> Đạt 100% điều kiện thường quy ----------> AUTO_APPROVED (< 1.0 giây)
+        |
+        v
+Ghi nhận Sổ cái Kiểm toán SHA-256 + Cấp mã công văn XNSV-XXXXXX
+Lưu lịch hẹn nhận bản cứng tại Phòng CTSV (A-01.01 Sài Gòn hoặc E1-01.08 Thủ Đức)
 ```
 
-## Điểm con người
+## 2. Điểm tương tác con người (Human-in-the-Loop)
 
-- Sinh viên chịu trách nhiệm cung cấp mục đích và cơ sở nhận giấy.
-- AI chỉ tự động xử lý ca thường quy đã được policy cho phép.
-- Cán bộ là người quyết định các ca ngoài policy hoặc vượt thẩm quyền.
-- Rollback tạo một audit event mới, không sửa lịch sử cũ.
+- **Sinh viên:** Cung cấp thông tin theo 5 biểu mẫu chuyên biệt, có thể điền form nhanh bên thanh trái hoặc trò chuyện trực tiếp để AI điền giúp.
+- **Tác tử AI:** Tư vấn quy chế, bóc tách thực thể, phát hiện lệch biểu mẫu và đề xuất lệnh xử lý an toàn.
+- **Cán bộ PĐT / CTSV:** Xem xét các ca ngoại lệ được đóng gói trong Context Capsule, phê duyệt ngoại lệ (Override) hoặc từ chối có ghi chú.
+- **Rollback:** Cán bộ có thể thu hồi đơn đã tự duyệt bất kỳ lúc nào nếu phát hiện sai sót, tạo ra một block kiểm toán mới mà không can thiệp lịch sử cũ.
 
-## Verify Harness
+## 3. Verify Harness
 
-`POST /api/agent/verify-90s` gọi trực tiếp policy/workflow backend, không phụ thuộc việc LLM có sinh đúng câu trả lời hay không. UI hiển thị 5 ca, expected/actual decision, thời gian và bằng chứng audit trong cùng một màn hình.
+Endpoint `POST /api/agent/verify-90s` và `POST /api/agent/verify-custom-prompt` gọi trực tiếp Động cơ Quy chế, kiểm tra tính xác định tuyệt đối của các quyết định học vụ mà không bị ảnh hưởng bởi độ trễ hay ảo tưởng của LLM.

@@ -40,7 +40,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       });
     }
 
-    // 2. Số CCCD (dữ liệu bổ sung nếu nộp từ form chi tiết)
+    // 2. Số CCCD (dữ liệu bổ sung nếu nộp từ form chi tiết hoặc chat)
     const idCard = inputData?.idCard || inputData?.REQ_ID_CARD;
     if (idCard) {
       passed.push({
@@ -50,12 +50,42 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       });
     }
 
-    // 3. Cơ sở nhận giấy (Chuẩn hóa cơ sở chính thức HUTECH)
+    // 3. Địa chỉ hộ khẩu thường trú (cho NVQS, Giảm thuế, Nợ môn)
+    const permanentAddress = inputData?.permanentAddress || inputData?.address || inputData?.REQ_ADDRESS;
+    if (permanentAddress) {
+      passed.push({
+        code: 'REQ_ADDRESS',
+        name: 'Địa chỉ thường trú',
+        value: String(permanentAddress).trim(),
+      });
+    }
+
+    // 4. Môn nợ (cho biểu mẫu nợ môn)
+    const debtCourses = inputData?.debtCourses || inputData?.REQ_DEBT_COURSES;
+    if (debtCourses) {
+      passed.push({
+        code: 'REQ_DEBT_COURSES',
+        name: 'Danh sách môn nợ',
+        value: String(debtCourses).trim(),
+      });
+    }
+
+    // 5. Số điện thoại liên hệ
+    const phone = inputData?.phone || inputData?.REQ_PHONE;
+    if (phone) {
+      passed.push({
+        code: 'REQ_PHONE',
+        name: 'Số điện thoại',
+        value: String(phone).trim(),
+      });
+    }
+
+    // 6. Cơ sở nhận giấy (Chuẩn hóa cơ sở chính thức HUTECH)
     const campusRaw = inputData?.pickupCampus || inputData?.campus || inputData?.REQ_CAMPUS;
     let normalizedCampus = 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
     if (campusRaw && String(campusRaw).trim().length > 0) {
       const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
-      const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm/i.test(campusRaw);
+      const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm|trụ sở/i.test(campusRaw);
       normalizedCampus = isThuDuc
         ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
         : isSaiGon
@@ -79,14 +109,29 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
    * Sinh câu hỏi khi thiếu mục đích
    */
   getClarificationQuestion(missing = []) {
-    return 'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn, học bổng, tạm hoãn nghĩa vụ quân sự hay xin visa?';
+    return 'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, giảm thuế hay xin visa? Bạn có thể điền biểu mẫu tương ứng bên tay trái hoặc nhắn trực tiếp cho mình nhé!';
   }
 
   async evaluatePolicies(student, request) {
     const evaluation = evaluateStudentConfirmation({ student, inputData: request.inputData || {} });
+    
+    // Nếu phát hiện sai lệch biểu mẫu hoặc thiếu trường bắt buộc -> Dừng lại hỏi làm rõ (ASK_CLARIFICATION)
+    if (evaluation.decision === TRACK_A_DECISION.ASK_CLARIFICATION) {
+      return {
+        passed: false,
+        decision: 'ASK_CLARIFICATION',
+        classification: evaluation.classification || TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        uncertaintyType: evaluation.uncertaintyType || TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        reason: evaluation.reason,
+        actionableQuestion: evaluation.actionableQuestion,
+        policyVersion: evaluation.policyVersion,
+      };
+    }
+
     if (evaluation.decision === TRACK_A_DECISION.AUTO_REJECT) {
       return {
         passed: false,
+        decision: 'REJECTED_POLICY',
         classification: evaluation.classification,
         uncertaintyType: evaluation.uncertaintyType,
         violatedPolicy: { code: 'STUDENT_CONFIRMATION_EXPLICIT_DENY', name: 'Điều kiện cấp giấy xác nhận' },
@@ -98,6 +143,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
 
     return {
       passed: true,
+      decision: evaluation.decision,
       classification: evaluation.classification,
       uncertaintyType: evaluation.uncertaintyType,
       reason: evaluation.reason,

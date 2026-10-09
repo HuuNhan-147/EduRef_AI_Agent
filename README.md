@@ -8,18 +8,21 @@
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Runtime](https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
 [![Frontend](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
-[![Database](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
+[![Database](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/**Hệ Thống Tác Tử AI Tự Hành Thẩm Định & Điều Phối Hành Chính Học Vụ Đảm Bảo Trách Nhiệm Giải Trình**
 
-**Hệ Thống Tác Tử AI Tự Hành Thẩm Định & Điều Phối Hành Chính Học Vụ Đảm Bảo Trách Nhiệm Giải Trình**
-
-> **Phạm vi bản chung kết:** EduRef AI chỉ xử lý một quy trình là **Cấp Giấy Xác Nhận Sinh Viên**. Các mục đích như vé xe buýt, học bổng, vay vốn, visa và nghĩa vụ quân sự là các mục đích của cùng một giấy xác nhận, không phải workflow riêng.
+> **Phạm vi nghiệp vụ thực tế (HUTECH CTSV):** EduRef AI giải quyết trọn vẹn quy trình **Cấp Giấy Xác Nhận Sinh Viên** với đầy đủ **5 Biểu Mẫu Học Vụ Thực Tế** theo quy chuẩn của Trường Đại học HUTECH:
+> 1. `TAX_DEDUCTION`: Đơn xin xác nhận giảm trừ gia cảnh Thuế TNCN (Hiệu lực 1 học kỳ, bắt buộc nơi nhận/cơ quan thuế).
+> 2. `BANK_LOAN`: Đơn xin xác nhận vay vốn Ngân hàng CSXH (Mẫu 01/TDSV theo TT 27/2019/TT-NHCS, hạn 1 học kỳ).
+> 3. `MILITARY_DEFERMENT`: Đơn xin tạm hoãn nghĩa vụ quân sự (Hiệu lực 30 ngày theo Luật NVQS, gửi BCH Quân sự Xã/Phường).
+> 4. `COURSE_DEBT`: Đơn xin xác nhận sinh viên còn nợ môn / Kéo dài tiến độ (Dành riêng cho sinh viên học quá 4 năm đào tạo chuẩn, bắt buộc danh sách môn nợ và cam kết hoàn thành).
+> 5. `GENERAL_CONFIRMATION`: Đơn xin xác nhận sinh viên mục đích chung (Làm vé xe buýt, visa du lịch, việc làm, bổ sung hồ sơ...).
 
 > *"Tự động hóa thủ tục thường quy — Minh bạch trách nhiệm giải trình — Dừng lại chính xác khi vượt thẩm quyền."*
 
 > 🚀 **HỆ THỐNG ĐÃ TRIỂN KHAI TRỰC TUYẾN (PUBLIC LIVE DEMO CHO BAN GIÁM KHẢO):**  
 > 🌐 **Cổng Dịch Vụ Học Vụ Tự Hành (Frontend):** [https://edu-ref-ai-agent.vercel.app/](https://edu-ref-ai-agent.vercel.app/)  
 > ⚙️ **Backend API & Health Check (Render Singapore):** [https://eduref-ai-agent-1.onrender.com/health](https://eduref-ai-agent-1.onrender.com/health)  
-> 💡 **HƯỚNG DẪN 1 DÒNG DÀNH CHO GIÁM KHẢO (QUICK 90S RUN):** *Mở đường dẫn trực tuyến và bấm ngay vào tab **Verify Track A** trên thanh điều hướng để chạy bộ kiểm thử tự động 5 ca chuẩn hoặc thử nghiệm ca mới.*
+> 💡 **HƯỚNG DẪN DÀNH CHO GIÁM KHẢO:** *Mở đường dẫn trực tuyến và trải nghiệm **Student Workspace** (thử nộp form hoặc chat với AI, test 6 kịch bản 1-click) hoặc tab **Verify Track A** để kiểm thử tự động 5 ca chuẩn.*
 
 [Kiến Trúc Hệ Thống](#-kiến-trúc-hệ-thống) • [Luồng Ra Quyết Định (3 Chốt)](#-luồng-ra-quyết-định--cơ-chế-trọng-tài-3-chốt) • [4 Trụ Cột Đột Phá](#-4-trụ-cột-đột-phá-của-eduref-ai) • [Kịch Bản Demo BGK](#-kịch-bản-dành-cho-ban-giám-khảo-golden-test-cases) • [Cài Đặt & Chạy Nhanh](#-hướng-dẫn-cài-đặt--chạy-nhanh) • [Đội Ngũ KAISER](#-thông-tin-đội-thi-kaiser)
 
@@ -34,7 +37,7 @@
 * **Thử thách dự thi:** Đề bài A — **The Escalation Referee**
 
 | STT | Họ và Tên | MSSV / Lớp | Email | Số điện thoại | Vai trò chính |
-| :---: | :--- | :---: | :--- | :---: | :--- |
+| :---: | :--- | :---: | :--- | :--- | :--- |
 | **1** | **Hoàng Trọng Trà** | 22DTHE4 | `trahoangdev@gmail.com` | `0842366570` | **Team Leader / Fullstack & System Architecture** |
 | **2** | **Cao Hữu Nhân** | 22DTHE4 | `huuxnhan.dev@gmail.com` | `0377913722` | **AI Engineer & Prompt / Vision Pipeline** |
 | **3** | **Trần Minh Quang** | 22DTHC7 | `tmquang.contact@gmail.com` | `0943457402` | **Backend & Audit Ledger Engineer** |
@@ -44,13 +47,13 @@
 
 ## 📌 BỐI CẢNH & BÀI TOÁN THỰC TẾ
 
-Tại các cơ sở giáo dục đại học, công tác tiếp nhận và xử lý thủ tục hành chính sinh viên (xét tốt nghiệp, cấp giấy xác nhận, hoãn nghĩa vụ quân sự, vay vốn ngân hàng chính sách, miễn giảm học phí...) đang đối mặt với 3 thách thức lớn:
+Tại các cơ sở giáo dục đại học, công tác tiếp nhận và xử lý thủ tục hành chính sinh viên (cấp giấy xác nhận sinh viên, hoãn nghĩa vụ quân sự, vay vốn ngân hàng chính sách, giảm trừ gia cảnh thuế TNCN...) đang đối mặt với 3 thách thức lớn:
 
-1. **Quá tải thủ công thường quy:** Hàng nghìn đơn gửi về mỗi đợt nhưng phần lớn là hồ sơ đạt chuẩn mực. Cán bộ đào tạo phải mất 3–7 ngày để rà soát thủ công từng hồ sơ.
-2. **Sai sót & thiếu hụt hồ sơ:** Sinh viên gửi ảnh chứng chỉ mờ, che thông tin, hoặc thiếu căn cứ chứng minh, khiến đơn bị trả về nhiều lần gây nghẽn luồng xử lý.
+1. **Quá tải thủ công thường quy:** Hàng nghìn đơn gửi về mỗi đợt nhưng phần lớn là hồ sơ đạt chuẩn mực. Cán bộ đào tạo/CTSV phải mất 2–5 ngày để rà soát thủ công từng hồ sơ.
+2. **Lệch biểu mẫu & Thiếu thông tin:** Sinh viên mở biểu mẫu này nhưng điền nội dung xin loại giấy khác (ví dụ: mở Form Thuế nhưng ghi xin hoãn NVQS), hoặc thiếu các trường pháp lý bắt buộc (Cơ quan tiếp nhận, địa chỉ thường trú 4 cấp, danh sách môn nợ), gây ách tắc hồ sơ.
 3. **Ảo tưởng AI (Hallucination) & Vượt quyền:** Khi ứng dụng LLM đơn thuần vào học vụ, AI dễ mắc lỗi tự suy diễn, dễ bị Prompt Injection thuyết phục cấp giấy tờ trái phép hoặc tự tiện phê duyệt các trường hợp vượt thẩm quyền mà không có cơ chế chặn đứng.
 
-EduRef AI giải quyết triệt để vấn đề này bằng mô hình **Bounded Autonomy (Tự chủ trong ranh giới)**: AI chỉ hỗ trợ hiểu ngôn ngữ và trích xuất dữ liệu thị giác; mọi phán quyết học vụ đều do **Versioned Policy Engine** xác định, tự động dừng lại và chuyển tiếp kèm hồ sơ tóm tắt khi phát hiện trường hợp ngoại lệ.
+EduRef AI giải quyết triệt để vấn đề này bằng mô hình **Bounded Autonomy (Tự chủ trong ranh giới)**: AI chỉ hỗ trợ hiểu ngôn ngữ và trích xuất dữ liệu; mọi phán quyết học vụ đều do **Deterministic Policy Engine** phán quyết, tự động phát hiện lệch biểu mẫu để hướng dẫn sinh viên, và tự động dừng lại chuyển tiếp kèm hồ sơ tóm tắt khi phát hiện trường hợp ngoại lệ.
 
 ---
 
@@ -59,13 +62,21 @@ EduRef AI giải quyết triệt để vấn đề này bằng mô hình **Bound
 ```mermaid
 graph TD
     User["👨‍🎓 Sinh viên nộp hồ sơ / trò chuyện"] --> Agent["🤖 AI Agent Orchestrator"]
-    Agent --> Policy["⚖️ Deterministic Policy Engine (Versioned)"]
+    Agent --> IntentCheck{"Phát hiện chéo biểu mẫu?<br/>(Cross-Form Mismatch)"}
+    IntentCheck -->|"Lệch biểu mẫu"| ClarifyForm["💡 Hướng dẫn 2 cách: Điền form trái HOẶC chat trực tiếp"]
+    IntentCheck -->|"Khớp biểu mẫu"| Policy["⚖️ Deterministic Policy Engine (HUTECH Rules)"]
     
-    Policy --> Decisions{"Quyết Định Trọng Tài"}
-    Decisions -->|"Thỏa 100% & Thuộc quyền AI"| AUTO["✅ ROUTINE: Tự động phê duyệt trong 1 giây"]
-    Decisions -->|"Thiếu dữ kiện mục đích"| ASK["❓ UNKNOWN_FACT: Dừng lại hỏi trực tiếp sinh viên"]
-    Decisions -->|"Vi phạm điều cấm quy chế"| REJECT["❌ ROUTINE_POLICY_DENY: Từ chối & Dẫn chiếu quy chế"]
-    Decisions -->|"Ngoài danh mục hoặc Vượt trần"| ESCALATE["🚨 ESCALATE: Chuyển Cán bộ / Trưởng Phòng ĐT"]
+    Policy --> ScheduleCheck{"Có TKB / Tín chỉ học kỳ này?"}
+    ScheduleCheck -->|"Không có / Thôi học / Bảo lưu"| REJECT["❌ ROUTINE_POLICY_DENY: Từ chối & Dẫn chiếu quy chế"]
+    ScheduleCheck -->|"Có TKB & Đủ điều kiện"| Over4Years{"Sinh viên quá 4 năm chuẩn?"}
+    
+    Over4Years -->|"Quá 4 năm xin NVQS"| RedirectDebt["⚠️ Từ chối NVQS thường, điều hướng sang Form Nợ môn"]
+    Over4Years -->|"Trong 4 năm đào tạo"| Decisions{"Quyết Định Thẩm Định"}
+    
+    Decisions -->|"Thỏa 100% & Thuộc quyền AI"| AUTO["✅ ROUTINE: Tự động phê duyệt trong 1 giây (Cấp mã XNSV)"]
+    Decisions -->|"Thiếu thông tin bắt buộc"| ASK["❓ UNKNOWN_FACT: Dừng lại hỏi trực tiếp sinh viên"]
+    Decisions -->|"Nợ học phí > 10M / Thôi học"| REJECT
+    Decisions -->|"Ngoài danh mục hoặc Vượt trần"| ESCALATE["🚨 ESCALATE: Chuyển Cán bộ PĐT / CTSV"]
     
     AUTO --> Audit["⛓️ Cryptographic Audit Ledger SHA-256"]
     REJECT --> Audit
@@ -75,21 +86,27 @@ graph TD
 
 ### 1. Tự Động Hóa Thường Quy Tốc Độ Cao (Autonomous Routine)
 * Thẩm định và hoàn tất các hồ sơ thường quy hợp lệ trong **dưới 1.0 giây**.
-* Tự động sinh quyết định, cấp mã tra cứu và thông báo kết quả tức thì, cắt giảm **80%** tải công việc giấy tờ của Phòng Đào tạo.
+* Tự động sinh quyết định, cấp mã công văn chứng thực số `XNSV-XXXXXX` có giá trị lưu sổ tại Phòng CTSV, cắt giảm **80%** tải công việc giấy tờ của Nhà trường.
+* **Quy chuẩn nhận bản cứng:** Sinh viên nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường tại Phòng CTSV (Sài Gòn Campus: A-01.01 hoặc Thủ Đức Campus: E1-01.08), giải quyết triệt để yêu cầu pháp lý của địa phương/cơ quan nhà nước.
 
-### 2. Trọng Tài Điều Phối Giới Hạn Thẩm Quyền (Bounded Autonomy Referee)
-* **Phân định ý định (Dual-Intent Gate):** Tách bạch tuyệt đối giữa câu hỏi tìm hiểu thông tin quy chế (`0 Tool Calls`) và chủ đích nộp đơn thực sự, triệt tiêu lỗi tự ý duyệt đơn hấp tấp (Premature Execution).
-* **Dừng lại đúng lúc:** Nhận diện chính xác khi dữ liệu bị thiếu (`UNKNOWN_FACT`) để hỏi sinh viên thay vì tự suy diễn hoặc chuyển bừa bãi.
-* **Trần cứng 5 bước suy luận (Loop Step Cap = 5):** Kiểm soát vòng lặp ReAct tối đa 5 bước, tự động kích hoạt Graceful Escalation lên Cán bộ khi chạm trần, triệt tiêu nguy cơ lặp vô hạn.
-* **Thực thi ranh giới thẩm quyền:** Phát hiện trường hợp ngoại lệ, vượt trần chính sách hoặc dấu hiệu Prompt Injection để lập tức chuyển tiếp (`ESCALATE`) lên Chuyên viên PĐT hoặc Trưởng Phòng ĐT kèm Context Capsule tóm tắt.
+### 2. Phát Hiện Chéo Biểu Mẫu & Hướng Dẫn Kép (Cross-Form Mismatch & Dual Guidance)
+* **Phát hiện lệch biểu mẫu tức thì (`detectCrossFormMismatch`):** Sinh viên đang mở form này nhưng nội dung chat lại xin loại giấy khác (ví dụ: mở Form Thuế nhưng xin hoãn Nghĩa vụ Quân sự).
+* **Đưa ra hướng dẫn 2 lựa chọn thông minh:**
+  1. *Lựa chọn 1:* Chuyển sang biểu mẫu chuẩn xác bên thanh điều hướng bên trái và bấm nộp nhanh.
+  2. *Lựa chọn 2:* Cung cấp trực tiếp các thông tin còn thiếu ngay trong khung chat để AI tự động điền form và tạo đơn thay cho sinh viên.
 
 ### 3. Động Cơ Quy Chế Đào Tạo Xác Định (Deterministic Policy Engine)
 * **Thượng tôn quy chế:** Tách rời hoàn toàn logic phán quyết ra khỏi LLM, không bao giờ để AI suy diễn quy định học vụ.
-* **Tuân thủ quy chuẩn HUTECH:** Thực thi nghiêm ngặt các chốt chặn: hoàn thành 100% nghĩa vụ học phí (Zero-tolerance nợ 0đ), trạng thái sinh viên `ACTIVE`, danh mục thường quy chuẩn hóa.
+* **Tuân thủ quy chuẩn HUTECH:**
+  * **Điều kiện tiên quyết:** Bắt buộc có Thời khóa biểu / đăng ký ít nhất 1 tín chỉ trong học kỳ hiện tại (`hasSchedule === true`, `enrolledCredits > 0`).
+  * **Quy chế 4 năm đào tạo:** Sinh viên quá 4 năm đào tạo chuẩn không được cấp Giấy hoãn NVQS thông thường, bắt buộc chuyển sang **Biểu mẫu nợ môn / Kéo dài tiến độ** (`COURSE_DEBT`).
+  * **Chốt chặn tài chính & Học vụ:** Giới hạn nợ học phí $\le 10$ triệu VNĐ; trạng thái sinh viên bắt buộc `ACTIVE` (chặn đứng sinh viên thôi học `DROPPED`, bảo lưu `SUSPENDED`).
+  * **Hạn ngạch cấp giấy:** Mỗi học kỳ sinh viên được cấp 1 bản cho mỗi biểu mẫu (NVQS có hiệu lực 30 ngày); nếu xin cấp lại lần 2 trong cùng kỳ phải có lý do giải trình.
 
-### 4. Sổ Cái Kiểm Toán Bất Biến (Cryptographic Hash Chain)
-* Mọi phán quyết và tương tác được ghi nhận vào chuỗi băm mật mã học (SHA-256): `Block_N.prevHash = Block_{N-1}.hash`.
-* Đảm bảo tính **Bất biến (Immutability)**, minh bạch trách nhiệm giải trình và chống chỉnh sửa dữ liệu hồi tố.
+### 4. Sổ Cái Kiểm Toán Bất Biến & Trần An Toàn ReAct (Audit Ledger & Safety Guard)
+* **Sổ cái chuỗi băm (SHA-256 Hash Chain):** Mọi phán quyết và tương tác được ghi nhận vào chuỗi băm mật mã học: `Block_N.prevHash = Block_{N-1}.hash`. Đảm bảo tính **Bất biến (Immutability)**, minh bạch trách nhiệm giải trình và chống chỉnh sửa dữ liệu hồi tố.
+* **Trần cứng 5 bước suy luận (Loop Step Cap = 5):** Kiểm soát vòng lặp ReAct tối đa 5 bước, tự động kích hoạt Graceful Escalation lên Cán bộ khi chạm trần, triệt tiêu nguy cơ lặp vô hạn.
+* **Thực thi ranh giới thẩm quyền:** Phát hiện trường hợp ngoại lệ, vượt trần chính sách hoặc dấu hiệu Prompt Injection để lập tức chuyển tiếp (`ESCALATE`) lên Chuyên viên PĐT hoặc Trưởng Phòng ĐT kèm Context Capsule tóm tắt.
 
 ---
 
@@ -229,12 +246,26 @@ Hệ thống đã nạp sẵn bộ dữ liệu synthetic chuẩn hóa phục v�
 
 | Vai trò | Tài khoản | Mật khẩu | Đặc điểm hồ sơ & Mục đích kiểm thử |
 | :--- | :--- | :---: | :--- |
-| **Sinh viên (Chính)** | `2280602154` (Cao Hữu Nhân) | `123456` | Trạng thái `ACTIVE`, nợ phí 0đ — Trải nghiệm nộp đơn thường quy & chat với AI |
+| **Sinh viên (Chính quy)** | `2280602154` (Cao Hữu Nhân) | `123456` | Trạng thái `ACTIVE`, nợ phí 0đ, có TKB (15 tín chỉ) — Trải nghiệm nộp đơn thường quy & chat với AI |
+| **Sinh viên (Quá 4 năm nợ môn)** | `2110005` (Võ Quốc Tuấn) | `123456` | Khóa K21 (quá 4 năm chuẩn), nợ 6 tín chỉ — Thử nghiệm chốt chặn NVQS ép chuyển sang Biểu mẫu Nợ môn |
 | **Sinh viên (Thôi học)** | `2110002` (Trần Thị Bình) | `123456` | Trạng thái `DROPPED` — Kiểm thử chốt chặn từ chối tự động theo quy chế |
-| **Sinh viên (Nợ phí)** | `2110003` (Lê Hoàng Cường) | `123456` | Nợ học phí 15.000.000đ — Kiểm thử chốt chặn nợ tài chính (Zero-tolerance) |
+| **Sinh viên (Nợ phí)** | `2110003` (Lê Hoàng Cường) | `123456` | Nợ học phí 15.000.000đ (vượt ngưỡng 10M) — Kiểm thử chốt chặn nợ tài chính |
 | **Sinh viên (Bảo lưu)** | `2110004` (Phạm Văn Dũng) | `123456` | Trạng thái `SUSPENDED` — Kiểm thử quy định bảo lưu không cấp giấy online |
-| **Chuyên viên PĐT** | `staff_daotao` (Thầy Trần Hữu Nghĩa) | `123456` | Thẩm định và xử lý hàng đợi các đơn chuyển tiếp (`ESCALATED`) |
+| **Chuyên viên PĐT / CTSV** | `staff_daotao` (Thầy Trần Hữu Nghĩa) | `123456` | Thẩm định và xử lý hàng đợi các đơn chuyển tiếp (`ESCALATED`) |
 | **Trưởng Phòng ĐT** | `dean_daotao` (PGS.TS Nguyễn Văn Dũng) | `123456` | Phê duyệt tối cao các ngoại lệ vượt trần thẩm quyền & can thiệp Rollback |
+
+---
+
+### ⚡ 6 Kịch Bản Kiểm Thử 1-Click Trực Tiếp (Tại Student Workspace)
+
+Trên giao diện **Student Workspace**, Ban Giám Khảo có thể bấm trực tiếp vào **6 nút kịch bản mẫu** ở góc phải màn hình để kiểm chứng ngay khả năng thích ứng và phản hồi của Tác tử AI:
+
+1. **Kịch bản 1 — Lệch Form (Cross-Form Mismatch):** Sinh viên mở Form Thuế nhưng gõ xin hoãn NVQS. AI tự động phát hiện lệch biểu mẫu và hướng dẫn 2 cách: điền form bên trái hoặc nhắn tin trực tiếp qua chat.
+2. **Kịch bản 2 — Quá 4 năm đào tạo (Course Debt):** Sinh viên K21 (`2110005`) xin Giấy NVQS. Hệ thống từ chối cấp NVQS thường quy và hướng dẫn chuyển sang Biểu mẫu Nợ môn / Kéo dài tiến độ.
+3. **Kịch bản 3 — Thường quy Hợp lệ (Routine Auto-Approve):** Sinh viên chính quy (`2280602154`) xin Giấy vay vốn Ngân hàng CSXH theo Mẫu 01/TDSV. Hệ thống duyệt tự động trong $< 1.0$ giây, cấp mã công văn `XNSV-XXXXXX`.
+4. **Kịch bản 4 — Sinh viên Thôi học (Dropped Status Deny):** Sinh viên thôi học (`2110002`) nộp đơn. Hệ thống từ chối dứt khoát theo Quy chế đào tạo.
+5. **Kịch bản 5 — Nợ học phí vượt ngưỡng (Tuition Debt Deny):** Sinh viên nợ 15 triệu (`2110003`) xin cấp giấy. Hệ thống từ chối tự động do vượt ngưỡng nợ học phí cho phép.
+6. **Kịch bản 6 — Bỏ qua quy định / Vượt quyền (Beyond Authority Escalate):** Sinh viên viện dẫn lãnh đạo đồng ý miệng để xin duyệt khống. AI chặn đứng và chuyển tiếp Cán bộ PĐT xác minh.
 
 ---
 
@@ -274,18 +305,27 @@ Tại trang **Verify Harness** (hoặc nhấn nút trên thanh điều hướng)
 {
   "student": {
     "status": "ACTIVE | DROPPED | SUSPENDED",
-    "tuitionDebt": 0
+    "tuitionDebt": 0,
+    "hasSchedule": true,
+    "enrolledCredits": 15,
+    "cohortYear": 2022
   },
   "inputData": {
+    "formCode": "MILITARY_DEFERMENT | BANK_LOAN | TAX_DEDUCTION | COURSE_DEBT | GENERAL_CONFIRMATION",
     "purpose": "Chuỗi văn bản mục đích sử dụng giấy",
+    "recipientAgency": "Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh",
+    "debtCourses": ["Lập trình Web", "Cơ sở dữ liệu"],
     "userClaimedOverride": false
   }
 }
 ```
 
 * **`student.status`**: Trạng thái học vụ (`ACTIVE` = Đang học; `DROPPED` = Thôi học; `SUSPENDED` = Đình chỉ).
-* **`student.tuitionDebt`**: Nợ học phí tích lũy (Quy chế đào tạo yêu cầu hoàn thành 100% nghĩa vụ tài chính, nợ = 0 VNĐ; còn nợ phí sẽ tự động từ chối).
-* **`inputData.purpose`**: Mục đích sử dụng giấy (Danh mục chuẩn gồm: *xe buýt, học bổng, vay vốn, nghĩa vụ quân sự, visa, bổ sung hồ sơ học tập*).
+* **`student.hasSchedule` & `enrolledCredits`**: Điều kiện tiên quyết có thời khóa biểu/tín chỉ đăng ký học kỳ hiện tại ($> 0$ tín chỉ).
+* **`student.cohortYear`**: Khóa đào tạo, dùng để rà soát sinh viên quá 4 năm đào tạo chuẩn.
+* **`student.tuitionDebt`**: Nợ học phí tích lũy (ngưỡng an toàn theo quy chế HUTECH $\le 10.000.000$ VNĐ; vượt ngưỡng sẽ từ chối).
+* **`inputData.formCode`**: Định danh 1 trong 5 biểu mẫu học vụ thực tế HUTECH.
+* **`inputData.purpose` / `recipientAgency`**: Cơ quan tiếp nhận và mục đích pháp lý của biểu mẫu.
 * **`inputData.userClaimedOverride`**: Cờ phát hiện sinh viên cố tình viện dẫn phê duyệt miệng hoặc Prompt Injection để ép hệ thống duyệt.
 
 ---
