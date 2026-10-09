@@ -25,7 +25,6 @@ Deterministic Policy Engine (HUTECH Rules)
         |
         +--> Không có TKB / Thôi học / Bảo lưu ----> REJECTED_POLICY
         +--> Quá 4 năm đào tạo xin NVQS thường ------> REJECTED_POLICY (Điều hướng Form nợ môn)
-        +--> Nợ học phí > 10.000.000 đ --------------> REJECTED_POLICY
         +--> Ngoài danh mục / Cấp lần 2 cùng kỳ -----> ESCALATE_TO_STAFF
         +--> Bỏ qua quy định / Vượt quyền -----------> ESCALATE_TO_STAFF
         +--> Đạt 100% điều kiện thường quy ----------> AUTO_APPROVED (< 1.0 giây)

@@ -43,6 +43,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
           where: { studentCode: String(codeToFind).trim() },
           include: { department: true },
         });
+        if (student) {
           const sCode = String(student.studentCode).trim();
           const isOverdue = sCode === '2110005' || sCode.startsWith('20') || sCode.startsWith('19') || sCode.startsWith('18');
           const hasActiveSched = student.status === 'ACTIVE' && sCode !== '2110002';

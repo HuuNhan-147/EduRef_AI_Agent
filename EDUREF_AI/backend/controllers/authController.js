@@ -16,7 +16,6 @@ function getJwtSecret() {
 export const DEMO_ACCOUNT_TARGETS = Object.freeze({
   STUDENT_ACTIVE: { type: 'STUDENT', code: '2280602154' },
   STUDENT_DROPPED: { type: 'STUDENT', code: '2110002' },
-  STUDENT_DEBT: { type: 'STUDENT', code: '2110003' },
   STUDENT_SUSPENDED: { type: 'STUDENT', code: '2110004' },
   STUDENT_GRADUATED: { type: 'STUDENT', code: '2110005' },
   STAFF_DAOTAO: { type: 'STAFF', code: 'staff_daotao' },

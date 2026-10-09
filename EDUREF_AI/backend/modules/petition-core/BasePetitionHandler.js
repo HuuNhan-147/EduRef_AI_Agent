@@ -42,15 +42,6 @@ export class BasePetitionHandler {
         reason: `Sinh viên có trạng thái [${student.status}], không đủ điều kiện làm thủ tục theo Điều 3 Quy chế đào tạo.`,
       };
     }
-
-    if (Number(student.tuitionDebt || 0) > 0) {
-      return {
-        passed: false,
-        violatedPolicy: { code: 'POL_TUITION_DEBT', name: 'Nợ học phí' },
-        reason: `Sinh viên còn nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} VNĐ, vui lòng hoàn thành 100% nghĩa vụ tài chính trước.`,
-      };
-    }
-
     return { passed: true, violatedPolicy: null, reason: 'Đáp ứng đầy đủ quy chế đào tạo.' };
   }
 

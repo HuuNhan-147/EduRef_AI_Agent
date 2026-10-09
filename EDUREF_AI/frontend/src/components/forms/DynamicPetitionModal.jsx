@@ -49,10 +49,27 @@ export default function DynamicPetitionModal({
   const isConfirmForm = petitionType?.code === 'STUDENT_CONFIRMATION';
   const isGraduationForm = false;
 
+  // Danh mục 5 Biểu mẫu Học vụ Thực tế HUTECH
+  const HUTECH_FORMS = [
+    { code: 'TAX_DEDUCTION', badge: 'DV-01', name: 'Giảm trừ gia cảnh (Thuế)', shortName: 'Thuế TNCN' },
+    { code: 'BANK_LOAN', badge: 'DV-02', name: 'Vay vốn NHCSXH (Mẫu 01)', shortName: 'Vay vốn NHCS' },
+    { code: 'MILITARY_DEFERMENT', badge: 'DV-03', name: 'Tạm hoãn Nghĩa vụ Quân sự', shortName: 'Tạm hoãn NVQS' },
+    { code: 'COURSE_DEBT', badge: 'DV-04', name: 'Xác nhận Nợ môn / Kéo dài (>4 năm)', shortName: 'Nợ môn / Kéo dài' },
+    { code: 'GENERAL_CONFIRMATION', badge: 'DV-05', name: 'Mục đích chung (Xe buýt, Visa...)', shortName: 'Mục đích chung' },
+  ];
+
+  const [activeFormCode, setActiveFormCode] = useState(petitionType?.formCode || 'GENERAL_CONFIRMATION');
+
+  useEffect(() => {
+    if (petitionType?.formCode) {
+      setActiveFormCode(petitionType.formCode);
+    }
+  }, [petitionType]);
+
   const initialFaculty = currentAccount.department || currentAccount.faculty || currentAccount.departmentName || 'Khoa Công nghệ thông tin';
   const initialMajor = currentAccount.major || (initialFaculty.startsWith('Khoa ') ? initialFaculty.replace('Khoa ', '') : initialFaculty);
 
-  // State cho Form 1: Giấy Xác Nhận Sinh Viên
+  // State cho Form: Giấy Xác Nhận Sinh Viên (5 Biểu mẫu HUTECH)
   const [confirmData, setConfirmData] = useState({
     fullName: currentAccount.name || currentAccount.fullName || 'Cao Hữu Nhân',
     birthDate: currentAccount.birthDate || '26/07/2003',
@@ -65,7 +82,11 @@ export default function DynamicPetitionModal({
     studentCode: currentAccount.code || currentAccount.studentCode || '2280602154',
     faculty: initialFaculty,
     phone: currentAccount.phone || '0901234567',
-    purpose: 'Xác nhận sinh viên để bổ sung hồ sơ học bổng và xin visa.',
+    purpose: 'Làm vé tháng xe buýt và bổ sung hồ sơ học tập',
+    recipientAgency: 'Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh',
+    permanentAddress: '180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
+    debtCourses: 'Lập trình Web, Cơ sở dữ liệu',
+    completionDeadline: 'Tháng 12/2026',
     pickupCampus: 'Trụ sở chính: phòng Công tác sinh viên (A-01,01)'
   });
 
@@ -273,8 +294,30 @@ export default function DynamicPetitionModal({
     let payload = {};
 
     if (isConfirmForm) {
-      prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}, Lớp: ${confirmData.studentClass}), xin cấp ${petitionType.name} với lý do: "${confirmData.purpose}". Nơi nhận giấy: ${confirmData.pickupCampus}. Số CCCD: ${confirmData.idCard}.`;
-      payload = { ...confirmData, typeCode: 'STUDENT_CONFIRMATION' };
+      let formDesc = 'Giấy xác nhận sinh viên';
+      if (activeFormCode === 'TAX_DEDUCTION') {
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Giấy xác nhận giảm trừ gia cảnh thuế TNCN nộp ${confirmData.recipientAgency || 'Chi cục Thuế'}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        formDesc = 'Đơn giảm trừ gia cảnh thuế TNCN';
+      } else if (activeFormCode === 'BANK_LOAN') {
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Giấy xác nhận vay vốn Ngân hàng CSXH theo Mẫu 01 nộp ${confirmData.recipientAgency || 'NHCSXH'}. Địa chỉ thường trú: ${confirmData.permanentAddress}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        formDesc = 'Giấy xác nhận vay vốn NHCSXH';
+      } else if (activeFormCode === 'MILITARY_DEFERMENT') {
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Giấy chứng nhận tạm hoãn nghĩa vụ quân sự nộp ${confirmData.recipientAgency || 'Ban Chỉ huy Quân sự'}. Địa chỉ thường trú: ${confirmData.permanentAddress}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        formDesc = 'Đơn tạm hoãn nghĩa vụ quân sự';
+      } else if (activeFormCode === 'COURSE_DEBT') {
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Đơn xác nhận sinh viên còn nợ môn để kéo dài tiến độ. Danh sách môn nợ: ${confirmData.debtCourses}. Thời hạn hoàn thành: ${confirmData.completionDeadline}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        formDesc = 'Đơn xác nhận nợ môn / kéo dài tiến độ';
+      } else {
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}, Lớp: ${confirmData.studentClass}), xin cấp Giấy xác nhận sinh viên với lý do: "${confirmData.purpose}". Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        formDesc = 'Giấy xác nhận sinh viên (mục đích chung)';
+      }
+
+      payload = {
+        ...confirmData,
+        formCode: activeFormCode,
+        typeCode: 'STUDENT_CONFIRMATION',
+        formDescription: formDesc,
+      };
     } else if (isGraduationForm) {
       const certCount = gradData.certificates.length;
       const certDetails = certCount > 0 
@@ -320,7 +363,11 @@ export default function DynamicPetitionModal({
       postData.append('studentCode', currentAccount.code);
 
       if (isConfirmForm) {
-        postData.append('formData', JSON.stringify(confirmData));
+        const fullConfirmPayload = {
+          ...confirmData,
+          formCode: activeFormCode,
+        };
+        postData.append('formData', JSON.stringify(fullConfirmPayload));
         postData.append('reason', confirmData.purpose);
       } else if (isGraduationForm) {
         const gradPayload = {
@@ -412,13 +459,59 @@ export default function DynamicPetitionModal({
           )}
 
           {/* ========================================================================= */}
-          {/* MẪU 1: GIẤY XÁC NHẬN (Ảnh 1) */}
+          {/* MẪU HỌC VỤ: 5 BIỂU MẪU CHUẨN PHÒNG CTSV HUTECH */}
           {/* ========================================================================= */}
           {isConfirmForm && (
             <div className="space-y-4">
+              {/* Tab Switcher 5 Biểu Mẫu Học Vụ Thực Tế */}
+              <div className="bg-slate-100 p-1.5 rounded-xl border border-slate-200">
+                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1 px-1">
+                  Chọn biểu mẫu học vụ (5 Mẫu Thực Tế HUTECH):
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-1.5">
+                  {HUTECH_FORMS.map((hf) => {
+                    const isActive = activeFormCode === hf.code;
+                    return (
+                      <button
+                        key={hf.code}
+                        type="button"
+                        onClick={() => {
+                          setActiveFormCode(hf.code);
+                          if (hf.code === 'TAX_DEDUCTION') {
+                            setConfirmData((prev) => ({ ...prev, recipientAgency: prev.recipientAgency || 'Chi cục Thuế Quận Bình Thạnh', purpose: 'Giảm trừ gia cảnh thuế TNCN' }));
+                          } else if (hf.code === 'BANK_LOAN') {
+                            setConfirmData((prev) => ({ ...prev, recipientAgency: prev.recipientAgency || 'Phòng giao dịch NHCSXH Quận Bình Thạnh', purpose: 'Vay vốn Ngân hàng Chính sách Xã hội' }));
+                          } else if (hf.code === 'MILITARY_DEFERMENT') {
+                            setConfirmData((prev) => ({ ...prev, recipientAgency: prev.recipientAgency || 'Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh', purpose: 'Tạm hoãn nghĩa vụ quân sự' }));
+                          } else if (hf.code === 'COURSE_DEBT') {
+                            setConfirmData((prev) => ({ ...prev, purpose: 'Xác nhận còn nợ môn để kéo dài tiến độ đào tạo' }));
+                          }
+                        }}
+                        className={`py-2 px-2 rounded-lg text-[11px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer border ${
+                          isActive
+                            ? 'bg-[#0B3B82] text-white border-[#082C64] shadow-xs'
+                            : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
+                        }`}
+                      >
+                        <span className={`px-1.5 py-0.2 rounded text-[9px] font-mono font-bold ${
+                          isActive ? 'bg-white/20 text-white' : 'bg-slate-100 text-slate-600'
+                        }`}>
+                          {hf.badge}
+                        </span>
+                        <span className="truncate max-w-full text-center leading-tight">{hf.shortName}</span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
               <div className="text-center pb-2 border-b border-slate-100">
-                <h2 className="text-base font-bold text-slate-800 tracking-wider">GIẤY XÁC NHẬN</h2>
-                <p className="text-[11px] text-slate-500 mt-0.5">Dành cho sinh viên bổ sung hồ sơ, xin visa, học bổng, vay vốn, tạm hoãn NVQS</p>
+                <h2 className="text-base font-bold text-slate-800 tracking-wider uppercase">
+                  {HUTECH_FORMS.find((f) => f.code === activeFormCode)?.name || 'GIẤY XÁC NHẬN SINH VIÊN'}
+                </h2>
+                <p className="text-[11px] text-slate-500 mt-0.5">
+                  Quy chuẩn Phòng Công tác Sinh viên (CTSV) — Trường Đại học Công nghệ TP.HCM (HUTECH)
+                </p>
               </div>
 
               {/* Grid 3 cột thông tin */}
@@ -565,17 +658,134 @@ export default function DynamicPetitionModal({
                 />
               </div>
 
-              {/* Lý do xác nhận */}
-              <div>
-                <label className="text-[11px] font-semibold text-slate-600 block mb-1">Lý do xác nhận :</label>
-                <textarea
-                  rows={3}
-                  value={confirmData.purpose}
-                  onChange={(e) => setConfirmData({ ...confirmData, purpose: e.target.value })}
-                  placeholder="Vui lòng ghi rõ lý do xác nhận (bổ sung hồ sơ, xin visa, học bổng, vay vốn ngân hàng...)..."
-                  className="w-full px-2.5 py-1.5 rounded border border-slate-200 focus:border-blue-600 focus:outline-hidden resize-none"
-                />
-              </div>
+              {/* CÁC TRƯỜNG ĐẶC THÙ THEO BIỂU MẪU ĐƯỢC CHỌN */}
+              {activeFormCode === 'TAX_DEDUCTION' && (
+                <div className="space-y-3 p-3 bg-blue-50/50 rounded-xl border border-blue-200/80">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Cơ quan Thuế tiếp nhận :
+                      <span className="text-[10px] text-blue-700 bg-blue-100 px-1.5 py-0.2 rounded font-normal ml-1.5">Bắt buộc</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmData.recipientAgency}
+                      onChange={(e) => setConfirmData({ ...confirmData, recipientAgency: e.target.value })}
+                      placeholder="VD: Chi cục Thuế Quận Bình Thạnh"
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-blue-600 focus:outline-hidden bg-white text-slate-800"
+                    />
+                  </div>
+                  <p className="text-[10.5px] text-blue-700">
+                    ℹ️ Giấy xác nhận giảm trừ gia cảnh thuế TNCN có thời hạn giá trị <strong>1 học kỳ</strong>.
+                  </p>
+                </div>
+              )}
+
+              {activeFormCode === 'BANK_LOAN' && (
+                <div className="space-y-3 p-3 bg-emerald-50/50 rounded-xl border border-emerald-200/80">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Ngân hàng Chính sách Xã hội tiếp nhận :
+                      <span className="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded font-normal ml-1.5">Mẫu 01/TDSV</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmData.recipientAgency}
+                      onChange={(e) => setConfirmData({ ...confirmData, recipientAgency: e.target.value })}
+                      placeholder="VD: Phòng giao dịch NHCSXH Quận Bình Thạnh"
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-emerald-600 focus:outline-hidden bg-white text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Địa chỉ thường trú (4 cấp: Số nhà/Đường, Phường/Xã, Quận/Huyện, Tỉnh/TP) :
+                      <span className="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.2 rounded font-normal ml-1.5">Quy chuẩn Title Case</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmData.permanentAddress}
+                      onChange={(e) => setConfirmData({ ...confirmData, permanentAddress: e.target.value })}
+                      placeholder="VD: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh"
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-emerald-600 focus:outline-hidden bg-white text-slate-800"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeFormCode === 'MILITARY_DEFERMENT' && (
+                <div className="space-y-3 p-3 bg-rose-50/50 rounded-xl border border-rose-200/80">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Ban Chỉ huy Quân sự cấp Xã/Phường/Thị trấn tiếp nhận :
+                      <span className="text-[10px] text-rose-700 bg-rose-100 px-1.5 py-0.2 rounded font-normal ml-1.5">Hiệu lực 30 ngày</span>
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmData.recipientAgency}
+                      onChange={(e) => setConfirmData({ ...confirmData, recipientAgency: e.target.value })}
+                      placeholder="VD: Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh"
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-rose-600 focus:outline-hidden bg-white text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Địa chỉ thường trú theo hộ khẩu :
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmData.permanentAddress}
+                      onChange={(e) => setConfirmData({ ...confirmData, permanentAddress: e.target.value })}
+                      placeholder="VD: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh"
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-rose-600 focus:outline-hidden bg-white text-slate-800"
+                    />
+                  </div>
+                  <p className="text-[10.5px] text-rose-700">
+                    ⚠️ Sinh viên trong thời gian đào tạo 4 năm chuẩn mới được cấp giấy NVQS. Sinh viên quá 4 năm vui lòng chuyển sang biểu mẫu Nợ môn.
+                  </p>
+                </div>
+              )}
+
+              {activeFormCode === 'COURSE_DEBT' && (
+                <div className="space-y-3 p-3 bg-purple-50/50 rounded-xl border border-purple-200/80">
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Danh sách học phần / môn học còn nợ :
+                      <span className="text-[10px] text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded font-normal ml-1.5">Dành cho SV quá 4 năm</span>
+                    </label>
+                    <textarea
+                      rows={2}
+                      value={confirmData.debtCourses}
+                      onChange={(e) => setConfirmData({ ...confirmData, debtCourses: e.target.value })}
+                      placeholder="VD: Lập trình Web, Cơ sở dữ liệu, Kiến trúc máy tính..."
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-purple-600 focus:outline-hidden resize-none bg-white font-medium text-slate-800"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-[11px] font-semibold text-slate-700 block mb-1">
+                      Thời hạn dự kiến hoàn thành môn nợ :
+                    </label>
+                    <input
+                      type="text"
+                      value={confirmData.completionDeadline}
+                      onChange={(e) => setConfirmData({ ...confirmData, completionDeadline: e.target.value })}
+                      placeholder="VD: Tháng 12/2026 hoặc Học kỳ 1 năm học 2026-2027"
+                      className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-purple-600 focus:outline-hidden bg-white text-slate-800"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {activeFormCode === 'GENERAL_CONFIRMATION' && (
+                <div>
+                  <label className="text-[11px] font-semibold text-slate-600 block mb-1">Mục đích xác nhận :</label>
+                  <textarea
+                    rows={2}
+                    value={confirmData.purpose}
+                    onChange={(e) => setConfirmData({ ...confirmData, purpose: e.target.value })}
+                    placeholder="Vui lòng ghi rõ mục đích xác nhận (làm vé tháng xe buýt, xin visa du lịch, việc làm, bổ sung hồ sơ...)..."
+                    className="w-full px-2.5 py-1.5 rounded border border-slate-200 focus:border-blue-600 focus:outline-hidden resize-none"
+                  />
+                </div>
+              )}
 
               {/* Chọn cơ sở nhận giấy */}
               <div>

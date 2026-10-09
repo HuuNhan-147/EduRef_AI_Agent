@@ -246,10 +246,9 @@ Hệ thống đã nạp sẵn bộ dữ liệu synthetic chuẩn hóa phục v�
 
 | Vai trò | Tài khoản | Mật khẩu | Đặc điểm hồ sơ & Mục đích kiểm thử |
 | :--- | :--- | :---: | :--- |
-| **Sinh viên (Chính quy)** | `2280602154` (Cao Hữu Nhân) | `123456` | Trạng thái `ACTIVE`, nợ phí 0đ, có TKB (15 tín chỉ) — Trải nghiệm nộp đơn thường quy & chat với AI |
+| **Sinh viên (Chính quy)** | `2280602154` (Cao Hữu Nhân) | `123456` | Trạng thái `ACTIVE`, có TKB (15 tín chỉ) — Trải nghiệm nộp đơn thường quy & chat với AI |
 | **Sinh viên (Quá 4 năm nợ môn)** | `2110005` (Võ Quốc Tuấn) | `123456` | Khóa K21 (quá 4 năm chuẩn), nợ 6 tín chỉ — Thử nghiệm chốt chặn NVQS ép chuyển sang Biểu mẫu Nợ môn |
-| **Sinh viên (Thôi học)** | `2110002` (Trần Thị Bình) | `123456` | Trạng thái `DROPPED` — Kiểm thử chốt chặn từ chối tự động theo quy chế |
-| **Sinh viên (Nợ phí)** | `2110003` (Lê Hoàng Cường) | `123456` | Nợ học phí 15.000.000đ (vượt ngưỡng 10M) — Kiểm thử chốt chặn nợ tài chính |
+| **Sinh viên (Thôi học)** | `2110002` (Trần Thị Bình) | `123456` | Trạng thái `DROPPED` (0 tín chỉ, không có TKB) — Kiểm thử chốt chặn từ chối tự động theo quy chế |
 | **Sinh viên (Bảo lưu)** | `2110004` (Phạm Văn Dũng) | `123456` | Trạng thái `SUSPENDED` — Kiểm thử quy định bảo lưu không cấp giấy online |
 | **Chuyên viên PĐT / CTSV** | `staff_daotao` (Thầy Trần Hữu Nghĩa) | `123456` | Thẩm định và xử lý hàng đợi các đơn chuyển tiếp (`ESCALATED`) |
 | **Trưởng Phòng ĐT** | `dean_daotao` (PGS.TS Nguyễn Văn Dũng) | `123456` | Phê duyệt tối cao các ngoại lệ vượt trần thẩm quyền & can thiệp Rollback |
@@ -258,13 +257,13 @@ Hệ thống đã nạp sẵn bộ dữ liệu synthetic chuẩn hóa phục v�
 
 ### ⚡ 6 Kịch Bản Kiểm Thử 1-Click Trực Tiếp (Tại Student Workspace)
 
-Trên giao diện **Student Workspace**, Ban Giám Khảo có thể bấm trực tiếp vào **6 nút kịch bản mẫu** ở góc phải màn hình để kiểm chứng ngay khả năng thích ứng và phản hồi của Tác tử AI:
+Trên giao diện **Student Workspace**, Ban Giám Khảo có thể bấm trực tiếp vào **các nút kịch bản mẫu** ở góc phải màn hình để kiểm chứng ngay khả năng thích ứng và phản hồi của Tác tử AI:
 
 1. **Kịch bản 1 — Lệch Form (Cross-Form Mismatch):** Sinh viên mở Form Thuế nhưng gõ xin hoãn NVQS. AI tự động phát hiện lệch biểu mẫu và hướng dẫn 2 cách: điền form bên trái hoặc nhắn tin trực tiếp qua chat.
 2. **Kịch bản 2 — Quá 4 năm đào tạo (Course Debt):** Sinh viên K21 (`2110005`) xin Giấy NVQS. Hệ thống từ chối cấp NVQS thường quy và hướng dẫn chuyển sang Biểu mẫu Nợ môn / Kéo dài tiến độ.
 3. **Kịch bản 3 — Thường quy Hợp lệ (Routine Auto-Approve):** Sinh viên chính quy (`2280602154`) xin Giấy vay vốn Ngân hàng CSXH theo Mẫu 01/TDSV. Hệ thống duyệt tự động trong $< 1.0$ giây, cấp mã công văn `XNSV-XXXXXX`.
 4. **Kịch bản 4 — Sinh viên Thôi học (Dropped Status Deny):** Sinh viên thôi học (`2110002`) nộp đơn. Hệ thống từ chối dứt khoát theo Quy chế đào tạo.
-5. **Kịch bản 5 — Nợ học phí vượt ngưỡng (Tuition Debt Deny):** Sinh viên nợ 15 triệu (`2110003`) xin cấp giấy. Hệ thống từ chối tự động do vượt ngưỡng nợ học phí cho phép.
+5. **Kịch bản 5 — Không có Thời khóa biểu (No Active Schedule Deny):** Sinh viên chưa có lịch học / 0 tín chỉ kỳ này xin cấp giấy. Hệ thống từ chối tự động do chưa phát sinh hoạt động học tập trong học kỳ theo quy định CTSV.
 6. **Kịch bản 6 — Bỏ qua quy định / Vượt quyền (Beyond Authority Escalate):** Sinh viên viện dẫn lãnh đạo đồng ý miệng để xin duyệt khống. AI chặn đứng và chuyển tiếp Cán bộ PĐT xác minh.
 
 ---

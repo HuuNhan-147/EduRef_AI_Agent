@@ -54,7 +54,7 @@ export const TRACK_A_15_CASE_DATASET = Object.freeze([
   { id: 'D-06', category: 'UNKNOWN_FACT', expectedDecision: 'ASK_CLARIFICATION', student: { status: 'ACTIVE', tuitionDebt: 0 }, inputData: {} },
   { id: 'D-07', category: 'ROUTINE_POLICY_DENY', expectedDecision: 'REJECTED_POLICY', student: { status: 'DROPPED', tuitionDebt: 0 }, inputData: { purpose: 'Học bổng' } },
   { id: 'D-08', category: 'ROUTINE_POLICY_DENY', expectedDecision: 'REJECTED_POLICY', student: { status: 'SUSPENDED', tuitionDebt: 0 }, inputData: { purpose: 'Xin visa' } },
-  { id: 'D-09', category: 'ROUTINE_POLICY_DENY', expectedDecision: 'REJECTED_POLICY', student: { status: 'ACTIVE', tuitionDebt: 15000000 }, inputData: { purpose: 'Vay vốn ngân hàng' } },
+  { id: 'D-09', category: 'ROUTINE_POLICY_DENY', expectedDecision: 'REJECTED_POLICY', student: { status: 'ACTIVE', hasSchedule: false, enrolledCredits: 0 }, inputData: { purpose: 'Vay vốn ngân hàng' } },
   { id: 'D-10', category: 'ROUTINE', expectedDecision: 'AUTO_APPROVED', student: { status: 'ACTIVE', tuitionDebt: 0 }, inputData: { purpose: 'Tạm hoãn nghĩa vụ quân sự' } },
   { id: 'D-11', category: 'ROUTINE', expectedDecision: 'AUTO_APPROVED', student: { status: 'ACTIVE', tuitionDebt: 0 }, inputData: { purpose: 'Xin visa' } },
   { id: 'D-12', category: 'OUTSIDE_POLICY', expectedDecision: 'ESCALATE_TO_STAFF', student: { status: 'ACTIVE', tuitionDebt: 0 }, inputData: { purpose: 'Bảo lãnh hồ sơ định cư cho người thân' } },

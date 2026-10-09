@@ -90,7 +90,7 @@ async function main() {
       email: 'cuong.le@edu.vn',
       phone: '0903456789',
       status: 'ACTIVE',
-      tuitionDebt: 15000000, // Nợ học phí 15 triệu -> Test case chặn nợ phí
+      tuitionDebt: 15000000, // Nợ học phí nhưng vẫn được cấp giấy theo chính sách hỗ trợ CTSV vì đang có môn học
       gpa: 2.85,
       departmentId: cntt.id,
     },
@@ -122,7 +122,7 @@ async function main() {
     },
   });
 
-  console.log('✅ Đã tạo 6 sinh viên mẫu (2280602154: Cao Hữu Nhân [Chính], 2110001: Active, 2110002: Thôi học, 2110003: Nợ phí, 2110004: Bảo lưu, 2110005: Khóa cũ quá 4 năm nợ môn).');
+  console.log('✅ Đã tạo 6 sinh viên mẫu (2280602154: Cao Hữu Nhân [Chính], 2110001: Active, 2110002: Thôi học, 2110003: Nợ phí vẫn được cấp giấy, 2110004: Bảo lưu, 2110005: Khóa cũ quá 4 năm nợ môn).');
 
   // 4. Tạo Tài khoản Cán bộ & Lãnh đạo
   const defaultPassword = await bcrypt.hash('123456', 10);

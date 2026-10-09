@@ -29,6 +29,60 @@ import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
 import api, { DEMO_ACCOUNTS } from '../services/api';
 import getSocket from '../services/socket';
 
+// Danh mục 5 Biểu Mẫu Học Vụ Thực Tế của Trường Đại học HUTECH (Phòng Công tác Sinh viên)
+export const CONFIRMATION_FORMS = [
+  {
+    id: 'form_tax',
+    formCode: 'TAX_DEDUCTION',
+    badge: 'DV-01 · THUẾ',
+    badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+    title: 'Đơn Xác Nhận Giảm Trừ Gia Cảnh',
+    name: 'Đơn xác nhận giảm trừ gia cảnh (Thuế TNCN)',
+    description: 'Nộp Cơ quan Thuế để giảm trừ gia cảnh thuế TNCN cho phụ huynh. Thời hạn 1 học kỳ.',
+    quickPrompt: 'Em muốn xin cấp giấy xác nhận giảm trừ gia cảnh thuế TNCN nộp Chi cục Thuế cho ba mẹ em',
+  },
+  {
+    id: 'form_bank',
+    formCode: 'BANK_LOAN',
+    badge: 'DV-02 · VAY VỐN',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    title: 'Giấy Xác Nhận Vay Vốn NHCSXH',
+    name: 'Giấy xác nhận vay vốn Ngân hàng Chính sách Xã hội',
+    description: 'Theo Mẫu 01/TDSV (TT 27/2019/TT-NHCS), nộp Ngân hàng CSXH địa phương. Hạn 1 học kỳ.',
+    quickPrompt: 'Em muốn xin giấy xác nhận vay vốn ngân hàng chính sách xã hội theo mẫu 01',
+  },
+  {
+    id: 'form_military',
+    formCode: 'MILITARY_DEFERMENT',
+    badge: 'DV-03 · NVQS',
+    badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+    title: 'Đơn Xin Tạm Hoãn Nghĩa Vụ Quân Sự',
+    name: 'Đơn xin tạm hoãn nghĩa vụ quân sự',
+    description: 'Gửi Ban Chỉ huy Quân sự cấp Xã/Phường/Thị trấn để tạm hoãn gọi nhập ngũ. Hiệu lực 30 ngày.',
+    quickPrompt: 'Em xin cấp Giấy chứng nhận tạm hoãn nghĩa vụ quân sự nộp Ban chỉ huy quân sự',
+  },
+  {
+    id: 'form_debt',
+    formCode: 'COURSE_DEBT',
+    badge: 'DV-04 · NỢ MÔN',
+    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+    title: 'Đơn Xác Nhận Sinh Viên Nợ Môn',
+    name: 'Đơn xác nhận sinh viên nợ môn / kéo dài tiến độ',
+    description: 'Dành riêng cho sinh viên học quá 4 năm chuẩn (> 4 năm) nhưng còn nợ học phần/tín chỉ.',
+    quickPrompt: 'Em học quá 4 năm, muốn xin đơn xác nhận sinh viên còn nợ môn để kéo dài tiến độ',
+  },
+  {
+    id: 'form_general',
+    formCode: 'GENERAL_CONFIRMATION',
+    badge: 'DV-05 · CHUNG',
+    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+    title: 'Giấy Xác Nhận Sinh Viên (Mục Đích Chung)',
+    name: 'Giấy xác nhận sinh viên (Mục đích chung)',
+    description: 'Xác nhận làm vé tháng xe buýt, xin visa du lịch, việc làm, bổ sung hồ sơ. Hạn 1 học kỳ.',
+    quickPrompt: 'Em xin cấp giấy xác nhận sinh viên mục đích thông thường để làm vé xe buýt hoặc xin visa',
+  },
+];
+
 export default function StudentWorkspacePage({
   currentAccountKey,
   customProfile = null,
@@ -533,44 +587,50 @@ export default function StudentWorkspacePage({
           </p>
         </div>
 
-        {/* Danh sách thủ tục chính quy: Giấy Xác Nhận Sinh Viên */}
+        {/* Danh sách 5 Biểu Mẫu Học Vụ Thực Tế HUTECH (Phòng Công tác Sinh viên) */}
         <div className="p-3 space-y-2.5 flex-1">
-          {types
-            .filter((t) => t.code === 'STUDENT_CONFIRMATION')
-            .map((t) => (
-              <div
-                key={t.id}
-                className="p-3.5 rounded-xl border border-slate-200 bg-white hover:border-[#0B3B82] hover:shadow-xs transition-all text-left group"
-              >
-                <div className="flex items-start justify-between gap-1.5">
-                  <span className="text-xs font-bold text-slate-900 group-hover:text-[#0B3B82] transition-colors">
-                    {t.name}
-                  </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-[#0B3B82] border border-blue-200 shrink-0">
-                    DV-01 · AUTO
-                  </span>
-                </div>
-                <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed line-clamp-2">
-                  {t.description || 'Cấp giấy xác nhận sinh viên phục vụ làm vé xe buýt, vay vốn ngân hàng chính sách, tạm hoãn NVQS.'}
-                </p>
-
-                {/* Nút hành động */}
-                <div className="mt-3 pt-2.5 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <button
-                    onClick={() => onOpenDynamicForm && onOpenDynamicForm(t)}
-                    className="font-semibold text-[#0B3B82] hover:text-[#082C64] flex items-center gap-1 transition-colors cursor-pointer"
-                  >
-                    Điền đơn <ArrowRight className="w-3.5 h-3.5" />
-                  </button>
-                  <button
-                    onClick={() => handleSendMessage(`Em muốn xin cấp ${t.name}`)}
-                    className="text-slate-500 hover:text-slate-800 font-medium text-[11px] cursor-pointer"
-                  >
-                    Hỏi nhanh AI
-                  </button>
-                </div>
+          {CONFIRMATION_FORMS.map((f) => (
+            <div
+              key={f.id}
+              className="p-3 rounded-xl border border-slate-200 bg-white hover:border-[#0B3B82] hover:shadow-xs transition-all text-left group"
+            >
+              <div className="flex items-start justify-between gap-1.5">
+                <span className="text-xs font-bold text-slate-900 group-hover:text-[#0B3B82] transition-colors leading-snug">
+                  {f.title}
+                </span>
+                <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border shrink-0 ${f.badgeColor}`}>
+                  {f.badge}
+                </span>
               </div>
-            ))}
+              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed line-clamp-2">
+                {f.description}
+              </p>
+
+              {/* Nút hành động */}
+              <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                <button
+                  type="button"
+                  onClick={() => onOpenDynamicForm && onOpenDynamicForm({
+                    code: 'STUDENT_CONFIRMATION',
+                    formCode: f.formCode,
+                    name: f.name,
+                    title: f.title,
+                    description: f.description,
+                  })}
+                  className="font-semibold text-[#0B3B82] hover:text-[#082C64] flex items-center gap-1 transition-colors cursor-pointer"
+                >
+                  Điền đơn <ArrowRight className="w-3.5 h-3.5" />
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleSendMessage(f.quickPrompt)}
+                  className="text-slate-500 hover:text-slate-800 font-medium text-[11px] cursor-pointer"
+                >
+                  Hỏi nhanh AI
+                </button>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* Khối Kịch bản kiểm thử nhanh 1-Click theo 5 Biểu Mẫu Thực Tế HUTECH */}
@@ -1002,11 +1062,11 @@ export default function StudentWorkspacePage({
                     </span>
                   </div>
                   <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                    <span className="text-[10px] text-slate-500 block">Nghĩa vụ học phí:</span>
-                    <span className={`font-semibold text-[11px] block mt-0.5 ${
-                      currentAccount.code === '2110003' ? 'text-rose-600' : 'text-emerald-700'
+                    <span className="text-[10px] text-slate-500 block">Thời khóa biểu kỳ này:</span>
+                    <span className={`inline-block mt-0.5 px-1.5 py-0.2 rounded font-semibold text-[10px] ${
+                      currentAccount.hasSchedule !== false && currentAccount.code !== '2110002' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                     }`}>
-                      {currentAccount.code === '2110003' ? 'Nợ 15.000.000 đ' : '0 đ (Đã hoàn tất)'}
+                      {currentAccount.hasSchedule !== false && currentAccount.code !== '2110002' ? 'Có lịch học (Hợp lệ)' : 'Chưa có lịch học'}
                     </span>
                   </div>
                 </div>

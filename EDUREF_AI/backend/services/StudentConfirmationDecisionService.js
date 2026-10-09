@@ -335,20 +335,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     };
   }
 
-  // 2.1. Kiểm tra nợ học phí vượt ngưỡng quy định
-  if (Number(student.tuitionDebt || 0) > 10000000) {
-    return {
-      classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
-      uncertaintyType: null,
-      decision: TRACK_A_DECISION.AUTO_REJECT,
-      rule: 'POL_TUITION_DEBT_MAX_10M',
-      reason: `Policy quy định rõ ngưỡng nợ học phí tối đa là 10.000.000 VNĐ; hồ sơ hiện tại là ${Number(student.tuitionDebt).toLocaleString('vi-VN')} VNĐ.`,
-      userMessage: 'Yêu cầu bị từ chối tự động theo ngưỡng nợ học phí đã công bố trong policy.',
-      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
-    };
-  }
-
-  // 2.2. Kiểm tra dữ kiện bắt buộc: Mục đích sử dụng giấy
+  // 2.1. Kiểm tra dữ kiện bắt buộc: Mục đích sử dụng giấy
   const rawPurpose = inputData.purpose || inputData.reason || inputData.REQ_PURPOSE || '';
   const trimmedPurpose = String(rawPurpose).trim();
   if (!trimmedPurpose) {

@@ -17,8 +17,7 @@ Policy version: `STUDENT_CONFIRMATION_V2.0.0`
 ## 2. Điều kiện tiên quyết học vụ
 
 - **Hoạt động học tập hiện tại:** Bắt buộc có Thời khóa biểu hoặc đã đăng ký ít nhất 1 tín chỉ trong học kỳ này (`hasSchedule === true`, `enrolledCredits > 0`). Sinh viên thôi học (`DROPPED`) hoặc đang bảo lưu (`SUSPENDED`) đều bị từ chối tự động.
-- **Quy chế 4 năm đào tạo:** Sinh viên đã quá 4 năm đào tạo chuẩn tuyệt đối không được cấp Giấy hoãn NVQS thông thường; hệ thống tự động hướng dẫn chuyển đổi sang **Biểu mẫu nợ môn / Kéo dài tiến độ** (`COURSE_DEBT`).
-- **Nghĩa vụ tài chính:** Nợ học phí tích lũy phải nằm trong ngưỡng quy chế cho phép ($\le 10.000.000$ VNĐ); vượt ngưỡng sẽ bị từ chối tự động.
+- **Chính sách hỗ trợ tài chính:** Nhà trường hiện đã hỗ trợ tối đa cho sinh viên, không ràng buộc việc nợ học phí để chặn cấp giấy xác nhận; sinh viên chỉ cần đáp ứng điều kiện có hoạt động học tập / có thời khóa biểu trong học kỳ là được giải quyết.
 - **Cơ chế nhận bản cứng:** Nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường tại Phòng Công tác Sinh viên (Sài Gòn Campus: A-01.01 hoặc Thủ Đức Campus: E1-01.08), lưu mã công văn `XNSV-XXXXXX` vào sổ kiểm toán SHA-256.
 
 ## 3. Bảng quyết định trọng tài
@@ -26,7 +25,7 @@ Policy version: `STUDENT_CONFIRMATION_V2.0.0`
 | Điều kiện | Phân loại | Hành động |
 |---|---|---|
 | Thiếu cơ quan tiếp nhận / thiếu môn nợ / lệch form | `UNKNOWN_FACT` | `ASK_CLARIFICATION` hướng dẫn 2 cách: điền form trái hoặc chat trực tiếp |
-| Trạng thái không ACTIVE, nợ phí > 10M, không có TKB | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo quy chế rõ ràng |
+| Trạng thái không ACTIVE, hoặc không có TKB / 0 tín chỉ | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo quy chế rõ ràng |
 | Sinh viên quá 4 năm xin NVQS thường quy | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` hướng dẫn chuyển sang Form nợ môn (`COURSE_DEBT`) |
 | Mục đích ngoài danh mục hoặc xin cấp lần 2 cùng kỳ | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` kèm lý do giải trình |
 | Yêu cầu bỏ qua quy định / phê duyệt miệng | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` với cảnh báo ép quyền |

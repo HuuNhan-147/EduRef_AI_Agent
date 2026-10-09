@@ -12,11 +12,13 @@ const SCENARIOS = [
     debt: 0,
   },
   {
-    id: 'ACTIVE_DEBT',
-    label: 'Đang học — Còn nợ học phí (15.000.000 đ)',
-    desc: 'Thử nghiệm quy tắc Zero-tolerance: AI sẽ từ chối tự động vì chưa hoàn tất nghĩa vụ học phí.',
+    id: 'ACTIVE_NO_SCHEDULE',
+    label: 'Đang học — Chưa có TKB / 0 tín chỉ kỳ này',
+    desc: 'Thử nghiệm điều kiện tiên quyết CTSV: AI từ chối vì chưa phát sinh hoạt động học tập trong học kỳ.',
     status: 'ACTIVE',
-    debt: 15000000,
+    debt: 0,
+    hasSchedule: false,
+    enrolledCredits: 0,
   },
   {
     id: 'DROPPED',

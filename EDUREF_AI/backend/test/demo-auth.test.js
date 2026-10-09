@@ -12,7 +12,6 @@ test('demo role switch exposes only fixed allowlisted account keys', () => {
   assert.deepEqual(Object.keys(DEMO_ACCOUNT_TARGETS), [
     'STUDENT_ACTIVE',
     'STUDENT_DROPPED',
-    'STUDENT_DEBT',
     'STUDENT_SUSPENDED',
     'STUDENT_GRADUATED',
     'STAFF_DAOTAO',

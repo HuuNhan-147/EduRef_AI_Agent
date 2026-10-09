@@ -501,17 +501,6 @@ class AcademicWorkflowService {
       } else {
         matchedRules.push('POL_STUDENT_ACTIVE');
       }
-
-      // Policy 2: Hoàn thành 100% nghĩa vụ học phí (nợ 0 đ)
-      if (Number(student.tuitionDebt || 0) > 0) {
-        violations.push({
-          rule: 'POL_NO_TUITION_DEBT',
-          reason: `Sinh viên còn nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ (Quy chế yêu cầu nợ 0 đ).`,
-        });
-      } else {
-        matchedRules.push('POL_NO_TUITION_DEBT');
-      }
-
       // Policy 3: Hạn chót phúc khảo 7 ngày
       if (request.requestType.code === 'GRADE_APPEAL') {
         const days = Number(inputData.daysAfterResult || 0);

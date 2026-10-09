@@ -128,18 +128,6 @@ class AcademicPolicyEngine {
       };
     }
 
-    // 2.2. Kiểm tra quy định nợ học phí
-    if (Number(student.tuitionDebt || 0) > 0) {
-      return {
-        decision: 'EXPLICIT_POLICY_DENY',
-        uncertaintyType: null,
-        policyCode: 'POL_NO_TUITION_DEBT',
-        reason: `Sinh viên còn nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ (Quy chế yêu cầu hoàn thành 100% nghĩa vụ tài chính - nợ 0 đ).`,
-        userMessage: `Yêu cầu bị chặn: Bạn đang còn nợ học phí ${Number(student.tuitionDebt).toLocaleString('vi-VN')} đ. Theo quy định tài chính của Nhà trường, sinh viên phải hoàn thành 100% nghĩa vụ học phí trước khi xin cấp giấy tờ.`,
-        decisionTimeMs: Date.now() - startTime,
-      };
-    }
-
     // 2.3. Kiểm tra hạn chót nộp đơn phúc khảo (7 ngày kể từ ngày công bố điểm)
     if (requestType.code === 'GRADE_APPEAL') {
       const daysElapsed = Number(inputData.daysAfterResult || 0);
