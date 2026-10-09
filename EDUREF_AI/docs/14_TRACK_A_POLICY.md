@@ -16,7 +16,12 @@ Policy version: `STUDENT_CONFIRMATION_V2.0.0`
 
 ## 2. Điều kiện tiên quyết học vụ
 
-- **Hoạt động học tập hiện tại:** Bắt buộc có Thời khóa biểu hoặc đã đăng ký ít nhất 1 tín chỉ trong học kỳ này (`hasSchedule === true`, `enrolledCredits > 0`). Sinh viên thôi học (`DROPPED`) hoặc đang bảo lưu (`SUSPENDED`) đều bị từ chối tự động.
+- **Hoạt động học tập hiện tại:** Bắt buộc có Thời khóa biểu hoặc đã đăng ký ít nhất 1 tín chỉ trong học kỳ này (`hasSchedule === true`, `enrolledCredits > 0`). Trường hợp chưa có TKB nhưng có lý do giải trình cần gấp sẽ được chuyển tiếp Cán bộ CTSV xem xét; nếu không có lý do sẽ bị từ chối theo quy chế.
+- **Trạng thái học vụ đặc biệt:** Sinh viên thôi học (`DROPPED`) hoặc đang bảo lưu (`SUSPENDED`) đều bị **từ chối ngay lập tức** (`REJECTED_POLICY`), tuyệt đối không bypass và không chuyển sang biểu mẫu nợ môn; sinh viên cần liên hệ trực tiếp CTSV.
+- **Thời hạn đào tạo & Chuẩn 150 tín chỉ:**
+  - Sinh viên trong hạn 4 năm: Áp dụng quy chế thông thường.
+  - Sinh viên quá 4 năm VÀ còn nợ môn (< 150 tín chỉ): Điều hướng sang Biểu mẫu Nợ môn (`COURSE_DEBT`).
+  - Sinh viên quá 4 năm NHƯNG đã hoàn thành đủ $\ge 150$ tín chỉ tốt nghiệp: **Vượt thẩm quyền AI** (`BEYOND_AUTHORITY`), chuyển tiếp Cán bộ CTSV.
 - **Chính sách hỗ trợ tài chính:** Nhà trường hiện đã hỗ trợ tối đa cho sinh viên, không ràng buộc việc nợ học phí để chặn cấp giấy xác nhận; sinh viên chỉ cần đáp ứng điều kiện có hoạt động học tập / có thời khóa biểu trong học kỳ là được giải quyết.
 - **Cơ chế nhận bản cứng:** Nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường tại Phòng Công tác Sinh viên (Sài Gòn Campus: A-01.01 hoặc Thủ Đức Campus: E1-01.08), lưu mã công văn `XNSV-XXXXXX` vào sổ kiểm toán SHA-256.
 
@@ -25,9 +30,13 @@ Policy version: `STUDENT_CONFIRMATION_V2.0.0`
 | Điều kiện | Phân loại | Hành động |
 |---|---|---|
 | Thiếu cơ quan tiếp nhận / thiếu môn nợ / lệch form | `UNKNOWN_FACT` | `ASK_CLARIFICATION` hướng dẫn 2 cách: điền form trái hoặc chat trực tiếp |
-| Trạng thái không ACTIVE, hoặc không có TKB / 0 tín chỉ | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo quy chế rõ ràng |
-| Sinh viên quá 4 năm xin NVQS thường quy | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` hướng dẫn chuyển sang Form nợ môn (`COURSE_DEBT`) |
-| Mục đích ngoài danh mục hoặc xin cấp lần 2 cùng kỳ | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` kèm lý do giải trình |
+| Sinh viên thôi học (`DROPPED`) hoặc bảo lưu (`SUSPENDED`) | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` (Chặn đứng lập tức, không bypass) |
+| Chưa có TKB kỳ này (không có giải trình cần gấp) | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo quy chế đào tạo |
+| Chưa có TKB kỳ này nhưng có lý do cần gấp | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` đóng gói chuyển tiếp cán bộ |
+| Sinh viên quá 4 năm xin NVQS/XNSV thường quy | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` hướng dẫn chuyển sang Form nợ môn (`COURSE_DEBT`) |
+| Sinh viên quá 4 năm đã hoàn thành $\ge 150$ tín chỉ tốt nghiệp | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` chuyển tiếp cán bộ xem xét khóa cũ |
+| Mục đích ngoài danh mục hoặc xin cấp lần 2 cùng kỳ có lý do | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` kèm lý do giải trình |
+| Cấp lần 2 trong cùng kỳ nhưng chưa có lý do giải trình | `UNKNOWN_FACT` | `ASK_CLARIFICATION` yêu cầu nêu lý do hoặc chọn mẫu khác |
 | Yêu cầu bỏ qua quy định / phê duyệt miệng | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` với cảnh báo ép quyền |
 | Đủ dữ kiện, đúng biểu mẫu, đạt chuẩn học vụ | `ROUTINE` | `AUTO_APPROVED` (Cấp mã công văn `XNSV-XXXXXX`) |
 

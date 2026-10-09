@@ -38,10 +38,9 @@
 
 | STT | Họ và Tên | MSSV / Lớp | Email | Số điện thoại | Vai trò chính |
 | :---: | :--- | :---: | :--- | :--- | :--- |
-| **1** | **Hoàng Trọng Trà** | 22DTHE4 | `trahoangdev@gmail.com` | `0842366570` | **Team Leader / Fullstack & System Architecture** |
-| **2** | **Cao Hữu Nhân** | 22DTHE4 | `huuxnhan.dev@gmail.com` | `0377913722` | **AI Engineer & Prompt / Vision Pipeline** |
-| **3** | **Trần Minh Quang** | 22DTHC7 | `tmquang.contact@gmail.com` | `0943457402` | **Backend & Audit Ledger Engineer** |
-| **4** | **Trần Đức Tài** | 23DTHD5 | `taichinhpro123@gmail.com` | `0359876711` | **Frontend UI/UX & Realtime Integration** |
+| **1** | **Cao Hữu Nhân** | 22DTHE4 | `huuxnhan.dev@gmail.com` | `0377913722` | **Team Leader / Fullstack & AI System Architecture** |
+| **2** | **Trần Đức Tài** | 23DTHD5 | `taichinhpro123@gmail.com` | `0359876711` | **Backend & Audit Ledger Engineer** |
+| **3** | **Trần Minh Quang** | 22DTHC7 | `tmquang.contact@gmail.com` | `0943457402` | **Frontend UI/UX & Realtime Integration** |
 
 ---
 
@@ -200,30 +199,85 @@ flowchart TB
 
 ---
 
-## ⚖️ LUỒNG RA QUYẾT ĐỊNH & CƠ CHẾ TRỌNG TÀI (3 CHỐT)
+## ⚖️ SƠ ĐỒ TOÀN DIỆN QUY TRÌNH HỌC VỤ & ĐIỀU PHỐI (STARUML WORKFLOW)
 
-Hệ thống thẩm định hồ sơ theo **Cơ chế 3 Chốt Kiểm Soát Tuyệt Đối**, ngăn ngừa hoàn toàn tình trạng AI tự ý tạo đơn rác hoặc vượt quyền phê duyệt:
+> **Căn cứ thiết kế kỹ thuật:** Trích xuất và ánh xạ 100% từ mô hình StarUML chuẩn hóa [`SoDoHeThong_EduRef_AI.mdj`](SoDoHeThong_EduRef_AI.mdj), bao quát trọn vẹn 4 nhóm kết quả quyết định: **`AUTO_APPROVED`**, **`ASK_CLARIFICATION`**, **`REJECTED_POLICY`** và **`ESCALATE_TO_STAFF`**.
 
 ```mermaid
 flowchart TD
-    Start(["📥 Tiếp nhận thông điệp từ Sinh viên"]) --> C1{"Chốt 1: Phân Loại Ý Định<br/>(Intent Classification)"}
+    %% Khởi đầu quy trình
+    Start(["👨‍🎓 Sinh viên nhập yêu cầu<br/>(Chat / Nộp đơn trực tiếp)"]) --> Parse["🔍 Phân tích yêu cầu<br/>(ContextResolver & PromptEngine)"]
     
-    C1 -->|"Ý định A: Inquiry / FAQ / Hỏi đáp"| ChatAns["💬 Trả lời giải đáp quy chế<br/>(Không tạo đơn — Không gọi Tool duyệt)"]
-    C1 -->|"Ý định B: Petition / Action / Nộp đơn"| C2{"Chốt 2: Kiểm Tra Dữ Kiện<br/>(Fact Completeness)"}
+    %% Phân luồng ý định
+    Parse --> IntentBranch{"Phân loại ý định?"}
     
-    C2 -->|"Thiếu thông tin / Ảnh không đọc được"| Clarify["❓ UNKNOWN_FACT<br/>Dừng lại, hỏi 1 câu làm rõ<br/>(Trạng thái: WAITING_STUDENT)"]
-    C2 -->|"Đầy đủ dữ kiện thẩm định"| C3{"Chốt 3: Thẩm Định Quy Chế<br/>(Policy & Authority Boundary)"}
+    %% Nhánh 1: Chào hỏi / Hỏi thông tin chung
+    IntentBranch -->|"Chào hỏi / Hỏi quy chế chung"| GeneralInquiry["💬 Trả lời bình thường<br/>(Tư vấn học vụ, 0 Tool Call, không tạo đơn)"]
+    GeneralInquiry --> EndInquiry(["🏁 Kết thúc lượt tương tác"])
     
-    C3 -->|"Thỏa mãn 100% điều kiện thường quy"| RoutineApprove["✅ ROUTINE<br/>Tự động phê duyệt tức thì (&lt; 1s)<br/>(Trạng thái: APPROVED)"]
-    C3 -->|"Vi phạm điều cấm quy chế rõ ràng"| RoutineDeny["❌ ROUTINE_POLICY_DENY<br/>Từ chối & Dẫn chiếu điều khoản<br/>(Trạng thái: REJECTED)"]
-    C3 -->|"Mục đích nằm ngoài danh mục quy chế"| OutsidePolicy["🚨 OUTSIDE_POLICY<br/>Chuyển Chuyên viên PĐT xem xét<br/>(Trạng thái: ESCALATED)"]
-    C3 -->|"Ngoại lệ / Nợ tín chỉ vượt trần / Xin duyệt miệng"| BeyondAuthority["🚨 BEYOND_AUTHORITY<br/>Chuyển Trưởng Khoa phê chuẩn<br/>(Kèm Context Capsule & Action Questions)"]
-
-    RoutineApprove --> AuditLedger[("⛓️ Ghi nhận Transactional SHA-256 Audit Log")]
-    RoutineDeny --> AuditLedger
-    Clarify --> AuditLedger
-    OutsidePolicy --> AuditLedger
-    BeyondAuthority --> AuditLedger
+    %% Nhánh 2: Hỏi hoặc nộp đơn phiếu
+    IntentBranch -->|"Nhu cầu cấp giấy / Đơn phiếu"| RememberContext["🧠 Ghi nhớ ngữ cảnh đơn phiếu<br/>(ConversationMemory: Lưu biểu mẫu đang trao đổi)"]
+    RememberContext --> IdentifyForm{"Xác định 1 trong 5 biểu mẫu HUTECH?"}
+    
+    IdentifyForm -->|"Thuế TNCN"| F1["1. TAX_DEDUCTION (Thuế TNCN)"]
+    IdentifyForm -->|"Vay vốn NHCS"| F2["2. BANK_LOAN (Vay vốn NHCS)"]
+    IdentifyForm -->|"Tạm hoãn NVQS"| F3["3. MILITARY_DEFERMENT (Hoãn NVQS)"]
+    IdentifyForm -->|"Xác nhận Nợ môn"| F4["4. COURSE_DEBT (Nợ môn/Tiếp tục học)"]
+    IdentifyForm -->|"Mục đích chung"| F5["5. GENERAL_CONFIRMATION (Mục đích chung)"]
+    
+    F1 --> CheckFact
+    F2 --> CheckFact
+    F3 --> CheckFact
+    F4 --> CheckFact
+    F5 --> CheckFact
+    
+    %% Kiểm tra đầy đủ thông tin
+    CheckFact{"Kiểm tra đủ thông tin bắt buộc?<br/>(Mục đích, Cơ sở A-01.01/E1-01.08, Địa chỉ 4 cấp Title Case)"}
+    
+    CheckFact -->|"❌ Thiếu thông tin / Lệch form"| AskClarify["❓ HỎI LẠI (ASK_CLARIFICATION)<br/>• Hướng dẫn 2 cách: Điền form bên trái HOẶC chat trực tiếp<br/>• Bắt lệch form / Yêu cầu địa chỉ đủ 4 cấp chuẩn hóa"]
+    AskClarify --> WaitResponse(["⏳ Chờ sinh viên phản hồi"])
+    
+    %% Thẩm định quy chế HUTECH (Deterministic Policy Engine)
+    CheckFact -->|"✅ Đầy đủ dữ kiện"| CheckCohort{"Kiểm tra niên khóa:<br/>Đã học quá 4 năm chưa?"}
+    
+    %% Nhánh Quá 4 năm
+    CheckCohort -->|"⚠️ Quá 4 năm"| CheckDebt{"Kiểm tra tiến độ đào tạo:<br/>Còn nợ môn hay đã hoàn thành?"}
+    CheckDebt -->|"Còn nợ môn (< 150 tín chỉ)"| RouteCourseDebt["📋 HƯỚNG DẪN BIỂU MẪU NỢ MÔN (COURSE_DEBT)<br/>• Nếu đang ở form khác: Điều hướng sang Form Nợ môn<br/>• Bắt buộc kê khai danh sách môn nợ"]
+    RouteCourseDebt --> CheckSchedule
+    
+    CheckDebt -->|"Đã hoàn thành ≥ 150 tín chỉ / Tốt nghiệp"| EscalateBeyond["🚨 VƯỢT QUYỀN AI (BEYOND_AUTHORITY)<br/>• Sinh viên đã đủ chuẩn tốt nghiệp nhưng xin xác nhận khóa cũ<br/>• Đóng gói Context Capsule chuyển tiếp Cán bộ CTSV xem xét"]
+    
+    %% Nhánh Trong hạn 4 năm
+    CheckCohort -->|"Trong hạn 4 năm"| CheckSchedule{"Kiểm tra thời khóa biểu:<br/>Có TKB / Tín chỉ kỳ này không?"}
+    
+    %% Nhánh Kiểm tra TKB
+    CheckSchedule -->|"❌ Không có TKB kỳ này"| CheckUrgent{"Sinh viên có lý do cần gấp?"}
+    CheckUrgent -->|"Có lý do cần gấp"| EscalateUrgent["🚨 CHUYỂN TIẾP CÁN BỘ (ESCALATE_TO_STAFF)<br/>Chưa có học phần kỳ này nhưng có giải trình cấp bách"]
+    CheckUrgent -->|"Không có lý do"| RejectNoSchedule["❌ TỪ CHỐI (REJECTED_POLICY)<br/>Chưa đăng ký môn học trong học kỳ hiện tại"]
+    
+    %% Nhánh Có TKB -> Kiểm tra Bảo lưu / Thôi học
+    CheckSchedule -->|"✅ Có TKB hợp lệ"| CheckStatus{"Kiểm tra trạng thái học vụ:<br/>Bảo lưu hay Thôi học?"}
+    
+    CheckStatus -->|"Bảo lưu (SUSPENDED)<br/>Thôi học (DROPPED)"| RejectImmediate["❌ TỪ CHỐI NGAY LẬP TỨC (REJECTED_POLICY)<br/>⛔ Không được bypass vì bất kỳ lý do nào<br/>📍 Hướng dẫn sinh viên gặp trực tiếp Phòng CTSV"]
+    
+    CheckStatus -->|"Bình thường (ACTIVE)"| CheckDuplicate{"Kiểm tra trùng biểu mẫu:<br/>Đã cấp mẫu này trong cùng học kỳ?"}
+    
+    %% Nhánh Trùng biểu mẫu
+    CheckDuplicate -->|"Đã được cấp trong kỳ"| CheckReason{"Có lý do chính đáng<br/>(Mất cắp, rách, cơ quan yêu cầu lại)?"}
+    CheckReason -->|"Chưa có lý do"| AskReason["❓ HỎI LẠI (ASK_CLARIFICATION)<br/>Báo yêu cầu bị trùng, yêu cầu trình bày lý do hoặc chọn mẫu khác"]
+    AskReason --> WaitResponse
+    CheckReason -->|"Có lý do chính đáng"| EscalateDuplicate["🚨 CHUYỂN TIẾP CÁN BỘ (ESCALATE_TO_STAFF - OUTSIDE_POLICY)<br/>Đóng gói lý do xin cấp lần 2 chuyển Cán bộ CTSV phê duyệt"]
+    
+    %% Nhánh Phê duyệt tự động
+    CheckDuplicate -->|"Chưa từng cấp trong kỳ"| AutoApprove["✅ TỰ ĐỘNG CẤP (AUTO_APPROVED)<br/>• Sinh mã xác thực lưu sổ [XNSV-XXXXXX]<br/>• Hướng dẫn nhận bản cứng có mộc đỏ tại A-01.01 hoặc E1-01.08"]
+    
+    %% Tất cả quyết định đều qua Cryptographic Audit Ledger
+    AutoApprove --> AuditLedger[("⛓️ Sổ cái kiểm toán bất biến SHA-256 (Audit Ledger)")]
+    RejectImmediate --> AuditLedger
+    RejectNoSchedule --> AuditLedger
+    EscalateBeyond --> AuditLedger
+    EscalateUrgent --> AuditLedger
+    EscalateDuplicate --> AuditLedger
 ```
 
 ### Bảng Ma Trận Phân Loại Quyết Định Học Vụ

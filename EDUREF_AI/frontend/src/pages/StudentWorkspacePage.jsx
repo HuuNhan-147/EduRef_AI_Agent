@@ -407,23 +407,24 @@ export default function StudentWorkspacePage({
         name: currentAccount.name,
         role: currentAccount.role,
         type: currentAccount.type,
-        class: currentAccount.class || currentAccount.studentClass || '22DTHE4',
-        studentClass: currentAccount.class || currentAccount.studentClass || '22DTHE4',
-        faculty: currentAccount.faculty || currentAccount.department || 'Khoa Công Nghệ Thông Tin',
-        department: currentAccount.faculty || currentAccount.department || 'Khoa Công Nghệ Thông Tin',
-        major: currentAccount.major || 'Công nghệ thông tin',
-        birthDate: currentAccount.birthDate || '26/07/2003',
-        gender: currentAccount.gender || 'Nam',
-        phone: currentAccount.phone || '0901234567',
-        idCard: currentAccount.idCard || '079203001234',
-        permanentAddress: currentAccount.permanentAddress || '180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
-        admissionYear: currentAccount.admissionYear || 2022,
-        enrolledCredits: currentAccount.enrolledCredits ?? 15,
-        hasSchedule: currentAccount.hasSchedule ?? true,
+        status: currentAccount.status || (currentAccount.code === '2110002' ? 'DROPPED' : currentAccount.code === '2110004' ? 'SUSPENDED' : 'ACTIVE'),
+        class: currentAccount.class || currentAccount.studentClass || null,
+        studentClass: currentAccount.class || currentAccount.studentClass || null,
+        faculty: currentAccount.faculty || currentAccount.department || null,
+        department: currentAccount.faculty || currentAccount.department || null,
+        major: currentAccount.major || null,
+        birthDate: currentAccount.birthDate || null,
+        gender: currentAccount.gender || null,
+        phone: currentAccount.phone || null,
+        idCard: currentAccount.idCard || null,
+        permanentAddress: currentAccount.permanentAddress || null,
+        admissionYear: currentAccount.admissionYear || null,
+        enrolledCredits: currentAccount.enrolledCredits ?? null,
+        hasSchedule: currentAccount.hasSchedule ?? null,
       },
       sessionId,
       attachments: extraContext.attachedCerts || extraContext.inputData?.attachedCerts || null,
-      inputData: extraContext.inputData ? { studentClass: currentAccount.class || currentAccount.studentClass || '22DTHE4', ...extraContext.inputData } : null,
+      inputData: extraContext.inputData ? { studentClass: currentAccount.class || currentAccount.studentClass || null, ...extraContext.inputData } : null,
     };
 
     // Bắn qua Socket.IO (hoặc fallback HTTP nếu socket ngắt kết nối)
@@ -1042,7 +1043,7 @@ export default function StudentWorkspacePage({
                     Hồ Sơ Sinh Viên HUTECH
                   </span>
                   <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-[#0B3B82] border border-blue-200">
-                    {currentAccount.class || '22DTHE4'}
+                    {currentAccount.class || currentAccount.studentClass || 'Chưa cập nhật'}
                   </span>
                 </div>
 

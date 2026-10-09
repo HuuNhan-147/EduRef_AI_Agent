@@ -5,8 +5,8 @@
 **Đơn vị thực hiện:** Nhóm Nghiên cứu & Phát triển Dự án EduRef AI (Đội thi KAISER — Khoa Công nghệ Thông tin, Đại học HUTECH)  
 **Nhân sự thực hiện:**  
 * **Trưởng nhóm:** Cao Hữu Nhân (22DTHE4) — Kỹ sư Tác tử AI & Trưởng nhóm Dự án  
-* **Thành viên:** Trần Minh Quang (22DTHC7) — Kỹ sư Backend & Sổ cái Kiểm toán  
-* **Thành viên:** Trần Đức Tài (23DTHD5) — Kỹ sư Giao diện & Trải nghiệm Người dùng  
+* **Thành viên:** Trần Đức Tài (23DTHD5) — Kỹ sư Backend & Sổ cái Kiểm toán  
+* **Thành viên:** Trần Minh Quang (22DTHC7) — Kỹ sư Giao diện & Trải nghiệm Người dùng  
 **Thời gian hoàn thành:** Tháng 10/2026  
 **Phiên bản tài liệu:** 2.1 (Báo Cáo Nghiệm Thu Kỹ Thuật & Cập Nhật Nghiệp Vụ Thực Tế Phòng CTSV HUTECH)  
 

@@ -30,6 +30,45 @@ class AcademicWorkflowService {
       const detectedForm = detectFormIntent(finalPurpose);
       const activeFormCode = formCode || inputData?.formCode || (detectedForm ? detectedForm.code : 'GENERAL_CONFIRMATION');
 
+      // 0. NẠP HỒ SƠ SINH VIÊN TỪ DATABASE NGAY TỪ ĐẦU (SINGLE SOURCE OF TRUTH)
+      let studentRec = null;
+      try {
+        studentRec = await prisma.student.findUnique({
+          where: { studentCode: String(studentCode).trim() },
+          include: { department: true },
+        });
+      } catch (_e) {
+        // Fallback cho môi trường test memory
+        studentRec = inputData?.student || null;
+      }
+
+      // 0.1. CHỐT CHẶN BẢO LƯU / THÔI HỌC (SƠ ĐỒ .MDJ: REJECT NGAY LẬP TỨC - KHÔNG BYPASS BẤT KỲ LÝ DO NÀO)
+      if (studentRec?.status === 'SUSPENDED') {
+        return {
+          success: true,
+          decision: 'AUTO_REJECT',
+          status: 'REJECTED',
+          classification: 'ROUTINE_POLICY_DENY',
+          formCode: activeFormCode,
+          rule: 'POL_SUSPENDED_STUDENT_DENY',
+          message: 'Theo quy chế đào tạo của Nhà trường, sinh viên đang trong thời gian bảo lưu kết quả học tập không đủ điều kiện cấp Giấy xác nhận sinh viên hay Biểu mẫu nợ môn. Yêu cầu bị từ chối và không được bypass vì bất kỳ lý do nào. Vui lòng gặp trực tiếp Phòng Công tác Sinh viên (A-01.01) để được hướng dẫn thêm.',
+          actionableQuestion: 'Theo quy chế đào tạo, sinh viên đang trong thời gian bảo lưu kết quả học tập không đủ điều kiện cấp giấy xác nhận. Vui lòng liên hệ trực tiếp Phòng Công tác Sinh viên (A-01.01).',
+        };
+      }
+
+      if (studentRec?.status === 'DROPPED') {
+        return {
+          success: true,
+          decision: 'AUTO_REJECT',
+          status: 'REJECTED',
+          classification: 'ROUTINE_POLICY_DENY',
+          formCode: activeFormCode,
+          rule: 'POL_DROPPED_STUDENT_DENY',
+          message: 'Theo quy chế đào tạo của Nhà trường, sinh viên đã thôi học / xóa tên không thuộc diện cấp Giấy xác nhận sinh viên. Yêu cầu bị từ chối và không được bypass vì bất kỳ lý do nào.',
+          actionableQuestion: 'Theo quy chế đào tạo, sinh viên đã thôi học không thuộc diện cấp giấy xác nhận.',
+        };
+      }
+
       // 1. Kiểm tra bắt buộc: Mục đích sử dụng giấy xác nhận
       if (!finalPurpose) {
         return {
@@ -51,11 +90,11 @@ class AcademicWorkflowService {
       }
 
       // 1.1. CHỐT CHẶN PHÁT HIỆN LỆCH BIỂU MẪU (CROSS-FORM MISMATCH)
-      // Ví dụ: Sinh viên hỏi về visa nhưng lại gửi biểu mẫu thuế TNCN
+      // Truyền đúng hồ sơ studentRec để không nhầm sinh viên bảo lưu/thôi học sang nợ môn
       const mismatch = detectCrossFormMismatch({
         currentFormCode: activeFormCode,
         text: finalPurpose,
-        student: { studentCode: String(studentCode).trim() },
+        student: studentRec || { studentCode: String(studentCode).trim() },
         inputData: { ...inputData, purpose: finalPurpose, formCode: activeFormCode },
       });
 
@@ -73,20 +112,20 @@ class AcademicWorkflowService {
       }
 
       // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY (CHỐNG SPAM BIỂU MẪU LẦN 2)
-      const studentRec = await prisma.student.findUnique({
-        where: { studentCode: String(studentCode).trim() },
-        select: { id: true },
-      });
       let historyRequests = [];
-      if (studentRec) {
-        historyRequests = await prisma.studentRequest.findMany({
-          where: {
-            studentId: studentRec.id,
-            requestType: { code: 'STUDENT_CONFIRMATION' },
-            status: { in: ['APPROVED', 'COMPLETED', 'ESCALATED'] },
-          },
-          select: { id: true, requestCode: true, status: true, inputData: true, createdAt: true },
-        });
+      if (studentRec?.id) {
+        try {
+          historyRequests = await prisma.studentRequest.findMany({
+            where: {
+              studentId: studentRec.id,
+              requestType: { code: 'STUDENT_CONFIRMATION' },
+              status: { in: ['APPROVED', 'COMPLETED', 'ESCALATED'] },
+            },
+            select: { id: true, requestCode: true, status: true, inputData: true, createdAt: true },
+          });
+        } catch (_e) {
+          historyRequests = inputData?.historyRequests || [];
+        }
       }
 
       // 2. Kiểm tra bắt buộc: Cơ sở nhận giấy (Bắt buộc chọn 1 trong 2 cơ sở thực tế HUTECH)
@@ -114,7 +153,8 @@ class AcademicWorkflowService {
         ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
         : campusRaw;
 
-      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || '22DTHE4';
+      // Không hardcode '22DTHE4'
+      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || studentRec?.studentClass || null;
 
       const payload = {
         ...inputData,

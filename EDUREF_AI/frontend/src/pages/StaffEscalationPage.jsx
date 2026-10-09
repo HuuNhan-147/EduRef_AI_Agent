@@ -486,7 +486,7 @@ export default function StaffEscalationPage() {
                 <div>
                   <span className="text-slate-400 block text-[10px]">Lớp sinh hoạt / Ngành:</span>
                   <span className="font-medium text-slate-800 font-mono">
-                    {selectedPetition.inputData?.studentClass || selectedPetition.student?.studentClass || '22DTHE4'} • {selectedPetition.inputData?.major || 'CNTT'}
+                    {selectedPetition.inputData?.studentClass || selectedPetition.student?.studentClass || '(Chưa cập nhật)'} • {selectedPetition.inputData?.major || selectedPetition.student?.major || 'CNTT'}
                   </span>
                 </div>
               </div>
@@ -612,24 +612,24 @@ export default function StaffEscalationPage() {
 
                 const meta = FORM_META[activeFormCode] || FORM_META.GENERAL_CONFIRMATION;
 
-                // Dữ liệu ánh xạ 1:1 nguyên vẹn từ form sinh viên gửi
-                const fullName = input.fullName || student.fullName || 'Cao Hữu Nhân';
-                const studentCode = input.studentCode || student.studentCode || '2280602154';
-                const birthDate = input.birthDate || '26/07/2003';
-                const gender = input.gender || 'Nam';
-                const studentClass = input.studentClass || student.studentClass || '22DTHE4';
-                const faculty = input.faculty || student.department?.name || 'Khoa Công nghệ Thông tin';
-                const major = input.major || 'Công nghệ Thông tin';
-                const phone = input.phone || student.phone || '0901234567';
-                const idCard = input.idCard || input.idCardNumber || input.citizenId || '079203001234';
-                const idCardDate = input.idCardDate || input.issueDate || '20/08/2021';
-                const idCardPlace = input.idCardPlace || input.issuePlace || 'Cục Cảnh sát QLHC về TTXH';
-                const recipientAgency = input.recipientAgency || meta.agencyPlaceholder;
-                const permanentAddress = input.permanentAddress || '180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh';
-                const pickupCampus = input.pickupCampus || 'Trụ sở chính: phòng Công tác sinh viên (A-01,01)';
-                const purpose = input.purpose || input.reason || 'Làm vé tháng xe buýt và bổ sung hồ sơ học tập';
-                const debtCourses = input.debtCourses || 'Lập trình Web, Cơ sở dữ liệu';
-                const completionDeadline = input.completionDeadline || 'Tháng 12/2026';
+                // Dữ liệu ánh xạ 1:1 nguyên vẹn từ form sinh viên gửi (bảo toàn tính trung thực của dữ liệu)
+                const fullName = input.fullName || student.fullName || '(Chưa có họ tên)';
+                const studentCode = input.studentCode || student.studentCode || '(Chưa có MSSV)';
+                const birthDate = input.birthDate || '(Chưa cập nhật)';
+                const gender = input.gender || '(Chưa cập nhật)';
+                const studentClass = input.studentClass || student.studentClass || '(Chưa cập nhật)';
+                const faculty = input.faculty || student.department?.name || '(Chưa cập nhật)';
+                const major = input.major || '(Chưa cập nhật)';
+                const phone = input.phone || student.phone || '(Chưa cập nhật)';
+                const idCard = input.idCard || input.idCardNumber || input.citizenId || '(Chưa cập nhật)';
+                const idCardDate = input.idCardDate || input.issueDate || '(Chưa cập nhật)';
+                const idCardPlace = input.idCardPlace || input.issuePlace || '(Chưa cập nhật)';
+                const recipientAgency = input.recipientAgency || meta.agencyPlaceholder || '(Chưa cập nhật)';
+                const permanentAddress = input.permanentAddress || '(Chưa cập nhật)';
+                const pickupCampus = input.pickupCampus || 'Trụ sở chính: phòng Công tác sinh viên (A-01.01)';
+                const purpose = input.purpose || input.reason || '(Chưa cập nhật)';
+                const debtCourses = input.debtCourses || '(Chưa cập nhật)';
+                const completionDeadline = input.completionDeadline || '(Chưa cập nhật)';
                 const orphanStatus = input.orphanStatus || 'Không mồ côi';
                 const loanFormCount = input.loanFormCount || 1;
                 const loanGrantedCount = input.loanGrantedCount || 1;

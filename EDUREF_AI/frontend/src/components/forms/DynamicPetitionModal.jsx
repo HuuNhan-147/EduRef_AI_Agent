@@ -83,45 +83,46 @@ export default function DynamicPetitionModal({
 
   // State cho Form: Giấy Xác Nhận Sinh Viên (5 Biểu mẫu HUTECH)
   const [confirmData, setConfirmData] = useState({
-    fullName: currentAccount.name || currentAccount.fullName || 'Cao Hữu Nhân',
-    birthDate: currentAccount.birthDate || '26/07/2003',
+    fullName: currentAccount.name || currentAccount.fullName || '',
+    birthDate: currentAccount.birthDate || '',
     gender: currentAccount.gender || 'Nam',
-    idCard: currentAccount.idCard || '079203001234',
-    idCardDate: currentAccount.idCardDate || '2021-08-10',
-    idCardPlace: currentAccount.idCardPlace || 'Cục Cảnh sát QLHC về TTXH',
+    idCard: currentAccount.idCard || '',
+    idCardDate: currentAccount.idCardDate || '',
+    idCardPlace: currentAccount.idCardPlace || '',
     major: initialMajor,
-    studentClass: currentAccount.studentClass || currentAccount.class || '22DTHE4',
-    studentCode: currentAccount.code || currentAccount.studentCode || '2280602154',
+    studentClass: currentAccount.studentClass || currentAccount.class || '',
+    studentCode: currentAccount.code || currentAccount.studentCode || '',
     faculty: initialFaculty,
-    phone: currentAccount.phone || '0901234567',
+    phone: currentAccount.phone || '',
     purpose: 'Làm vé tháng xe buýt và bổ sung hồ sơ học tập',
     recipientAgency: FORM_AGENCY_DEFAULTS[petitionType?.formCode || 'GENERAL_CONFIRMATION'] || '',
-    permanentAddress: '180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
-    debtCourses: 'Lập trình Web, Cơ sở dữ liệu',
+    permanentAddress: currentAccount.permanentAddress || '',
+    debtCourses: '',
     completionDeadline: 'Tháng 12/2026',
-    pickupCampus: 'Trụ sở chính: phòng Công tác sinh viên (A-01,01)'
+    pickupCampus: 'Trụ sở chính: phòng Công tác sinh viên (A-01.01)'
   });
 
   // Tự động đồng bộ thông tin của sinh viên đang chọn khi mở form
   useEffect(() => {
     if (isOpen) {
       const acc = getEffectiveAccount();
-      const activeFaculty = acc?.department || acc?.faculty || acc?.departmentName || 'Khoa Công nghệ thông tin';
+      const activeFaculty = acc?.department || acc?.faculty || acc?.departmentName || '';
       const activeMajor = acc?.major || (activeFaculty.startsWith('Khoa ') ? activeFaculty.replace('Khoa ', '') : activeFaculty);
 
       setConfirmData((prev) => ({
         ...prev,
-        fullName: acc?.name || acc?.fullName || prev.fullName,
-        studentCode: acc?.code || acc?.studentCode || prev.studentCode,
+        fullName: acc?.name || acc?.fullName || '',
+        studentCode: acc?.code || acc?.studentCode || '',
         faculty: activeFaculty,
         major: activeMajor,
-        studentClass: acc?.studentClass || acc?.class || prev.studentClass || '22DTHE4',
-        phone: acc?.phone || prev.phone || '0901234567',
-        birthDate: acc?.birthDate || prev.birthDate || '26/07/2003',
-        gender: acc?.gender || prev.gender || 'Nam',
-        idCard: acc?.idCard || prev.idCard || '079203001234',
-        idCardDate: acc?.idCardDate || prev.idCardDate || '2021-08-10',
-        idCardPlace: acc?.idCardPlace || prev.idCardPlace || 'Cục Cảnh sát QLHC về TTXH',
+        studentClass: acc?.studentClass || acc?.class || '',
+        phone: acc?.phone || '',
+        birthDate: acc?.birthDate || '',
+        gender: acc?.gender || 'Nam',
+        idCard: acc?.idCard || '',
+        idCardDate: acc?.idCardDate || '',
+        idCardPlace: acc?.idCardPlace || '',
+        permanentAddress: acc?.permanentAddress || prev.permanentAddress || '',
       }));
     }
   }, [isOpen, currentAccountKey, customProfile]);

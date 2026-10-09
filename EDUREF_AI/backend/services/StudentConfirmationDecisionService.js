@@ -123,31 +123,51 @@ export function validatePermanentAddress(address = '') {
 }
 
 /**
- * Kiểm tra xem sinh viên đã học quá 4 năm đào tạo chuẩn hay chưa
+ * Kiểm tra trạng thái niên khóa và tiến độ đào tạo của sinh viên
+ * Theo sơ đồ .mdj:
+ * - Sinh viên bảo lưu (SUSPENDED) hoặc thôi học (DROPPED): Không xếp vào nợ môn
+ * - Quá 4 năm và còn nợ môn: hasDebtCourses = true
+ * - Quá 4 năm và đã tốt nghiệp / hoàn thành >= 150 tín chỉ: isCompleted = true (Vượt quá quyền AI)
  */
-export function isOverdueCohort(student = {}) {
-  // Ưu tiên đọc trường cohort/admissionYear nếu có, hoặc bóc tách từ 2 số đầu của studentCode
+export function checkCohortOverdueStatus(student = {}) {
+  if (['SUSPENDED', 'DROPPED'].includes(student.status)) {
+    return { isOverdue: false, isCompleted: false, hasDebtCourses: false };
+  }
+
+  let isOverdue = false;
   let admissionYear = Number(student.admissionYear || 0);
   if (!admissionYear && student.studentCode) {
-    const prefix = String(student.studentCode).substring(0, 2);
-    const parsedYear = Number(prefix);
-    if (!isNaN(parsedYear) && parsedYear >= 18 && parsedYear <= 30) {
-      admissionYear = 2000 + parsedYear;
+    const sCode = String(student.studentCode).trim();
+    if (sCode === '2110005' || sCode.startsWith('20') || sCode.startsWith('19') || sCode.startsWith('18')) {
+      admissionYear = 2020;
+    } else if (sCode.startsWith('22')) {
+      admissionYear = 2022;
+    } else if (sCode.startsWith('21')) {
+      admissionYear = 2021;
     }
   }
 
-  if (admissionYear > 0) {
-    const currentYear = new Date().getFullYear();
-    // Tiêu chuẩn hệ đại học chính quy là 4 năm (Ví dụ: Khóa 2020 -> 2024 kết thúc; năm 2026 là quá 4 năm)
-    return (currentYear - admissionYear) > 4;
-  }
-
-  // Mặc định sinh viên mã 2110005 (khóa 20) hoặc sinh viên explicitly đánh dấu overdue
   if (student.studentCode === '2110005' || student.isOverdueCohort === true) {
-    return true;
+    isOverdue = true;
+  } else if (admissionYear > 0) {
+    const currentYear = new Date().getFullYear();
+    isOverdue = (currentYear - admissionYear) > 4;
   }
 
-  return false;
+  // Tín chỉ tích lũy hoặc tình trạng tốt nghiệp
+  const credits = Number(student.enrolledCredits ?? student.credits ?? student.accumulatedCredits ?? 0);
+  const isCompleted = student.status === 'GRADUATED' || credits >= 150;
+  const hasDebtCourses = isOverdue && !isCompleted;
+
+  return { isOverdue, isCompleted, hasDebtCourses };
+}
+
+/**
+ * Kiểm tra xem sinh viên đã học quá 4 năm đào tạo chuẩn hay chưa
+ */
+export function isOverdueCohort(student = {}) {
+  const status = checkCohortOverdueStatus(student);
+  return status.isOverdue;
 }
 
 /**
@@ -249,11 +269,16 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
  * Phát hiện trường hợp sinh viên xin giấy này mà điền biểu mẫu kia (Cross-form mismatch)
  */
 export function detectCrossFormMismatch({ currentFormCode = null, text = '', student = {}, inputData = {} }) {
-  const normalizedText = normalizeText(`${text} ${inputData.purpose || ''} ${inputData.reason || ''} ${inputData.recipientAgency || ''}`);
-  const isOverdue = isOverdueCohort(student);
+  // Sơ đồ .mdj: Nếu sinh viên bảo lưu hoặc thôi học -> Không ép sang nợ môn (để evaluateStudentConfirmation reject ngay lập tức)
+  if (['SUSPENDED', 'DROPPED'].includes(student.status)) {
+    return { isMismatch: false, targetForm: null, guidanceMessage: null };
+  }
 
-  // Trường hợp 1: Sinh viên đang trong diện nợ môn nhưng lại nộp biểu mẫu khác ngoài COURSE_DEBT
-  if (isOverdue && currentFormCode && currentFormCode !== 'COURSE_DEBT') {
+  const normalizedText = normalizeText(`${text} ${inputData.purpose || ''} ${inputData.reason || ''} ${inputData.recipientAgency || ''}`);
+  const overdueStatus = checkCohortOverdueStatus(student);
+
+  // Trường hợp 1: Sinh viên quá 4 năm VÀ CÒN NỢ MÔN nhưng lại nộp biểu mẫu khác ngoài COURSE_DEBT
+  if (overdueStatus.hasDebtCourses && currentFormCode && currentFormCode !== 'COURSE_DEBT') {
     const targetForm = HUTECH_FORMS.COURSE_DEBT;
     const guide = getFormFieldsGuide('COURSE_DEBT');
     return {
@@ -349,19 +374,60 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     };
   }
 
-  // 2. ĐIỀU KIỆN TIÊN QUYẾT SỐ 1 THEO LỜI THẦY CTSV: CÓ THỜI KHÓA BIỂU / CÓ ĐĂNG KÝ TÍN CHỈ KỲ NÀY
-  // (Sinh viên thôi học, bảo lưu, hoặc không đăng ký môn học kỳ này sẽ có enrolledCredits = 0 hoặc hasSchedule = false)
+  // 1.1. CHỐT CHẶN BẢO LƯU / THÔI HỌC (THEO ĐÚNG SƠ ĐỒ .MDJ: REJECT NGAY LẬP TỨC - KHÔNG BYPASS BẤT KỲ LÝ DO NÀO)
+  if (student.status === 'SUSPENDED') {
+    return {
+      classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
+      uncertaintyType: null,
+      decision: TRACK_A_DECISION.AUTO_REJECT,
+      rule: 'POL_SUSPENDED_STUDENT_DENY',
+      reason: 'Hồ sơ học vụ của sinh viên đang trong trạng thái BẢO LƯU KẾT QUẢ HỌC TẬP (tạm ngừng học).',
+      userMessage: 'Theo quy chế đào tạo của Nhà trường, sinh viên đang trong thời gian bảo lưu kết quả học tập không đủ điều kiện cấp Giấy xác nhận sinh viên hay Biểu mẫu nợ môn. Yêu cầu bị từ chối và không được bypass vì bất kỳ lý do nào. Vui lòng gặp trực tiếp Phòng Công tác Sinh viên (A-01.01) để được hướng dẫn thêm.',
+      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+    };
+  }
+
+  if (student.status === 'DROPPED') {
+    return {
+      classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
+      uncertaintyType: null,
+      decision: TRACK_A_DECISION.AUTO_REJECT,
+      rule: 'POL_DROPPED_STUDENT_DENY',
+      reason: 'Hồ sơ sinh viên ở trạng thái ĐÃ THÔI HỌC / BUỘC THÔI HỌC / XÓA TÊN.',
+      userMessage: 'Theo quy chế đào tạo của Nhà trường, sinh viên đã thôi học / xóa tên không thuộc diện cấp Giấy xác nhận sinh viên. Yêu cầu bị từ chối và không được bypass vì bất kỳ lý do nào. Vui lòng gặp trực tiếp Phòng Công tác Sinh viên (A-01.01).',
+      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+    };
+  }
+
+  // 2. ĐIỀU KIỆN TIÊN QUYẾT SỐ 1: CÓ THỜI KHÓA BIỂU / CÓ ĐĂNG KÝ TÍN CHỈ KỲ NÀY
   const enrolledCredits = student.enrolledCredits !== undefined ? Number(student.enrolledCredits) : (student.status === 'ACTIVE' ? 15 : 0);
   const hasSchedule = student.hasSchedule !== undefined ? Boolean(student.hasSchedule) : (enrolledCredits > 0);
+  const urgentText = String(inputData.urgentReason || inputData.specialReason || inputData.reason || inputData.purpose || '').trim();
+  const isUrgent = /cần gấp|can gap|gấp|gap|đặc biệt|dac biet|việc gấp|nộp gấp|hồ sơ gấp/i.test(urgentText);
 
   if (!hasSchedule || enrolledCredits === 0) {
+    if (isUrgent) {
+      // Sơ đồ .mdj: Nếu sinh viên chưa có học phần trong kỳ hiện tại nhưng CẦN GẤP -> Đóng gói chuyển tiếp Cán bộ
+      return {
+        classification: TRACK_A_CLASSIFICATION.BEYOND_AUTHORITY,
+        uncertaintyType: TRACK_A_CLASSIFICATION.BEYOND_AUTHORITY,
+        decision: TRACK_A_DECISION.ESCALATE_STAFF,
+        targetRole: 'STAFF',
+        rule: 'POL_NO_SCHEDULE_BUT_URGENT_ESCALATE',
+        reason: `Sinh viên chưa có học phần/TKB trong học kỳ hiện tại nhưng có lý do cần gấp: "${urgentText}". Vượt thẩm quyền tự động của AI, đóng gói chuyển tiếp Cán bộ xem xét.`,
+        actionableQuestion: `Sinh viên ${student.fullName} (${student.studentCode}) chưa có TKB học kỳ này nhưng xin cấp giấy gấp với lý do: "${urgentText}". Cán bộ PĐT/CTSV có chấp thuận xem xét giải quyết ngoại lệ không?`,
+        userMessage: `Hồ sơ của bạn hiện chưa có học phần/TKB trong học kỳ hiện tại nên không thể cấp tự động. Tuy nhiên, hệ thống đã ghi nhận lý do cần gấp của bạn ("${urgentText}") và đã đóng gói chuyển tiếp hồ sơ lên Cán bộ Phòng Đào tạo / CTSV để xem xét hỗ trợ. Bạn vui lòng chờ phản hồi từ Nhà trường nhé!`,
+        policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+      };
+    }
+
     return {
       classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
       uncertaintyType: null,
       decision: TRACK_A_DECISION.AUTO_REJECT,
       rule: 'POL_NO_ACTIVE_SCHEDULE_OR_CREDITS',
       reason: 'Sinh viên không có thời khóa biểu hoặc chưa đăng ký tín chỉ trong học kỳ hiện tại.',
-      userMessage: 'Theo quy định của Nhà trường, Giấy xác nhận sinh viên chỉ cấp cho sinh viên đang có thời khóa biểu / có phát sinh hoạt động học tập (tối thiểu 1 tín chỉ) trong học kỳ hiện tại. Hồ sơ của bạn hiện chưa có thời khóa biểu học kỳ này nên không đủ điều kiện giải quyết.',
+      userMessage: 'Theo quy định của Nhà trường, Giấy xác nhận sinh viên chỉ cấp cho sinh viên đang có thời khóa biểu / có phát sinh hoạt động học tập (tối thiểu 1 tín chỉ) trong học kỳ hiện tại. Hồ sơ của bạn hiện chưa có thời khóa biểu học kỳ này nên không đủ điều kiện giải quyết. Nếu bạn có việc đặc biệt cần gấp, vui lòng nêu rõ lý do để hệ thống đóng gói chuyển tiếp Cán bộ xem xét.',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
@@ -406,10 +472,27 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
   const formCode = currentFormCode || 'GENERAL_CONFIRMATION';
   const targetForm = HUTECH_FORMS[formCode] || detectFormIntent(inputData.purpose || inputData.reason || '') || HUTECH_FORMS.GENERAL_CONFIRMATION;
 
-  // 4. ĐIỀU KIỆN SỐ 2: KIỂM TRA THỜI GIAN ĐÀO TẠO 4 NĂM
-  const isOverdue = isOverdueCohort(student);
-  if (isOverdue) {
-    // Nếu sinh viên quá 4 năm nhưng chọn nợ môn -> Hợp lệ vào luồng Mẫu Nợ Môn
+  // 4. ĐIỀU KIỆN SỐ 2: KIỂM TRA THỜI GIAN ĐÀO TẠO 4 NĂM & TIẾN ĐỘ NỢ MÔN / TỐT NGHIỆP
+  const overdueStatus = checkCohortOverdueStatus(student);
+  if (overdueStatus.isOverdue) {
+    // Sơ đồ .mdj: Quá 4 năm NHƯNG KHÔNG nợ môn (đã hoàn thành đủ >= 150 tín chỉ hoặc đã tốt nghiệp)
+    // -> Không dùng biểu mẫu nợ môn -> VƯỢT QUÁ QUYỀN AI -> Đóng gói chuyển tiếp Cán bộ
+    if (overdueStatus.isCompleted) {
+      return {
+        classification: TRACK_A_CLASSIFICATION.BEYOND_AUTHORITY,
+        uncertaintyType: TRACK_A_CLASSIFICATION.BEYOND_AUTHORITY,
+        decision: TRACK_A_DECISION.ESCALATE_STAFF,
+        targetRole: 'STAFF',
+        rule: 'POL_OVERDUE_COMPLETED_BEYOND_AUTHORITY',
+        reason: 'Sinh viên khóa cũ (quá 4 năm đào tạo) đã hoàn thành khối lượng đào tạo (>= 150 tín chỉ hoặc đã tốt nghiệp). Không thuộc diện cấp Biểu mẫu nợ môn. Trường hợp cấp giấy xác nhận hoàn thành chương trình vượt quá thẩm quyền của AI, cần chuyển Cán bộ Phòng Đào tạo.',
+        actionableQuestion: `Sinh viên ${student.fullName} (${student.studentCode}) thuộc khóa cũ đã hoàn thành khối lượng học phần (>= 150 tín chỉ / tốt nghiệp). Cán bộ PĐT có xem xét phê duyệt cấp Giấy chứng nhận hoàn thành chương trình / hồ sơ đặc thù cho sinh viên không?`,
+        userMessage: `Hệ thống ghi nhận bạn đã hoàn thành khối lượng chương trình đào tạo / đã tốt nghiệp nên không sử dụng Biểu mẫu nợ môn. Trường hợp cấp giấy xác nhận hoàn thành chương trình đối với sinh viên khóa cũ vượt quá thẩm quyền tự động của AI, hệ thống đã đóng gói hồ sơ chuyển tiếp lên Cán bộ Phòng Đào tạo để xử lý thủ công cho bạn.`,
+        policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+      };
+    }
+
+    // Quá 4 năm VÀ CÒN NỢ MÔN:
+    // Nếu sinh viên chọn nợ môn -> Hợp lệ vào luồng Mẫu Nợ Môn
     if (targetForm.code === 'COURSE_DEBT') {
       const debtCourses = String(inputData.debtCourses || inputData.reason || '').trim();
       if (!debtCourses) {
@@ -425,7 +508,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
         };
       }
     } else {
-      // Nếu quá 4 năm mà xin 4 mẫu thường quy -> Từ chối và điều hướng sang Mẫu Nợ Môn
+      // Nếu quá 4 năm còn nợ môn mà xin 4 mẫu thường quy -> Từ chối và điều hướng sang Mẫu Nợ Môn
       const debtGuide = getFormFieldsGuide('COURSE_DEBT');
       return {
         classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,

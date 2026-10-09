@@ -292,7 +292,7 @@ export class AgentOrchestrator {
         const toolStart = Date.now();
         const mergedArgs = {
           ...toolArgs,
-          studentClass: toolArgs.studentClass || currentUser?.studentClass || currentUser?.class || '22DTHE4',
+          studentClass: toolArgs.studentClass || currentUser?.studentClass || currentUser?.class || null,
         };
         const toolResult = await ToolResolver.resolve(toolName, mergedArgs);
         const toolDuration = Date.now() - toolStart;
