@@ -473,15 +473,15 @@ export default function StaffEscalationPage() {
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs">
                 <div>
                   <span className="text-slate-400 block text-[10px]">Họ tên:</span>
-                  <span className="font-semibold text-slate-800">{selectedPetition.student?.fullName || selectedPetition.inputData?.fullName || 'Cao Hữu Nhân'}</span>
+                  <span className="font-semibold text-slate-800">{selectedPetition.student?.fullName || selectedPetition.inputData?.fullName || '—'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">MSSV:</span>
-                  <span className="font-mono font-bold text-blue-700">{selectedPetition.student?.studentCode || selectedPetition.inputData?.studentCode || '2280602154'}</span>
+                  <span className="font-mono font-bold text-blue-700">{selectedPetition.student?.studentCode || selectedPetition.inputData?.studentCode || selectedPetition.studentCode || '—'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Khoa / Viện:</span>
-                  <span className="font-medium text-slate-800">{selectedPetition.student?.department?.name || selectedPetition.inputData?.faculty || 'Khoa Công nghệ Thông tin'}</span>
+                  <span className="font-medium text-slate-800">{selectedPetition.student?.department?.name || selectedPetition.inputData?.faculty || '—'}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Lớp sinh hoạt / Ngành:</span>

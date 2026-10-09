@@ -4,6 +4,7 @@ import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddle
 import { runAgent } from '../modules/ai-agent/index.js';
 import verifyTools from '../modules/ai-agent/tools/actions/verifyTools.js';
 import petitionTools from '../modules/ai-agent/tools/actions/petitionTools.js';
+import { checkCohortOverdueStatus } from '../services/StudentConfirmationDecisionService.js';
 
 const router = express.Router();
 
@@ -44,11 +45,20 @@ router.post('/chat', authenticateToken, async (req, res) => {
           include: { department: true },
         });
         if (student) {
-          const sCode = String(student.studentCode).trim();
-          const isOverdue = sCode === '2110005' || sCode.startsWith('20') || sCode.startsWith('19') || sCode.startsWith('18');
-          const hasActiveSched = student.status === 'ACTIVE' && sCode !== '2110002';
-          const credits = !hasActiveSched ? 0 : (isOverdue ? 3 : 15);
-          const admYear = sCode === '2110005' ? 2020 : (sCode.startsWith('22') ? 2022 : (sCode.startsWith('21') ? 2021 : 2022));
+          const cohortStatus = checkCohortOverdueStatus(student);
+          const hasActiveSched = student.status === 'ACTIVE';
+          const credits = !hasActiveSched ? 0 : (cohortStatus.hasDebtCourses ? 3 : 15);
+
+          let admYear = Number(student.admissionYear || 0);
+          if (!admYear && student.studentCode) {
+            const prefix = String(student.studentCode).trim().slice(0, 2);
+            const parsedPrefix = parseInt(prefix, 10);
+            if (!isNaN(parsedPrefix) && parsedPrefix >= 10 && parsedPrefix <= 99) {
+              admYear = 2000 + parsedPrefix;
+            } else {
+              admYear = 2022;
+            }
+          }
 
           userContext = {
             studentCode: student.studentCode,
@@ -61,7 +71,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
             admissionYear: admYear,
             hasSchedule: hasActiveSched,
             enrolledCredits: credits,
-            isOverdueCohort: isOverdue,
+            isOverdueCohort: cohortStatus.isOverdue,
             role: 'STUDENT',
             type: 'STUDENT',
           };

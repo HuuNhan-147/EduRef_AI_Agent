@@ -75,34 +75,20 @@ router.post('/', authenticateToken, async (req, res) => {
       });
     }
 
-    // Xử lý danh sách documents đính kèm từ form (bản scan/ảnh chụp minh chứng)
-    const documents = [];
-    const certs = inputData.attachedCerts || inputData.uploadedCerts;
-    if (certs) {
-      if (certs.b1?.previewUrl || certs.b1?.attached || certs.b1?.isValid) {
-        documents.push({
-          documentType: 'B1_ENGLISH_CERT',
-          fileName: certs.b1.fileName || 'HUTECH_Chung_Chi_Tieng_Anh_B1.png',
-          fileUrl: certs.b1.previewUrl || '/public/demo_certs/hutech_b1_english.png',
-          verificationStatus: 'PENDING',
-          extractedData: certs.b1.extractedData || null,
-        });
-      }
-      if (certs.teamwork?.previewUrl || certs.teamwork?.attached || certs.teamwork?.isValid) {
-        documents.push({
-          documentType: 'TEAMWORK_CERT',
-          fileName: certs.teamwork.fileName || 'HUTECH_Chung_Chi_Ky_Nang_Nhom.png',
-          fileUrl: certs.teamwork.previewUrl || '/public/demo_certs/hutech_teamwork_skills.png',
-          verificationStatus: 'PENDING',
-          extractedData: certs.teamwork.extractedData || null,
-        });
-      }
+    if (!studentCode) {
+      return res.status(400).json({
+        success: false,
+        message: 'Không xác định được mã số sinh viên. Vui lòng đăng nhập hoặc cung cấp studentCode hợp lệ.',
+      });
     }
+
+    // 5 biểu mẫu Giấy xác nhận sinh viên HUTECH là biểu mẫu thông tin thuần túy, không yêu cầu upload tài liệu minh chứng
+    const documents = [];
 
     const { default: petitionWorkflowCore } = await import('../modules/petition-core/PetitionWorkflowCore.js');
 
     const result = await petitionWorkflowCore.processPetitionWorkflow({
-      studentCode: studentCode || '2280602154',
+      studentCode,
       requestTypeCode: requestCode,
       inputData,
       documents,
