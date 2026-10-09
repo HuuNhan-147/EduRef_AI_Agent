@@ -163,7 +163,8 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
 
     if (
       evaluation.classification === TRACK_A_CLASSIFICATION.OUTSIDE_POLICY ||
-      evaluation.classification === TRACK_A_CLASSIFICATION.BEYOND_AUTHORITY
+      evaluation.classification === TRACK_A_CLASSIFICATION.BEYOND_AUTHORITY ||
+      evaluation.decision === TRACK_A_DECISION.ESCALATE_STAFF
     ) {
       return {
         role: 'STAFF',

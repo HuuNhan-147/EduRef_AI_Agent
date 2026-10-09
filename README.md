@@ -14,7 +14,7 @@
 > 1. `TAX_DEDUCTION`: Đơn xin xác nhận giảm trừ gia cảnh Thuế TNCN (Hiệu lực 1 học kỳ, bắt buộc nơi nhận/cơ quan thuế).
 > 2. `BANK_LOAN`: Đơn xin xác nhận vay vốn Ngân hàng CSXH (Mẫu 01/TDSV theo TT 27/2019/TT-NHCS, hạn 1 học kỳ).
 > 3. `MILITARY_DEFERMENT`: Đơn xin tạm hoãn nghĩa vụ quân sự (Hiệu lực 30 ngày theo Luật NVQS, gửi BCH Quân sự Xã/Phường).
-> 4. `COURSE_DEBT`: Đơn xin xác nhận sinh viên còn nợ môn / Kéo dài tiến độ (Dành riêng cho sinh viên học quá 4 năm đào tạo chuẩn, bắt buộc danh sách môn nợ và cam kết hoàn thành).
+> 4. `COURSE_DEBT`: Đơn xin xác nhận sinh viên còn nợ môn / Tiếp tục học tập (Hỗ trợ sinh viên còn nợ học phần hoàn thành chương trình đào tạo để nộp cơ quan nghĩa vụ/học vụ, bắt buộc danh sách môn nợ).
 > 5. `GENERAL_CONFIRMATION`: Đơn xin xác nhận sinh viên mục đích chung (Làm vé xe buýt, visa du lịch, việc làm, bổ sung hồ sơ...).
 
 > *"Tự động hóa thủ tục thường quy — Minh bạch trách nhiệm giải trình — Dừng lại chính xác khi vượt thẩm quyền."*
@@ -247,7 +247,7 @@ Hệ thống đã nạp sẵn bộ dữ liệu synthetic chuẩn hóa phục v�
 | Vai trò | Tài khoản | Mật khẩu | Đặc điểm hồ sơ & Mục đích kiểm thử |
 | :--- | :--- | :---: | :--- |
 | **Sinh viên (Chính quy)** | `2280602154` (Cao Hữu Nhân) | `123456` | Trạng thái `ACTIVE`, có TKB (15 tín chỉ) — Trải nghiệm nộp đơn thường quy & chat với AI |
-| **Sinh viên (Quá 4 năm nợ môn)** | `2110005` (Võ Quốc Tuấn) | `123456` | Khóa K21 (quá 4 năm chuẩn), nợ 6 tín chỉ — Thử nghiệm chốt chặn NVQS ép chuyển sang Biểu mẫu Nợ môn |
+| **Sinh viên (Nợ môn)** | `2110005` (Võ Quốc Tuấn) | `123456` | Đang trả nợ môn, nợ 6 tín chỉ — Thử nghiệm hướng dẫn sử dụng Biểu mẫu Nợ môn |
 | **Sinh viên (Thôi học)** | `2110002` (Trần Thị Bình) | `123456` | Trạng thái `DROPPED` (0 tín chỉ, không có TKB) — Kiểm thử chốt chặn từ chối tự động theo quy chế |
 | **Sinh viên (Bảo lưu)** | `2110004` (Phạm Văn Dũng) | `123456` | Trạng thái `SUSPENDED` — Kiểm thử quy định bảo lưu không cấp giấy online |
 | **Chuyên viên PĐT / CTSV** | `staff_daotao` (Thầy Trần Hữu Nghĩa) | `123456` | Thẩm định và xử lý hàng đợi các đơn chuyển tiếp (`ESCALATED`) |
@@ -260,7 +260,7 @@ Hệ thống đã nạp sẵn bộ dữ liệu synthetic chuẩn hóa phục v�
 Trên giao diện **Student Workspace**, Ban Giám Khảo có thể bấm trực tiếp vào **các nút kịch bản mẫu** ở góc phải màn hình để kiểm chứng ngay khả năng thích ứng và phản hồi của Tác tử AI:
 
 1. **Kịch bản 1 — Lệch Form (Cross-Form Mismatch):** Sinh viên mở Form Thuế nhưng gõ xin hoãn NVQS. AI tự động phát hiện lệch biểu mẫu và hướng dẫn 2 cách: điền form bên trái hoặc nhắn tin trực tiếp qua chat.
-2. **Kịch bản 2 — Quá 4 năm đào tạo (Course Debt):** Sinh viên K21 (`2110005`) xin Giấy NVQS. Hệ thống từ chối cấp NVQS thường quy và hướng dẫn chuyển sang Biểu mẫu Nợ môn / Kéo dài tiến độ.
+2. **Kịch bản 2 — Sinh viên Nợ môn (Course Debt):** Sinh viên đang nợ môn (`2110005`) xin Giấy NVQS. Hệ thống từ chối cấp NVQS thường quy và hướng dẫn chuyển sang Biểu mẫu Nợ môn để bổ sung hồ sơ hợp lệ.
 3. **Kịch bản 3 — Thường quy Hợp lệ (Routine Auto-Approve):** Sinh viên chính quy (`2280602154`) xin Giấy vay vốn Ngân hàng CSXH theo Mẫu 01/TDSV. Hệ thống duyệt tự động trong $< 1.0$ giây, cấp mã công văn `XNSV-XXXXXX`.
 4. **Kịch bản 4 — Sinh viên Thôi học (Dropped Status Deny):** Sinh viên thôi học (`2110002`) nộp đơn. Hệ thống từ chối dứt khoát theo Quy chế đào tạo.
 5. **Kịch bản 5 — Không có Thời khóa biểu (No Active Schedule Deny):** Sinh viên chưa có lịch học / 0 tín chỉ kỳ này xin cấp giấy. Hệ thống từ chối tự động do chưa phát sinh hoạt động học tập trong học kỳ theo quy định CTSV.

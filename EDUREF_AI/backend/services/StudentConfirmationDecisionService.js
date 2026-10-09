@@ -52,12 +52,12 @@ export const HUTECH_FORMS = Object.freeze({
   COURSE_DEBT: {
     code: 'COURSE_DEBT',
     name: 'Giấy chứng nhận — Biểu mẫu nợ môn',
-    shortName: 'Biểu mẫu nợ môn (Quá 4 năm)',
+    shortName: 'Biểu mẫu nợ môn',
     title: 'GIẤY CHỨNG NHẬN',
     subTitle: 'Biểu mẫu nợ môn',
     notice: 'Sau khi hoàn thành hết các môn học còn nợ, sinh viên sẽ được Nhà trường tiến hành xét tốt nghiệp.',
     requiredFields: ['birthDate', 'studentClass', 'permanentAddress', 'phone', 'debtCourses', 'pickupCampus'],
-    keywords: ['nợ môn', 'no mon', 'trả nợ môn', 'quá 4 năm', 'chưa tốt nghiệp', 'kéo dài tiến độ', 'hoàn thành môn nợ'],
+    keywords: ['nợ môn', 'no mon', 'trả nợ môn', 'chưa tốt nghiệp', 'kéo dài tiến độ', 'hoàn thành môn nợ'],
   },
   GENERAL_CONFIRMATION: {
     code: 'GENERAL_CONFIRMATION',
@@ -253,33 +253,47 @@ export function detectCrossFormMismatch({ currentFormCode = null, text = '', stu
   const detectedForm = detectFormIntent(normalizedText);
   const isOverdue = isOverdueCohort(student);
 
-  // Trường hợp 1: Sinh viên quá 4 năm đào tạo chuẩn nhưng lại nộp biểu mẫu khác ngoài COURSE_DEBT
+  // Trường hợp 1: Sinh viên đang trong diện nợ môn nhưng lại nộp biểu mẫu khác ngoài COURSE_DEBT
   if (isOverdue && currentFormCode && currentFormCode !== 'COURSE_DEBT') {
     const targetForm = HUTECH_FORMS.COURSE_DEBT;
     const guide = getFormFieldsGuide('COURSE_DEBT');
     return {
       isMismatch: true,
-      reason: 'Sinh viên đã quá 4 năm đào tạo chuẩn. Theo quy chế Nhà trường, bạn bắt buộc phải chuyển sang Biểu mẫu nợ môn (COURSE_DEBT).',
+      reason: 'Sinh viên đang trong tiến trình hoàn thành học phần nợ. Theo quy chế Nhà trường, bạn cần sử dụng Biểu mẫu nợ môn (COURSE_DEBT) để được cấp giấy hợp lệ.',
       targetForm,
       guidanceMessage:
-        `Chào bạn, hệ thống ghi nhận hồ sơ của bạn đã vượt quá thời gian đào tạo chuẩn (4 năm). Theo quy định của Phòng Đào tạo & Phòng CTSV, bạn không thể dùng mẫu xác nhận thông thường mà cần chuyển sang **${targetForm.name}**.\n\n` +
+        `Chào bạn, hệ thống ghi nhận bạn đang trong tiến trình hoàn thành các học phần còn nợ. Để hỗ trợ bạn giải trình hồ sơ học tập và nghĩa vụ quân sự hợp lệ, Nhà trường cấp **${targetForm.name}**.\n\n` +
         `Bạn có thể thực hiện theo 1 trong 2 cách sau nhé:\n` +
         `👉 **Cách 1: Điền đơn bên tay trái**: Bạn nhìn sang danh mục biểu mẫu ở cột bên trái màn hình, tìm mục **"${targetForm.shortName}"** và bấm **"Điền đơn"**.\n` +
         `👉 **Cách 2: Gửi trực tiếp thông tin cho mình ngay tại đây**: Bạn nhắn trực tiếp các thông tin sau:\n${guide}`,
     };
   }
 
-  // Trường hợp 2: Sinh viên đang ở form A nhưng nội dung/lý do lại thể hiện ý định form B
-  if (currentFormCode && detectedForm && detectedForm.code !== currentFormCode) {
-    const guide = getFormFieldsGuide(detectedForm.code);
+  // Trường hợp 2: Kiểm tra chéo mục đích cụ thể với biểu mẫu hiện tại (Cross-Form Purpose Mismatch)
+  let explicitTargetForm = null;
+  if (/visa|thị thực|thi thuc|du học|du lich|vé xe buýt|xe buyt|vé tháng|ve thang|học bổng|hoc bong/i.test(normalizedText)) {
+    explicitTargetForm = HUTECH_FORMS.GENERAL_CONFIRMATION;
+  } else if (/nghĩa vụ quân sự|nghia vu quan su|nvqs|tạm hoãn nvqs|tam hoan nvqs|hoãn quân sự/i.test(normalizedText)) {
+    explicitTargetForm = HUTECH_FORMS.MILITARY_DEFERMENT;
+  } else if (/vay vốn|vay von|ngân hàng chính sách|ngan hang chinh sach|nhcsxh|mẫu 01|mau 01/i.test(normalizedText)) {
+    explicitTargetForm = HUTECH_FORMS.BANK_LOAN;
+  } else if (/giảm trừ gia cảnh|thuế tncn|thue tncn|thuế thu nhập|chi cục thuế/i.test(normalizedText)) {
+    explicitTargetForm = HUTECH_FORMS.TAX_DEDUCTION;
+  } else if (/nợ môn|no mon|trả nợ môn|kéo dài tiến độ|hoàn thành môn nợ/i.test(normalizedText)) {
+    explicitTargetForm = HUTECH_FORMS.COURSE_DEBT;
+  }
+
+  const effectiveTarget = explicitTargetForm || detectedForm;
+  if (currentFormCode && effectiveTarget && effectiveTarget.code !== currentFormCode) {
+    const guide = getFormFieldsGuide(effectiveTarget.code);
     return {
       isMismatch: true,
-      reason: `Nội dung bạn nhập liên quan đến "${detectedForm.shortName}" nhưng bạn đang mở biểu mẫu "${HUTECH_FORMS[currentFormCode]?.shortName || currentFormCode}".`,
-      targetForm: detectedForm,
+      reason: `Nội dung bạn nhập liên quan đến "${effectiveTarget.shortName}" nhưng bạn đang mở biểu mẫu "${HUTECH_FORMS[currentFormCode]?.shortName || currentFormCode}".`,
+      targetForm: effectiveTarget,
       guidanceMessage:
-        `Dạ mình nhận thấy bạn đang cần xin giấy phục vụ mục đích **${detectedForm.shortName}**, nhưng hiện tại bạn đang ở **${HUTECH_FORMS[currentFormCode]?.name || currentFormCode}**.\n\n` +
-        `Để hồ sơ được Phòng CTSV phê duyệt đúng mẫu và có giá trị pháp lý, bạn hãy chuyển sang đúng **${detectedForm.name}** theo 1 trong 2 cách sau nhé:\n` +
-        `👉 **Cách 1: Điền đơn bên tay trái**: Bạn nhìn sang danh mục biểu mẫu ở cột bên tay trái, tìm mục **"${detectedForm.shortName}"** và bấm **"Điền đơn"**.\n` +
+        `Dạ mình nhận thấy bạn đang cần xin giấy phục vụ mục đích **${effectiveTarget.shortName}**, nhưng hiện tại bạn đang ở **${HUTECH_FORMS[currentFormCode]?.name || currentFormCode}**.\n\n` +
+        `Để hồ sơ được Phòng CTSV phê duyệt đúng mẫu và có giá trị pháp lý, bạn hãy chuyển sang đúng **${effectiveTarget.name}** theo 1 trong 2 cách sau nhé:\n` +
+        `👉 **Cách 1: Điền đơn bên tay trái**: Bạn nhìn sang danh mục biểu mẫu ở cột bên tay trái, tìm mục **"${effectiveTarget.shortName}"** và bấm **"Điền đơn"**.\n` +
         `👉 **Cách 2: Gửi trực tiếp thông tin cho mình ngay tại đây**: Bạn nhắn trực tiếp các thông tin sau để mình hỗ trợ tạo đơn ngay lập tức:\n${guide}`,
     };
   }
@@ -401,9 +415,9 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
         uncertaintyType: null,
         decision: TRACK_A_DECISION.AUTO_REJECT,
         rule: 'POL_OVERDUE_COHORT_REQUIRE_DEBT_FORM',
-        reason: 'Sinh viên đã quá 4 năm đào tạo chuẩn. Quy chế không cấp Giấy xác nhận sinh viên thông thường mà bắt buộc phải làm Biểu mẫu nợ môn.',
+        reason: 'Sinh viên đang trong diện nợ môn cần hoàn thành học phần. Quy chế yêu cầu chuyển sang Biểu mẫu nợ môn để được giải quyết hợp lệ.',
         userMessage:
-          `Theo quy chế Nhà trường, sinh viên đã quá thời gian đào tạo chuẩn (4 năm) không được cấp Giấy xác nhận sinh viên thông thường. Bạn vui lòng chuyển sang **Biểu mẫu nợ môn (COURSE_DEBT)** theo 1 trong 2 cách sau:\n` +
+          `Theo quy chế đào tạo của Nhà trường, đối với sinh viên đang trong tiến trình hoàn thành học phần nợ, bạn vui lòng chuyển sang **Biểu mẫu nợ môn (COURSE_DEBT)** theo 1 trong 2 cách sau để được giải quyết nhanh chóng:\n` +
           `👉 **Cách 1: Điền đơn bên tay trái**: Tìm mục "Biểu mẫu nợ môn" ở danh mục bên tay trái và bấm "Điền đơn".\n` +
           `👉 **Cách 2: Gửi trực tiếp thông tin cho mình ngay tại đây**:\n${debtGuide}`,
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
@@ -483,6 +497,44 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
       reason: `Mục đích "${finalPurposeText}" chưa được policy ${STUDENT_CONFIRMATION_POLICY_VERSION} bao phủ; tác tử không được tự suy diễn cho phép hay từ chối.`,
       actionableQuestion:
         `Quy chế hiện chưa bao phủ mục đích "${finalPurposeText}". Cán bộ CTSV/PĐT có chấp thuận cấp giấy xác nhận cho mục đích này không?`,
+      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+    };
+  }
+
+  // 8.1. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY (MỖI KỲ 1 BẢN/MẪU; CẤP LẦN 2 BẮT BUỘC GIẢI TRÌNH & CHUYỂN TIẾP CÁN BỘ)
+  const approvedCount = inputData.existingApprovedCount !== undefined
+    ? Number(inputData.existingApprovedCount)
+    : (Array.isArray(inputData.historyRequests)
+        ? inputData.historyRequests.filter((r) => ['APPROVED', 'COMPLETED', 'ESCALATED'].includes(r.status) && (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === targetForm.code).length
+        : 0);
+
+  if (approvedCount >= 1) {
+    const reissueReason = String(inputData.repeatReason || inputData.reissueReason || inputData.explanation || inputData.reissueExplanation || '').trim();
+    if (!reissueReason) {
+      return {
+        classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+        rule: 'REQ_REISSUE_REASON',
+        reason: `Sinh viên đã được cấp Giấy xác nhận cho biểu mẫu [${targetForm.code}] trước đó trong học kỳ. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu; nếu xin cấp lại lần 2 bắt buộc phải giải trình lý do chính đáng.`,
+        actionableQuestion:
+          `Dạ hệ thống ghi nhận bạn đã được cấp Giấy xác nhận cho biểu mẫu "${targetForm.name}" trong học kỳ này rồi. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu. Để xin cấp lại lần 2, bạn vui lòng cung cấp lý do chính đáng (ví dụ: bị mất giấy, bị rách, nộp bổ sung cho cơ quan thứ 2...) để Cán bộ Phòng CTSV/PĐT xem xét nhé!`,
+        policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+      };
+    }
+
+    // Nếu đã có lý do giải trình -> CHUYỂN TIẾP CHO CÁN BỘ (ESCALATE_TO_STAFF), KHÔNG ĐƯỢC TỰ DUYỆT
+    return {
+      classification: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
+      uncertaintyType: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
+      decision: TRACK_A_DECISION.ESCALATE_STAFF,
+      targetRole: 'STAFF',
+      rule: 'POLICY_REISSUE_QUOTA_ESCALATE',
+      reason: `Sinh viên xin cấp lại lần thứ 2 trong cùng học kỳ cho biểu mẫu [${targetForm.code}] với lý do giải trình: "${reissueReason}". Vượt hạn ngạch tự động 1 bản/kỳ, bắt buộc chuyển Cán bộ Phòng CTSV/PĐT xem xét phê duyệt ngoại lệ.`,
+      actionableQuestion:
+        `Sinh viên ${student.fullName} (${student.studentCode}) xin cấp lại lần 2 biểu mẫu "${targetForm.name}" với lý do: "${reissueReason}". Cán bộ CTSV/PĐT có chấp thuận phê duyệt cấp lại không?`,
+      userMessage:
+        `Yêu cầu xin cấp lại lần 2 của bạn đã được tiếp nhận kèm lý do giải trình ("${reissueReason}"). Theo quy định, hồ sơ đã được chuyển tiếp lên Cán bộ Phòng CTSV/PĐT để xem xét và phê duyệt ngoại lệ. Bạn vui lòng chờ thông báo từ Nhà trường nhé!`,
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }

@@ -223,7 +223,7 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE', 
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Mã QR này chứa chữ ký điện tử đã được xác thực qua chuỗi băm SHA-256 của EduRef AI. Có thể dùng xuất trình làm vé xe buýt, nộp ngân hàng hoặc cơ quan nhà nước.
+              Mã công văn này dùng để đối soát hồ sơ gốc tại Phòng Công tác Sinh viên (A-01.01 hoặc E1-01.08) khi nhận bản cứng có mộc đỏ và chữ ký sống.
             </p>
 
             <button

@@ -67,9 +67,9 @@ export const CONFIRMATION_FORMS = [
     badge: 'DV-04 · NỢ MÔN',
     badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
     title: 'Đơn Xác Nhận Sinh Viên Nợ Môn',
-    name: 'Đơn xác nhận sinh viên nợ môn / kéo dài tiến độ',
-    description: 'Dành riêng cho sinh viên học quá 4 năm chuẩn (> 4 năm) nhưng còn nợ học phần/tín chỉ.',
-    quickPrompt: 'Em học quá 4 năm, muốn xin đơn xác nhận sinh viên còn nợ môn để kéo dài tiến độ',
+    name: 'Đơn xác nhận sinh viên nợ môn / hoàn thành chương trình',
+    description: 'Xác nhận sinh viên còn nợ học phần và đang trong thời gian trả nợ môn để hoàn thành chương trình đào tạo.',
+    quickPrompt: 'Em muốn xin đơn xác nhận sinh viên còn nợ môn để bổ sung hồ sơ và trả nợ học phần',
   },
   {
     id: 'form_general',
@@ -661,7 +661,7 @@ export default function StudentWorkspacePage({
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-purple-50/70 border border-purple-200 hover:bg-purple-100/70 text-purple-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
               <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
-              <span className="truncate">SV Quá 4 năm: Ép Mẫu Nợ Môn (COURSE_DEBT)</span>
+              <span className="truncate">SV Nợ môn: Hướng dẫn Mẫu Nợ Môn (COURSE_DEBT)</span>
             </button>
             <button
               onClick={() => handleSendMessage('Em xin cấp Giấy xác nhận vay vốn ngân hàng chính sách Mẫu 01; CCCD: 079203001234; Lớp: 22DTHE4; nhận tại Cơ sở E1-01.08')}
@@ -794,7 +794,7 @@ export default function StudentWorkspacePage({
                               </span>
                             </div>
                             <div className="text-[11px] text-emerald-800 mt-1 font-medium">
-                              Đã cấp mộc điện tử & lưu sổ công văn CTSV
+                              Đã cấp mã công văn & ghi nhận hồ sơ CTSV
                             </div>
                             <div className="text-[10px] text-emerald-700/90 mt-0.5">
                               📍 Nhận bản cứng có mộc đỏ & chữ ký sống tại Phòng CTSV (A-01.01 hoặc E1-01.08)

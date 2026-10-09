@@ -42,11 +42,50 @@ class AcademicWorkflowService {
             '1. Tạm hoãn nghĩa vụ quân sự (MILITARY_DEFERMENT)\n' +
             '2. Vay vốn ngân hàng chính sách xã hội (BANK_LOAN)\n' +
             '3. Giảm trừ thuế thu nhập cá nhân (TAX_DEDUCTION)\n' +
-            '4. Hoàn thành môn nợ quá 4 năm (COURSE_DEBT)\n' +
+            '4. Biểu mẫu nợ môn / Tiếp tục học tập (COURSE_DEBT)\n' +
             '5. Xác nhận sinh viên chung: vé xe buýt, học bổng, visa (GENERAL_CONFIRMATION)?\n\n' +
             '👉 Bạn có thể bấm chọn mục tương ứng ở danh mục bên tay trái hoặc nhắn trực tiếp cho mình nhé!',
           message: 'Vui lòng cung cấp mục đích sử dụng Giấy xác nhận sinh viên.',
         };
+      }
+
+      // 1.1. CHỐT CHẶN PHÁT HIỆN LỆCH BIỂU MẪU (CROSS-FORM MISMATCH)
+      // Ví dụ: Sinh viên hỏi về visa nhưng lại gửi biểu mẫu thuế TNCN
+      const mismatch = detectCrossFormMismatch({
+        currentFormCode: activeFormCode,
+        text: finalPurpose,
+        student: { studentCode: String(studentCode).trim() },
+        inputData: { ...inputData, purpose: finalPurpose, formCode: activeFormCode },
+      });
+
+      if (mismatch.isMismatch) {
+        return {
+          success: true,
+          decision: 'ASK_CLARIFICATION',
+          status: 'WAITING_STUDENT',
+          classification: 'UNKNOWN_FACT',
+          uncertaintyType: 'UNKNOWN_FACT',
+          actionableQuestion: mismatch.guidanceMessage,
+          message: mismatch.reason,
+          formCode: activeFormCode,
+        };
+      }
+
+      // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY (CHỐNG SPAM BIỂU MẪU LẦN 2)
+      const studentRec = await prisma.student.findUnique({
+        where: { studentCode: String(studentCode).trim() },
+        select: { id: true },
+      });
+      let historyRequests = [];
+      if (studentRec) {
+        historyRequests = await prisma.studentRequest.findMany({
+          where: {
+            studentId: studentRec.id,
+            requestType: { code: 'STUDENT_CONFIRMATION' },
+            status: { in: ['APPROVED', 'COMPLETED', 'ESCALATED'] },
+          },
+          select: { id: true, requestCode: true, status: true, inputData: true, createdAt: true },
+        });
       }
 
       // 2. Kiểm tra bắt buộc: Cơ sở nhận giấy (Bắt buộc chọn 1 trong 2 cơ sở thực tế HUTECH)
@@ -83,6 +122,7 @@ class AcademicWorkflowService {
         debtCourses: debtCourses || inputData?.debtCourses || null,
         phone: phone || inputData?.phone || null,
         idCard: idCard || inputData?.idCard || null,
+        historyRequests,
       };
 
       // ⚡ GỌI TRỰC TIẾP QUA PETITION WORKFLOW CORE DUY NHẤT (SINGLE SOURCE OF TRUTH)

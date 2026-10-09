@@ -91,3 +91,54 @@ test('5. inferStudentConfirmationInput bóc tách chính xác địa chỉ, SĐT
   assert.equal(parsed.idCard, '079202001234');
   assert.equal(parsed.pickupCampus, 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)');
 });
+
+test('6. Sinh viên hỏi về Visa nhưng gửi kèm Biểu mẫu Thuế TNCN bị bắt lệch form và hỏi lại mục đích', () => {
+  const mismatch = detectCrossFormMismatch({
+    currentFormCode: 'TAX_DEDUCTION',
+    text: 'Em cần giấy xác nhận sinh viên để làm thủ tục xin visa du lịch hè',
+    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true },
+  });
+  assert.equal(mismatch.isMismatch, true);
+  assert.equal(mismatch.targetForm.code, 'GENERAL_CONFIRMATION');
+
+  const evalResult = evaluateStudentConfirmation({
+    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true },
+    inputData: {
+      formCode: 'TAX_DEDUCTION',
+      purpose: 'Em cần làm visa du lịch',
+    },
+  });
+  assert.equal(evalResult.decision, 'ASK_CLARIFICATION');
+  assert.equal(evalResult.rule, 'MISMATCH_FORM_GUIDANCE');
+});
+
+test('7. Cấp lần 2 cùng biểu mẫu: chưa có lý do thì ASK_CLARIFICATION, có lý do thì ESCALATE_TO_STAFF', () => {
+  const student = { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true, fullName: 'Cao Hữu Nhân' };
+
+  // Chưa có lý do giải trình -> Hỏi làm rõ
+  const resNoReason = evaluateStudentConfirmation({
+    student,
+    inputData: {
+      formCode: 'GENERAL_CONFIRMATION',
+      purpose: 'Làm vé tháng xe buýt',
+      existingApprovedCount: 1,
+    },
+  });
+  assert.equal(resNoReason.decision, 'ASK_CLARIFICATION');
+  assert.equal(resNoReason.rule, 'REQ_REISSUE_REASON');
+
+  // Đã có lý do giải trình -> Chuyển tiếp Cán bộ (ESCALATE_TO_STAFF), không được tự duyệt
+  const resWithReason = evaluateStudentConfirmation({
+    student,
+    inputData: {
+      formCode: 'GENERAL_CONFIRMATION',
+      purpose: 'Làm vé tháng xe buýt',
+      existingApprovedCount: 1,
+      reissueReason: 'Bị ướt và rách giấy đã cấp tuần trước',
+    },
+  });
+  assert.equal(resWithReason.decision, 'ESCALATE_TO_STAFF');
+  assert.equal(resWithReason.classification, 'OUTSIDE_POLICY');
+  assert.equal(resWithReason.rule, 'POLICY_REISSUE_QUOTA_ESCALATE');
+});
+

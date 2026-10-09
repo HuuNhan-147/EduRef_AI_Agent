@@ -85,7 +85,7 @@ export const DEMO_ACCOUNTS = {
     hasSchedule: true,
     isOverdueCohort: true,
     debtCourses: 'Mạng máy tính, Toán rời rạc',
-    tag: 'Sinh viên quá 4 năm (Khóa 20 - Test Nợ môn)',
+    tag: 'Sinh viên nợ môn (Khóa cũ - Trả nợ môn)',
     badgeColor: 'bg-indigo-50 text-indigo-700 border-indigo-200',
     accountKey: 'STUDENT_GRADUATED',
   },

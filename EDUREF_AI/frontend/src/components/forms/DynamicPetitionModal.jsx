@@ -54,7 +54,7 @@ export default function DynamicPetitionModal({
     { code: 'TAX_DEDUCTION', badge: 'DV-01', name: 'Giảm trừ gia cảnh (Thuế)', shortName: 'Thuế TNCN' },
     { code: 'BANK_LOAN', badge: 'DV-02', name: 'Vay vốn NHCSXH (Mẫu 01)', shortName: 'Vay vốn NHCS' },
     { code: 'MILITARY_DEFERMENT', badge: 'DV-03', name: 'Tạm hoãn Nghĩa vụ Quân sự', shortName: 'Tạm hoãn NVQS' },
-    { code: 'COURSE_DEBT', badge: 'DV-04', name: 'Xác nhận Nợ môn / Kéo dài (>4 năm)', shortName: 'Nợ môn / Kéo dài' },
+    { code: 'COURSE_DEBT', badge: 'DV-04', name: 'Xác nhận nợ môn / hoàn thành chương trình', shortName: 'Mẫu nợ môn' },
     { code: 'GENERAL_CONFIRMATION', badge: 'DV-05', name: 'Mục đích chung (Xe buýt, Visa...)', shortName: 'Mục đích chung' },
   ];
 
@@ -305,8 +305,8 @@ export default function DynamicPetitionModal({
         prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Giấy chứng nhận tạm hoãn nghĩa vụ quân sự nộp ${confirmData.recipientAgency || 'Ban Chỉ huy Quân sự'}. Địa chỉ thường trú: ${confirmData.permanentAddress}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
         formDesc = 'Đơn tạm hoãn nghĩa vụ quân sự';
       } else if (activeFormCode === 'COURSE_DEBT') {
-        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Đơn xác nhận sinh viên còn nợ môn để kéo dài tiến độ. Danh sách môn nợ: ${confirmData.debtCourses}. Thời hạn hoàn thành: ${confirmData.completionDeadline}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
-        formDesc = 'Đơn xác nhận nợ môn / kéo dài tiến độ';
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Đơn xác nhận sinh viên còn nợ môn để bổ sung hồ sơ và hoàn thành học phần. Danh sách môn nợ: ${confirmData.debtCourses}. Thời hạn hoàn thành: ${confirmData.completionDeadline}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        formDesc = 'Đơn xác nhận nợ môn / hoàn thành chương trình';
       } else {
         prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}, Lớp: ${confirmData.studentClass}), xin cấp Giấy xác nhận sinh viên với lý do: "${confirmData.purpose}". Nơi nhận giấy: ${confirmData.pickupCampus}.`;
         formDesc = 'Giấy xác nhận sinh viên (mục đích chung)';
@@ -738,8 +738,8 @@ export default function DynamicPetitionModal({
                       className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-rose-600 focus:outline-hidden bg-white text-slate-800"
                     />
                   </div>
-                  <p className="text-[10.5px] text-rose-700">
-                    ⚠️ Sinh viên trong thời gian đào tạo 4 năm chuẩn mới được cấp giấy NVQS. Sinh viên quá 4 năm vui lòng chuyển sang biểu mẫu Nợ môn.
+                  <p className="text-[10.5px] text-emerald-700">
+                    💡 Sinh viên đang trong thời gian hoàn thành các học phần nợ có thể sử dụng Biểu mẫu Nợ môn để bổ sung hồ sơ học tập / nghĩa vụ.
                   </p>
                 </div>
               )}
@@ -749,7 +749,7 @@ export default function DynamicPetitionModal({
                   <div>
                     <label className="text-[11px] font-semibold text-slate-700 block mb-1">
                       Danh sách học phần / môn học còn nợ :
-                      <span className="text-[10px] text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded font-normal ml-1.5">Dành cho SV quá 4 năm</span>
+                      <span className="text-[10px] text-purple-700 bg-purple-100 px-1.5 py-0.2 rounded font-normal ml-1.5">Kèm thời hạn hoàn thành</span>
                     </label>
                     <textarea
                       rows={2}
