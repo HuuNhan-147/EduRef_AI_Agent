@@ -36,11 +36,11 @@ export class ToolRegistry {
                 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)',
               ],
               description:
-                'Cơ sở nhận giấy bản cứng do sinh viên trực tiếp chọn (BẮT BUỘC: phải là "Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)" hoặc "Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)"). TUYỆT ĐỐI KHÔNG ĐƯỢC tự ý chọn thay sinh viên!',
+                'Cơ sở nhận giấy bản cứng do sinh viên trực tiếp chọn ("Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)" hoặc "Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)"). NẾU SINH VIÊN CHƯA NÊU RÕ TRONG TIN NHẮN THÌ ĐỂ null, TUYỆT ĐỐI KHÔNG ĐƯỢC tự ý chọn thay sinh viên!',
             },
             permanentAddress: {
               type: 'STRING',
-              description: 'Địa chỉ hộ khẩu thường trú 4 cấp hành chính viết hoa đúng chuẩn (bắt buộc cho Tạm hoãn NVQS, Giảm thuế TNCN). Phải đủ Số nhà/đường/ấp, Phường/Xã, Quận/Huyện, Tỉnh/TP và viết hoa chữ cái đầu.',
+              description: 'Địa chỉ hộ khẩu thường trú 4 cấp hành chính (bắt buộc cho Tạm hoãn NVQS, Giảm thuế TNCN). Phải đủ Số nhà/đường/ấp, Phường/Xã, Quận/Huyện, Tỉnh/TP.',
             },
             debtCourses: {
               type: 'STRING',
@@ -54,12 +54,16 @@ export class ToolRegistry {
               type: 'STRING',
               description: 'Số CMND/CCCD của sinh viên.',
             },
+            isAddressConfirmed: {
+              type: 'BOOLEAN',
+              description: 'Đặt là true NẾU sinh viên đã nhắn tin xác nhận đúng địa chỉ sau khi được cảnh báo trách nhiệm pháp lý NVQS (ví dụ: "xác nhận đúng", "đúng rồi", "chính xác"). Mặc định là false nếu sinh viên mới gửi địa chỉ lần đầu.',
+            },
             inputData: {
               type: 'OBJECT',
               description: 'Dữ liệu bổ sung nếu có (userClaimedOverride nếu có cờ ép quyền)',
             },
           },
-          required: ['studentCode', 'purpose', 'pickupCampus'],
+          required: ['studentCode', 'purpose'],
         },
       },
 

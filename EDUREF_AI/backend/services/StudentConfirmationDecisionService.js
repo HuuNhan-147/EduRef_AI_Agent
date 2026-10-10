@@ -704,6 +704,30 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
       };
     }
+
+    // 6.1. RIÊNG ĐỐI VỚI BIỂU MẪU TẠM HOÃN NGHĨA VỤ QUÂN SỰ (MILITARY_DEFERMENT):
+    // Hệ thống sau khi nhận/định dạng địa chỉ BẮT BUỘC phải dừng lại hỏi xác nhận và cảnh báo trách nhiệm pháp lý với BCH Quân sự địa phương!
+    if (targetForm.code === 'MILITARY_DEFERMENT') {
+      const isConfirmed = inputData.isAddressConfirmed === true || inputData.addressConfirmed === true;
+      if (!isConfirmed) {
+        return {
+          classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+          uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+          decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+          rule: 'CONFIRM_MILITARY_ADDRESS_RESPONSIBILITY',
+          reason: 'Địa chỉ thường trú phục vụ Giấy tạm hoãn Nghĩa vụ Quân sự bắt buộc phải được sinh viên xác nhận và cam kết chịu trách nhiệm pháp lý trước khi phê duyệt.',
+          actionableQuestion:
+            `Dạ hệ thống đã ghi nhận địa chỉ hộ khẩu thường trú của bạn theo chuẩn văn thư hành chính là:\n` +
+            `🏠 **${address}**\n\n` +
+            `⚠️ **CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ (BCH QUÂN SỰ ĐỊA PHƯƠNG):**\n` +
+            `Giấy chứng nhận Tạm hoãn NVQS sẽ được nộp trực tiếp về Ban Chỉ huy Quân sự địa phương nơi bạn đăng ký hộ khẩu thường trú. Sinh viên phải **hoàn toàn chịu trách nhiệm trước pháp luật** về tính chính xác của địa chỉ khai báo (đặc biệt lưu ý tên xã/phường/thị trấn sau các đợt sáp nhập, sắp xếp đơn vị hành chính để tránh bị địa phương từ chối hồ sơ).\n\n` +
+            `Bạn vui lòng đối chiếu kỹ với CCCD/Sổ hộ khẩu và xác nhận lại giúp mình:\n` +
+            `👉 Nếu địa chỉ trên đã chính xác: Bạn chỉ cần nhắn **"Xác nhận đúng"** (kèm theo cơ sở nhận giấy bản cứng: A-01.01 Sài Gòn hoặc E1-01.08 Thủ Đức nếu chưa chọn) để mình hoàn tất duyệt và cấp mã hồ sơ ngay nhé!\n` +
+            `👉 Nếu cần điều chỉnh: Bạn nhắn lại địa chỉ chính xác để mình cập nhật nhé!`,
+          policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+        };
+      }
+    }
   }
 
   // 7. ĐIỀU KIỆN SỐ 5: KIỂM TRA CƠ SỞ NHẬN GIẤY BẢN CỨNG (KHÔNG DEFAULT - BẮT BUỘC CHỌN 1 TRONG 2 CƠ SỞ)

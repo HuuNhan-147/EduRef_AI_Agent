@@ -290,21 +290,37 @@ export class AgentOrchestrator {
 
         // Điều phối thực thi qua ToolResolver
         const toolStart = Date.now();
+
+        // 1. Kiểm tra xác nhận địa chỉ NVQS từ tin nhắn hiện tại hoặc lịch sử hội thoại
+        const isExplicitlyConfirmed =
+          toolArgs.isAddressConfirmed === true ||
+          inputData?.isAddressConfirmed === true ||
+          /(?:xác nhận|xac nhan|đúng rồi|dung roi|chính xác|chinh xac|chuẩn rồi|chuan roi|đồng ý|dong y|đúng địa chỉ)/i.test(resolvedMessage);
+
+        // 2. Zero-Trust Campus Guard: Chỉ công nhận pickupCampus nếu sinh viên thực sự nhắc đến trong tin nhắn hoặc payload
+        const campusInMessage = /(?:sài gòn|sai gon|ung văn khiêm|a-01|thủ đức|thu duc|e1-01|khu công nghệ cao)/i.test(resolvedMessage);
+        const hasExplicitCampusInput = Boolean(inputData?.pickupCampus);
+        const effectivePickupCampus = (campusInMessage || hasExplicitCampusInput)
+          ? (toolArgs.pickupCampus || inputData?.pickupCampus || null)
+          : null;
+
         const mergedArgs = {
           ...toolArgs,
           // Định danh tài khoản đăng nhập để xác thực phiên
           studentCode: toolArgs.studentCode || currentUser?.studentCode || currentUser?.code || null,
           studentClass: toolArgs.studentClass || currentUser?.studentClass || currentUser?.class || null,
           // CÁC TRƯỜNG DỮ LIỆU ĐƠN: TUYỆT ĐỐI KHÔNG FALLBACK TỪ CURRENTUSER (ZERO-TOLERANCE GUARD)
-          // Chỉ lấy đúng những gì sinh viên khai báo hoặc gửi qua payload
           phone: toolArgs.phone || inputData?.phone || null,
           permanentAddress: toolArgs.permanentAddress || inputData?.permanentAddress || null,
           idCard: toolArgs.idCard || inputData?.idCard || null,
-          pickupCampus: toolArgs.pickupCampus || inputData?.pickupCampus || null,
+          pickupCampus: effectivePickupCampus,
+          isAddressConfirmed: isExplicitlyConfirmed,
           currentUser,
           inputData: {
             ...(inputData || {}),
             ...(toolArgs.inputData || {}),
+            pickupCampus: effectivePickupCampus,
+            isAddressConfirmed: isExplicitlyConfirmed,
           },
           conversationHistory: history,
           sessionId: this.sessionId,

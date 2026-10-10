@@ -138,20 +138,42 @@ test('MASTER E2E: Kiểm chứng tất cả 8 luồng từ Điểm Bắt Đầu 
   // --------------------------------------------------------------------------
   // LUỒNG 8: Có TKB, Đủ thông tin, Không trùng -> AUTO CẤP -> ĐÍCH CUỐI CÙNG
   // --------------------------------------------------------------------------
-  console.log('▶ [LUỒNG 8] Sinh viên bình thường, có TKB, đủ thông tin, không trùng:');
-  const autoApproveRes = await AcademicWorkflowService.processStudentConfirmation({
-    studentCode: '2280602154',
-    formCode: 'MILITARY_DEFERMENT',
-    purpose: 'Tạm hoãn nghĩa vụ quân sự',
-    phone: '0901234567',
-    permanentAddress: 'Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu',
-    pickupCampus: 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
-    existingApprovedCount: 0,
+  // --------------------------------------------------------------------------
+  // LUỒNG 8: Có TKB, Đủ thông tin, Không trùng -> Chốt chặn Xác nhận địa chỉ NVQS -> AUTO CẤP
+  // --------------------------------------------------------------------------
+  console.log('▶ [LUỒNG 8] Sinh viên xin Giấy tạm hoãn NVQS (MILITARY_DEFERMENT):');
+  // 8a: Mới gửi địa chỉ lần đầu (Chưa xác nhận trách nhiệm pháp lý NVQS)
+  const unconfirmedMilitaryRes = evaluateStudentConfirmation({
+    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true, fullName: 'Cao Hữu Nhân' },
+    inputData: {
+      formCode: 'MILITARY_DEFERMENT',
+      purpose: 'Tạm hoãn nghĩa vụ quân sự',
+      phone: '0901234567',
+      permanentAddress: 'Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu',
+      pickupCampus: 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+      isAddressConfirmed: false,
+    },
   });
-  assert.equal(autoApproveRes.decision, 'AUTO_APPROVED');
-  assert.equal(autoApproveRes.status, 'APPROVED');
-  assert.ok(autoApproveRes.sha256Proof, 'Mã băm SHA-256 xác thực');
-  console.log('  ✅ Điểm đích: [Auto cấp] -> Cấp mã xác thực SHA-256 -> [ActivityFinalNode1] [OK]\n');
+  assert.equal(unconfirmedMilitaryRes.decision, 'ASK_CLARIFICATION');
+  assert.equal(unconfirmedMilitaryRes.rule, 'CONFIRM_MILITARY_ADDRESS_RESPONSIBILITY');
+  assert.ok(unconfirmedMilitaryRes.actionableQuestion.includes('CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ'));
+  console.log('  ✅ Nhánh 8a: [Chưa xác nhận địa chỉ NVQS] -> Dừng lại hỏi làm rõ + Cảnh báo trách nhiệm pháp lý [OK]');
+
+  // 8b: Đã xác nhận địa chỉ (isAddressConfirmed = true) -> Phê duyệt tự động
+  const confirmedMilitaryRes = evaluateStudentConfirmation({
+    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true, fullName: 'Cao Hữu Nhân' },
+    inputData: {
+      formCode: 'MILITARY_DEFERMENT',
+      purpose: 'Tạm hoãn nghĩa vụ quân sự',
+      phone: '0901234567',
+      permanentAddress: 'Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu',
+      pickupCampus: 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+      isAddressConfirmed: true,
+      existingApprovedCount: 0,
+    },
+  });
+  assert.equal(confirmedMilitaryRes.decision, 'AUTO_APPROVED');
+  console.log('  ✅ Nhánh 8b: [Đã xác nhận địa chỉ NVQS] -> [Auto cấp] -> [ActivityFinalNode1] [OK]\n');
 
   console.log('========================================================================================');
   console.log('🎉 KẾT QUẢ: 100% TẤT CẢ CÁC LUỒNG VÀ NHÁNH RẼ TRONG SƠ ĐỒ ĐỀU VỀ ĐÍCH CHUẨN XÁC TUYỆT ĐỐI!');

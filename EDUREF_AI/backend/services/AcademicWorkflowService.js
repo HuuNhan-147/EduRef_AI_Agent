@@ -26,6 +26,7 @@ class AcademicWorkflowService {
     studentClass = null,
     reissueReason = null,
     existingApprovedCount = null,
+    isAddressConfirmed = false,
     inputData = {},
     conversationHistory = [],
     sessionId = null,
@@ -225,6 +226,32 @@ class AcademicWorkflowService {
             message: addressCheck.reason,
           };
         }
+
+        // 6.1. RIÊNG ĐỐI VỚI BIỂU MẪU TẠM HOÃN NGHĨA VỤ QUÂN SỰ (MILITARY_DEFERMENT):
+        // Hệ thống sau khi nhận/định dạng địa chỉ BẮT BUỘC phải dừng lại hỏi xác nhận và cảnh báo trách nhiệm pháp lý với BCH Quân sự địa phương!
+        if (activeFormCode === 'MILITARY_DEFERMENT') {
+          const isConfirmed = Boolean(isAddressConfirmed || inputData?.isAddressConfirmed);
+          if (!isConfirmed) {
+            return {
+              success: true,
+              decision: 'ASK_CLARIFICATION',
+              status: 'WAITING_STUDENT',
+              classification: 'UNKNOWN_FACT',
+              uncertaintyType: 'UNKNOWN_FACT',
+              rule: 'CONFIRM_MILITARY_ADDRESS_RESPONSIBILITY',
+              actionableQuestion:
+                `Dạ hệ thống đã ghi nhận địa chỉ hộ khẩu thường trú của bạn theo chuẩn văn thư hành chính là:\n` +
+                `🏠 **${resolvedAddress}**\n\n` +
+                `⚠️ **CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ (BCH QUÂN SỰ ĐỊA PHƯƠNG):**\n` +
+                `Giấy chứng nhận Tạm hoãn NVQS sẽ được nộp trực tiếp về Ban Chỉ huy Quân sự địa phương nơi bạn đăng ký hộ khẩu thường trú. Sinh viên phải **hoàn toàn chịu trách nhiệm trước pháp luật** về tính chính xác của địa chỉ khai báo (đặc biệt lưu ý tên xã/phường/thị trấn sau các đợt sáp nhập, sắp xếp đơn vị hành chính để tránh bị địa phương từ chối hồ sơ).\n\n` +
+                `Bạn vui lòng đối chiếu kỹ với CCCD/Sổ hộ khẩu và xác nhận lại giúp mình:\n` +
+                `👉 Nếu địa chỉ trên đã chính xác: Bạn chỉ cần nhắn **"Xác nhận đúng"** (kèm theo cơ sở nhận giấy bản cứng: A-01.01 Sài Gòn hoặc E1-01.08 Thủ Đức nếu chưa chọn) để mình hoàn tất duyệt và cấp mã hồ sơ ngay nhé!\n` +
+                `👉 Nếu cần điều chỉnh: Bạn nhắn lại địa chỉ chính xác để mình cập nhật nhé!`,
+              message: 'Địa chỉ thường trú phục vụ Giấy tạm hoãn Nghĩa vụ Quân sự bắt buộc phải được sinh viên xác nhận và cam kết chịu trách nhiệm pháp lý trước khi phê duyệt.',
+              formCode: activeFormCode,
+            };
+          }
+        }
       }
 
       // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY LẦN 2 (REISSUE GUARD)
@@ -272,6 +299,7 @@ class AcademicWorkflowService {
         pickupCampus: normalizedCampus,
         debtCourses: resolvedDebtCourses,
         ...inputData,
+        isAddressConfirmed: Boolean(isAddressConfirmed || inputData?.isAddressConfirmed),
         formCode: activeFormCode,
         purpose: finalPurpose,
         historyRequests,

@@ -70,6 +70,7 @@ test('5. Đầy đủ dữ liệu chuẩn xác 100%: Tự động phê duyệt (
     permanentAddress: 'Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu',
     pickupCampus: 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
     existingApprovedCount: 0,
+    isAddressConfirmed: true, // Sinh viên đã xác nhận đúng địa chỉ NVQS
   };
 
   const agentResult = await AcademicWorkflowService.processStudentConfirmation({
