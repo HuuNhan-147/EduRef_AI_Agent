@@ -119,7 +119,11 @@ export function getStudentFullProfile(studentCode, fallbackUser = null) {
     birthDate: fallbackUser?.birthDate || base.birthDate || '26/07/2003',
     gender: fallbackUser?.gender || base.gender || 'Nam',
     studentClass: fallbackUser?.studentClass || fallbackUser?.class || base.studentClass || '22DTHE4',
-    faculty: fallbackUser?.faculty || fallbackUser?.department || base.faculty || 'Khoa Công Nghệ Thông Tin',
+    faculty:
+      (typeof fallbackUser?.faculty === 'string' ? fallbackUser.faculty : fallbackUser?.faculty?.name) ||
+      (typeof fallbackUser?.department === 'string' ? fallbackUser.department : fallbackUser?.department?.name) ||
+      base.faculty ||
+      'Khoa Công Nghệ Thông Tin',
     major: fallbackUser?.major || base.major || 'Công nghệ thông tin',
     phone: fallbackUser?.phone || base.phone || '0377913722',
     idCard: fallbackUser?.idCard || fallbackUser?.idCardNumber || fallbackUser?.citizenId || base.idCard || '079203001234',

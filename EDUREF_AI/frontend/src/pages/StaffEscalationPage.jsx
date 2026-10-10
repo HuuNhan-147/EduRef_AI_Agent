@@ -509,7 +509,13 @@ export default function StaffEscalationPage() {
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Khoa / Viện:</span>
-                  <span className="font-medium text-slate-800">{selectedPetition.student?.department?.name || selectedPetition.inputData?.faculty || '—'}</span>
+                  <span className="font-medium text-slate-800">
+                    {selectedPetition.student?.department?.name ||
+                      (typeof selectedPetition.inputData?.faculty === 'string'
+                        ? selectedPetition.inputData?.faculty
+                        : selectedPetition.inputData?.faculty?.name) ||
+                      '—'}
+                  </span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Lớp sinh hoạt / Ngành:</span>
@@ -731,7 +737,8 @@ export default function StaffEscalationPage() {
                 const birthDate = input.birthDate || student.birthDate || fallbackProfile.birthDate || '26/07/2003';
                 const gender = input.gender || student.gender || fallbackProfile.gender || 'Nam';
                 const studentClass = input.studentClass || student.studentClass || fallbackProfile.studentClass || '22DTHE4';
-                const faculty = input.faculty || student.department?.name || fallbackProfile.faculty || 'Khoa Công Nghệ Thông Tin';
+                const rawFaculty = input.faculty || student.department?.name || fallbackProfile.faculty || 'Khoa Công Nghệ Thông Tin';
+                const faculty = typeof rawFaculty === 'string' ? rawFaculty : (rawFaculty?.name || 'Khoa Công Nghệ Thông Tin');
                 const major = input.major || student.major || fallbackProfile.major || 'Công nghệ thông tin';
                 const phone = input.phone || student.phone || fallbackProfile.phone || '0377913722';
                 const idCard = input.idCard || input.idCardNumber || input.citizenId || student.idCard || fallbackProfile.idCard || '079203001234';
