@@ -20,7 +20,24 @@ router.get('/', authenticateToken, async (req, res) => {
       orderBy: { createdAt: 'desc' },
       include: {
         student: {
-          select: { studentCode: true, fullName: true, email: true, department: true, tuitionDebt: true, status: true, gpa: true },
+          select: {
+            studentCode: true,
+            fullName: true,
+            email: true,
+            department: true,
+            tuitionDebt: true,
+            status: true,
+            gpa: true,
+            birthDate: true,
+            gender: true,
+            studentClass: true,
+            major: true,
+            phone: true,
+            idCard: true,
+            idCardDate: true,
+            idCardPlace: true,
+            permanentAddress: true,
+          },
         },
         requestType: {
           select: { code: true, name: true },
@@ -85,12 +102,31 @@ router.post('/', authenticateToken, async (req, res) => {
     // 5 biểu mẫu Giấy xác nhận sinh viên HUTECH là biểu mẫu thông tin thuần túy, không yêu cầu upload tài liệu minh chứng
     const documents = [];
 
+    const { getStudentFullProfile } = await import('../config/studentRegistry.js');
+    const fullProfile = getStudentFullProfile(studentCode, req.user);
+    const enrichedInputData = {
+      fullName: inputData?.fullName || fullProfile.fullName,
+      studentCode: String(studentCode || fullProfile.studentCode).trim(),
+      birthDate: inputData?.birthDate || fullProfile.birthDate,
+      gender: inputData?.gender || fullProfile.gender,
+      studentClass: inputData?.studentClass || fullProfile.studentClass,
+      faculty: inputData?.faculty || fullProfile.faculty,
+      major: inputData?.major || fullProfile.major,
+      phone: inputData?.phone || fullProfile.phone,
+      idCard: inputData?.idCard || fullProfile.idCard,
+      idCardDate: inputData?.idCardDate || fullProfile.idCardDate,
+      idCardPlace: inputData?.idCardPlace || fullProfile.idCardPlace,
+      permanentAddress: inputData?.permanentAddress || fullProfile.permanentAddress,
+      pickupCampus: inputData?.pickupCampus || 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+      ...inputData,
+    };
+
     const { default: petitionWorkflowCore } = await import('../modules/petition-core/PetitionWorkflowCore.js');
 
     const result = await petitionWorkflowCore.processPetitionWorkflow({
       studentCode,
       requestTypeCode: requestCode,
-      inputData,
+      inputData: enrichedInputData,
       documents,
       actorType: 'STUDENT',
     });

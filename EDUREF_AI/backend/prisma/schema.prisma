@@ -67,6 +67,14 @@ model Student {
   fullName     String
   email        String         @unique
   phone        String?
+  birthDate    String?        // "26/07/2003"
+  gender       String?        // "Nam" / "Nữ"
+  studentClass String?        // "22DTHE4"
+  major        String?        // "Công nghệ thông tin"
+  idCard       String?        // "079203001234"
+  idCardDate   String?        // "10/05/2021"
+  idCardPlace  String?        // "Cục Cảnh sát QLHC về TTXH"
+  permanentAddress String?    // "180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh"
   status       StudentStatus  @default(ACTIVE)
   tuitionDebt  Decimal        @default(0.0) // Nợ học phí (VNĐ)
   gpa          Decimal?       @default(3.0)

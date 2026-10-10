@@ -69,6 +69,14 @@ export class ConversationMemory {
     return this.sessions.get(sessionId).meta[key] || null;
   }
 
+  getRecentUserMessages(sessionId, count = 3) {
+    if (!sessionId || !this.sessions.has(sessionId)) return [];
+    const session = this.sessions.get(sessionId);
+    return session.messages
+      .filter((m) => m.role === 'user')
+      .slice(-count);
+  }
+
   clearSession(sessionId) {
     if (this.sessions.has(sessionId)) {
       this.sessions.delete(sessionId);

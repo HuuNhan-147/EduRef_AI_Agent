@@ -2,6 +2,7 @@
 // Handler xử lý: Giấy Xác Nhận Sinh Viên (Thủ tục DV-01) - Cổng AUTO
 
 import { BasePetitionHandler } from '../BasePetitionHandler.js';
+import { getStudentFullProfile } from '../../../config/studentRegistry.js';
 import {
   evaluateStudentConfirmation,
   TRACK_A_CLASSIFICATION,
@@ -14,75 +15,78 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
   }
 
   /**
-   * Kiểm tra thông tin đầu vào (Bám sát Mẫu Giấy Xác Nhận thực tế)
-   * Bắt buộc phải có:
-   * - Lý do xác nhận (REQ_PURPOSE)
-   * Danh tính, trạng thái học vụ và thông tin liên hệ được lấy từ phiên đăng nhập.
-   * Các trường biểu mẫu chi tiết là dữ liệu bổ sung, không phải dữ kiện quyết định.
+   * Kiểm tra thông tin đầu vào (Bắt buộc toàn diện - Bám sát 5 Biểu Mẫu HUTECH)
+   * Toàn bộ các trường nhân thân & hành chính đều phải có đầy đủ (tự động nạp từ MSSV hoặc sinh viên điền).
+   * Nếu thiếu bất kỳ trường nào, hệ thống báo lỗi chính xác để người dùng biết cách bổ sung.
    */
   async validateRequirements(request, inputData = {}, documents = []) {
     const passed = [];
     const missing = [];
 
-    // 1. Lý do xác nhận (Bắt buộc)
-    const purpose = inputData?.purpose || inputData?.reason || inputData?.REQ_PURPOSE;
-    if (purpose && String(purpose).trim().length > 0) {
-      passed.push({
-        code: 'REQ_PURPOSE',
-        name: 'Lý do xác nhận',
-        value: String(purpose).trim(),
-      });
+    const studentCode = inputData?.studentCode || request?.student?.studentCode || '';
+    const fullProfile = getStudentFullProfile(studentCode, request?.student || inputData);
+    const formCode = inputData?.formCode || 'GENERAL_CONFIRMATION';
+
+    // 1. Nhóm nhân thân cơ bản (Bắt buộc - Tự động nạp từ MSSV Registry hoặc người dùng nhập)
+    const fullName = inputData?.fullName || fullProfile.fullName;
+    if (fullName && String(fullName).trim() && fullName !== 'Sinh viên') {
+      passed.push({ code: 'REQ_FULLNAME', name: 'Họ và tên sinh viên', value: String(fullName).trim() });
     } else {
-      missing.push({
-        code: 'REQ_PURPOSE',
-        name: 'Lý do xác nhận sinh viên',
-        description: 'Vui lòng cung cấp mục đích sử dụng (bổ sung hồ sơ, xin visa, học bổng, vay vốn, làm vé xe buýt...).',
-      });
+      missing.push({ code: 'REQ_FULLNAME', name: 'Họ và tên sinh viên', description: 'Vui lòng cung cấp họ và tên đầy đủ của sinh viên.' });
     }
 
-    // 2. Số CCCD (dữ liệu bổ sung nếu nộp từ form chi tiết hoặc chat)
-    const idCard = inputData?.idCard || inputData?.REQ_ID_CARD;
-    if (idCard) {
-      passed.push({
-        code: 'REQ_ID_CARD',
-        name: 'Số CMND/CCCD',
-        value: String(idCard).trim(),
-      });
+    if (studentCode && String(studentCode).trim()) {
+      passed.push({ code: 'REQ_STUDENT_CODE', name: 'Mã số sinh viên (MSSV)', value: String(studentCode).trim() });
+    } else {
+      missing.push({ code: 'REQ_STUDENT_CODE', name: 'Mã số sinh viên (MSSV)', description: 'Vui lòng cung cấp mã số sinh viên hợp lệ.' });
     }
 
-    // 3. Địa chỉ hộ khẩu thường trú (cho NVQS, Giảm thuế, Nợ môn)
-    const permanentAddress = inputData?.permanentAddress || inputData?.address || inputData?.REQ_ADDRESS;
-    if (permanentAddress) {
-      passed.push({
-        code: 'REQ_ADDRESS',
-        name: 'Địa chỉ thường trú',
-        value: String(permanentAddress).trim(),
-      });
+    const birthDate = inputData?.birthDate || fullProfile.birthDate;
+    if (birthDate && String(birthDate).trim()) {
+      passed.push({ code: 'REQ_BIRTHDATE', name: 'Ngày tháng năm sinh', value: String(birthDate).trim() });
+    } else {
+      missing.push({ code: 'REQ_BIRTHDATE', name: 'Ngày tháng năm sinh', description: 'Vui lòng cung cấp ngày sinh (định dạng DD/MM/YYYY).' });
     }
 
-    // 4. Môn nợ (cho biểu mẫu nợ môn)
-    const debtCourses = inputData?.debtCourses || inputData?.REQ_DEBT_COURSES;
-    if (debtCourses) {
-      passed.push({
-        code: 'REQ_DEBT_COURSES',
-        name: 'Danh sách môn nợ',
-        value: String(debtCourses).trim(),
-      });
+    const gender = inputData?.gender || fullProfile.gender;
+    if (gender && String(gender).trim()) {
+      passed.push({ code: 'REQ_GENDER', name: 'Giới tính', value: String(gender).trim() });
+    } else {
+      missing.push({ code: 'REQ_GENDER', name: 'Giới tính', description: 'Vui lòng cung cấp giới tính (Nam / Nữ).' });
     }
 
-    // 5. Số điện thoại liên hệ
-    const phone = inputData?.phone || inputData?.REQ_PHONE;
-    if (phone) {
-      passed.push({
-        code: 'REQ_PHONE',
-        name: 'Số điện thoại',
-        value: String(phone).trim(),
-      });
+    const studentClass = inputData?.studentClass || inputData?.class || fullProfile.studentClass;
+    if (studentClass && String(studentClass).trim()) {
+      passed.push({ code: 'REQ_CLASS', name: 'Lớp sinh hoạt', value: String(studentClass).trim() });
+    } else {
+      missing.push({ code: 'REQ_CLASS', name: 'Lớp sinh hoạt', description: 'Vui lòng cung cấp lớp quản lý học vụ.' });
     }
 
-    // 6. Cơ sở nhận giấy (Chuẩn hóa cơ sở chính thức HUTECH)
-    const campusRaw = inputData?.pickupCampus || inputData?.campus || inputData?.REQ_CAMPUS;
-    let normalizedCampus = 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
+    // 2. Nhóm thông tin liên lạc & định danh công dân
+    const phone = inputData?.phone || fullProfile.phone;
+    if (phone && String(phone).trim()) {
+      passed.push({ code: 'REQ_PHONE', name: 'Số điện thoại', value: String(phone).trim() });
+    } else {
+      missing.push({ code: 'REQ_PHONE', name: 'Số điện thoại', description: 'Vui lòng cung cấp số điện thoại liên lạc.' });
+    }
+
+    const idCard = inputData?.idCard || inputData?.idCardNumber || inputData?.citizenId || fullProfile.idCard;
+    if (idCard && String(idCard).trim()) {
+      passed.push({ code: 'REQ_ID_CARD', name: 'Số CMND/CCCD', value: String(idCard).trim() });
+    } else {
+      missing.push({ code: 'REQ_ID_CARD', name: 'Số CMND/CCCD', description: 'Vui lòng cung cấp số Căn cước công dân / CMND.' });
+    }
+
+    const permanentAddress = inputData?.permanentAddress || inputData?.address || fullProfile.permanentAddress;
+    if (permanentAddress && String(permanentAddress).trim()) {
+      passed.push({ code: 'REQ_ADDRESS', name: 'Hộ khẩu thường trú', value: String(permanentAddress).trim() });
+    } else {
+      missing.push({ code: 'REQ_ADDRESS', name: 'Hộ khẩu thường trú', description: 'Vui lòng cung cấp địa chỉ hộ khẩu thường trú.' });
+    }
+
+    // 3. Cơ sở nhận bản cứng có mộc đỏ P.CTSV
+    const campusRaw = inputData?.pickupCampus || inputData?.campus;
+    let normalizedCampus = fullProfile ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)' : '';
     if (campusRaw && String(campusRaw).trim().length > 0) {
       const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
       const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm|trụ sở/i.test(campusRaw);
@@ -92,11 +96,37 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
         ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
         : String(campusRaw).trim();
     }
-    passed.push({
-      code: 'REQ_CAMPUS',
-      name: 'Cơ sở nhận giấy',
-      value: normalizedCampus,
-    });
+    if (normalizedCampus) {
+      passed.push({ code: 'REQ_CAMPUS', name: 'Cơ sở nhận giấy', value: normalizedCampus });
+    } else {
+      missing.push({ code: 'REQ_CAMPUS', name: 'Cơ sở nhận giấy', description: 'Vui lòng chọn cơ sở nhận giấy (Sai Gon Campus hoặc Thu Duc Campus).' });
+    }
+
+    // 4. Lý do xác nhận (Bắt buộc cho mọi biểu mẫu)
+    const purpose = inputData?.purpose || inputData?.reason || inputData?.REQ_PURPOSE;
+    if (purpose && String(purpose).trim().length > 0) {
+      passed.push({ code: 'REQ_PURPOSE', name: 'Lý do xác nhận', value: String(purpose).trim() });
+    } else {
+      missing.push({
+        code: 'REQ_PURPOSE',
+        name: 'Mục đích sử dụng',
+        description: 'Vui lòng cung cấp mục đích sử dụng (tạm hoãn NVQS, vay vốn NHCSXH, giảm trừ thuế, nợ môn, làm vé xe buýt, xin visa...).',
+      });
+    }
+
+    // 5. Kiểm tra các trường đặc thù theo từng Biểu Mẫu HUTECH
+    if (formCode === 'COURSE_DEBT') {
+      const debtCourses = inputData?.debtCourses;
+      if (debtCourses && String(debtCourses).trim().length > 0) {
+        passed.push({ code: 'REQ_DEBT_COURSES', name: 'Danh sách môn nợ', value: String(debtCourses).trim() });
+      } else {
+        missing.push({
+          code: 'REQ_DEBT_COURSES',
+          name: 'Danh sách môn nợ',
+          description: 'Biểu mẫu nợ môn bắt buộc phải điền danh sách môn học chưa hoàn thành để Phòng Đào tạo thẩm định.',
+        });
+      }
+    }
 
     return {
       complete: missing.length === 0,
@@ -106,10 +136,33 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
   }
 
   /**
-   * Sinh câu hỏi khi thiếu mục đích
+   * Sinh câu hỏi/chẩn đoán rõ ràng chỉ đích danh trường còn thiếu
    */
   getClarificationQuestion(missing = []) {
-    return 'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, giảm thuế hay xin visa? Bạn có thể điền biểu mẫu tương ứng bên tay trái hoặc nhắn trực tiếp cho mình nhé!';
+    if (!missing || missing.length === 0) {
+      return 'Vui lòng kiểm tra lại thông tin hồ sơ.';
+    }
+
+    // Nếu thiếu chỉ riêng mục đích
+    if (missing.length === 1 && missing[0].code === 'REQ_PURPOSE') {
+      return (
+        'Bạn cần giấy xác nhận sinh viên cho mục đích nào:\n' +
+        '1. Tạm hoãn nghĩa vụ quân sự (MILITARY_DEFERMENT)\n' +
+        '2. Vay vốn ngân hàng chính sách xã hội (BANK_LOAN)\n' +
+        '3. Giảm trừ thuế thu nhập cá nhân (TAX_DEDUCTION)\n' +
+        '4. Biểu mẫu nợ môn / Tiếp tục học tập (COURSE_DEBT)\n' +
+        '5. Xác nhận sinh viên chung: vé xe buýt, học bổng, visa (GENERAL_CONFIRMATION)?\n\n' +
+        '👉 Bạn có thể bấm chọn biểu mẫu tương ứng bên tay trái hoặc nhắn trực tiếp cho mình nhé!'
+      );
+    }
+
+    // Nếu thiếu nhiều trường hoặc trường đặc thù
+    const missingList = missing.map((m, idx) => `${idx + 1}. **${m.name}**: ${m.description}`).join('\n');
+    return (
+      '⚠️ **Hồ sơ xin cấp Giấy xác nhận sinh viên còn thiếu thông tin bắt buộc sau:**\n\n' +
+      missingList +
+      '\n\n👉 Bạn vui lòng bổ sung đầy đủ các thông tin trên để Nhà trường hoàn tất hồ sơ cho bạn nhé!'
+    );
   }
 
   async evaluatePolicies(student, request) {

@@ -1,5 +1,6 @@
 import prisma from '../config/prisma.js';
 import AuditLogService from './AuditLogService.js';
+import { getStudentFullProfile } from '../config/studentRegistry.js';
 import {
   evaluateStudentConfirmation,
   detectFormIntent,
@@ -23,6 +24,8 @@ class AcademicWorkflowService {
     idCard = null,
     studentClass = null,
     inputData = {},
+    conversationHistory = [],
+    sessionId = null,
   }) {
     const startTime = Date.now();
     try {
@@ -89,13 +92,15 @@ class AcademicWorkflowService {
         };
       }
 
-      // 1.1. CHỐT CHẶN PHÁT HIỆN LỆCH BIỂU MẪU (CROSS-FORM MISMATCH)
+      // 1.1. CHỐT CHẶN PHÁT HIỆN LỆCH BIỂU MẪU (CROSS-FORM MISMATCH CẢ ĐƠN LƯỢT VÀ ĐA LƯỢT HỘI THOẠI)
       // Truyền đúng hồ sơ studentRec để không nhầm sinh viên bảo lưu/thôi học sang nợ môn
       const mismatch = detectCrossFormMismatch({
         currentFormCode: activeFormCode,
         text: finalPurpose,
         student: studentRec || { studentCode: String(studentCode).trim() },
         inputData: { ...inputData, purpose: finalPurpose, formCode: activeFormCode },
+        conversationHistory,
+        sessionId,
       });
 
       if (mismatch.isMismatch) {
@@ -166,32 +171,46 @@ class AcademicWorkflowService {
         ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
         : campusRaw;
 
+      // 1.3. SINGLE SOURCE OF TRUTH: Tự động trích xuất đầy đủ hồ sơ nhân thân sinh viên từ MSSV Registry
+      const fullProfile = getStudentFullProfile(studentCode, studentRec || inputData);
+
       // Kế thừa các trường hành chính từ đơn cũ nếu lần này sinh viên không nhập lại
-      const resolvedAddress = permanentAddress || inputData?.permanentAddress || inputData?.address || prevInput.permanentAddress || prevInput.address || null;
+      const resolvedAddress = permanentAddress || inputData?.permanentAddress || inputData?.address || prevInput.permanentAddress || prevInput.address || fullProfile.permanentAddress;
       const resolvedRecipientAgency = inputData?.recipientAgency || prevInput.recipientAgency || null;
       const resolvedDebtCourses = debtCourses || inputData?.debtCourses || prevInput.debtCourses || null;
-      const resolvedPhone = phone || inputData?.phone || prevInput.phone || null;
-      const resolvedIdCard = idCard || inputData?.idCard || prevInput.idCard || null;
-      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || prevInput.studentClass || studentRec?.studentClass || null;
+      const resolvedPhone = phone || inputData?.phone || prevInput.phone || fullProfile.phone;
+      const resolvedIdCard = idCard || inputData?.idCard || prevInput.idCard || fullProfile.idCard;
+      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || prevInput.studentClass || fullProfile.studentClass;
 
       const isReissueCase = Boolean(previousApproved);
 
       const payload = {
+        // Hồ sơ nhân thân chuẩn hóa cố định (Single Source of Truth)
+        fullName: inputData?.fullName || fullProfile.fullName,
+        studentCode: String(studentCode || fullProfile.studentCode).trim(),
+        birthDate: inputData?.birthDate || fullProfile.birthDate,
+        gender: inputData?.gender || fullProfile.gender,
+        studentClass: resolvedStudentClass,
+        faculty: inputData?.faculty || fullProfile.faculty,
+        major: inputData?.major || fullProfile.major,
+        phone: resolvedPhone,
+        idCard: resolvedIdCard,
+        idCardDate: inputData?.idCardDate || fullProfile.idCardDate,
+        idCardPlace: inputData?.idCardPlace || fullProfile.idCardPlace,
+        permanentAddress: resolvedAddress,
+        recipientAgency: resolvedRecipientAgency,
+        pickupCampus: normalizedCampus,
+        debtCourses: resolvedDebtCourses,
         ...inputData,
         formCode: activeFormCode,
         purpose: finalPurpose,
-        pickupCampus: normalizedCampus,
-        permanentAddress: resolvedAddress,
-        recipientAgency: resolvedRecipientAgency,
-        debtCourses: resolvedDebtCourses,
-        phone: resolvedPhone,
-        idCard: resolvedIdCard,
-        studentClass: resolvedStudentClass,
         historyRequests,
         isReissue: isReissueCase,
         originalRequestId: previousApproved?.id || null,
         originalRequestCode: previousApproved?.requestCode || null,
         originalApprovedAt: previousApproved?.createdAt || null,
+        conversationHistory,
+        sessionId,
       };
 
       // ⚡ GỌI TRỰC TIẾP QUA PETITION WORKFLOW CORE DUY NHẤT (SINGLE SOURCE OF TRUTH)
@@ -313,7 +332,21 @@ class AcademicWorkflowService {
       });
       if (!requestType) throw new Error(`Loại thủ tục [${requestTypeCode}] không hợp lệ.`);
 
+      const fullProfile = getStudentFullProfile(studentCode, student);
       const finalInputData = {
+        fullName: inputData?.fullName || fullProfile.fullName,
+        studentCode: String(studentCode || fullProfile.studentCode).trim(),
+        birthDate: inputData?.birthDate || fullProfile.birthDate,
+        gender: inputData?.gender || fullProfile.gender,
+        studentClass: inputData?.studentClass || fullProfile.studentClass,
+        faculty: inputData?.faculty || fullProfile.faculty,
+        major: inputData?.major || fullProfile.major,
+        phone: inputData?.phone || fullProfile.phone,
+        idCard: inputData?.idCard || fullProfile.idCard,
+        idCardDate: inputData?.idCardDate || fullProfile.idCardDate,
+        idCardPlace: inputData?.idCardPlace || fullProfile.idCardPlace,
+        permanentAddress: inputData?.permanentAddress || fullProfile.permanentAddress,
+        pickupCampus: inputData?.pickupCampus || 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
         ...inputData,
         purpose: purpose || inputData.purpose || null,
       };

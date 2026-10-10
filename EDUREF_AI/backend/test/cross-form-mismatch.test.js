@@ -142,3 +142,50 @@ test('7. Cấp lần 2 cùng biểu mẫu: chưa có lý do thì ASK_CLARIFICATI
   assert.equal(resWithReason.rule, 'POLICY_REISSUE_QUOTA_ESCALATE');
 });
 
+test('8. Multi-turn Mismatch: Lượt trước hỏi Tạm hoãn NVQS, lượt sau nộp Giảm thuế TNCN -> Bắt lệch và hỏi lại', () => {
+  const mismatchResult = detectCrossFormMismatch({
+    currentFormCode: 'TAX_DEDUCTION',
+    text: 'Em là Cao Hữu Nhân (MSSV: 2280602154), xin cấp Đơn xác nhận giảm trừ gia cảnh thuế TNCN nộp Chi cục Thuế Quận Bình Thạnh. Địa chỉ: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh.',
+    student: { studentCode: '2280602154', status: 'ACTIVE' },
+    conversationHistory: [
+      { role: 'user', parts: [{ text: 'Em muốn hỏi về đơn xin tạm hoãn nghĩa vụ quân sự cần những gì?' }] },
+      { role: 'model', parts: [{ text: 'Chào bạn, để xin tạm hoãn NVQS bạn cần địa chỉ 4 cấp...' }] },
+    ],
+  });
+
+  assert.equal(mismatchResult.isMismatch, true);
+  assert.equal(mismatchResult.targetForm.code, 'MILITARY_DEFERMENT');
+  assert.ok(mismatchResult.reason.includes('Tạm hoãn NVQS'));
+  assert.ok(mismatchResult.guidanceMessage.includes('chọn/bấm nhầm biểu mẫu'));
+});
+
+test('9. Multi-turn Mismatch: Lượt trước hỏi Vay vốn NHCSXH, lượt sau nộp Xác nhận chung -> Bắt lệch và hỏi lại', () => {
+  const mismatchResult = detectCrossFormMismatch({
+    currentFormCode: 'GENERAL_CONFIRMATION',
+    text: 'Em xin cấp giấy xác nhận sinh viên. Mục đích: Bổ sung hồ sơ sinh viên.',
+    student: { studentCode: '2280602154', status: 'ACTIVE' },
+    conversationHistory: [
+      { role: 'user', parts: [{ text: 'Thủ tục xin vay vốn ngân hàng chính sách xã hội Mẫu 01 thế nào bạn?' }] },
+    ],
+  });
+
+  assert.equal(mismatchResult.isMismatch, true);
+  assert.equal(mismatchResult.targetForm.code, 'BANK_LOAN');
+  assert.ok(mismatchResult.guidanceMessage.includes('chọn/bấm nhầm biểu mẫu'));
+});
+
+test('10. Multi-turn Deliberate Switch: Sinh viên chủ động nói đổi sang làm đơn khác -> Cho phép đi tiếp', () => {
+  const switchResult = detectCrossFormMismatch({
+    currentFormCode: 'TAX_DEDUCTION',
+    text: 'Thôi em đổi sang làm đơn giảm trừ gia cảnh thuế TNCN nộp Chi cục Thuế Quận Bình Thạnh nhé.',
+    student: { studentCode: '2280602154', status: 'ACTIVE' },
+    conversationHistory: [
+      { role: 'user', parts: [{ text: 'Em muốn hỏi về tạm hoãn nghĩa vụ quân sự' }] },
+    ],
+  });
+
+  // Có từ khóa "đổi sang" -> Cho phép chuyển đổi ý định
+  assert.equal(switchResult.isMismatch, false);
+});
+
+

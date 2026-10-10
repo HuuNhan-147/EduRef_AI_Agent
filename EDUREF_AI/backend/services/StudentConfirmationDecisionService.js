@@ -1,6 +1,8 @@
 // backend/services/StudentConfirmationDecisionService.js
 // Lõi Thẩm Định Quy Chế Học Vụ 5 Biểu Mẫu Chuẩn Thực Tế HUTECH (Phòng Công Tác Sinh Viên)
 
+import { conversationMemory } from '../modules/ai-agent/memory/ConversationMemory.js';
+
 export const TRACK_A_CLASSIFICATION = Object.freeze({
   ROUTINE: 'ROUTINE',
   ROUTINE_POLICY_DENY: 'ROUTINE_POLICY_DENY',
@@ -268,7 +270,14 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
 /**
  * Phát hiện trường hợp sinh viên xin giấy này mà điền biểu mẫu kia (Cross-form mismatch)
  */
-export function detectCrossFormMismatch({ currentFormCode = null, text = '', student = {}, inputData = {} }) {
+export function detectCrossFormMismatch({
+  currentFormCode = null,
+  text = '',
+  student = {},
+  inputData = {},
+  conversationHistory = [],
+  sessionId = null,
+}) {
   // Sơ đồ .mdj: Nếu sinh viên bảo lưu hoặc thôi học -> Không ép sang nợ môn (để evaluateStudentConfirmation reject ngay lập tức)
   if (['SUSPENDED', 'DROPPED'].includes(student.status)) {
     return { isMismatch: false, targetForm: null, guidanceMessage: null };
@@ -311,7 +320,7 @@ export function detectCrossFormMismatch({ currentFormCode = null, text = '', stu
     };
   }
 
-  // Trường hợp 2: Kiểm tra chéo mục đích cụ thể với biểu mẫu hiện tại (Cross-Form Purpose Mismatch)
+  // Trường hợp 2: Kiểm tra chéo mục đích cụ thể với biểu mẫu hiện tại trong cùng lượt (Single-turn Purpose Mismatch)
   let explicitTargetForm = null;
   if (/giảm trừ gia cảnh|thuế tncn|thue tncn|thuế thu nhập|chi cục thuế/i.test(normalizedText)) {
     explicitTargetForm = HUTECH_FORMS.TAX_DEDUCTION;
@@ -338,6 +347,69 @@ export function detectCrossFormMismatch({ currentFormCode = null, text = '', stu
         `👉 **Cách 1: Điền đơn bên tay trái**: Bạn nhìn sang danh mục biểu mẫu ở cột bên tay trái, tìm mục **"${effectiveTarget.shortName}"** và bấm **"Điền đơn"**.\n` +
         `👉 **Cách 2: Gửi trực tiếp thông tin cho mình ngay tại đây**: Bạn nhắn trực tiếp các thông tin sau để mình hỗ trợ tạo đơn ngay lập tức:\n${guide}`,
     };
+  }
+
+  // Trường hợp 3: KIỂM TRA CHÉO NGỮ CẢNH HỘI THOẠI ĐA LƯỢT (Multi-turn Context Mismatch) ÁP DỤNG CẢ 5 BIỂU MẪU
+  // Nếu lượt trước vừa hỏi/trao đổi về Biểu mẫu X nhưng lượt này lại nộp Biểu mẫu Y khác nhau
+  if (currentFormCode) {
+    let priorUserTexts = [];
+
+    // 1. Trích xuất từ conversationHistory (nếu có)
+    if (Array.isArray(conversationHistory) && conversationHistory.length > 0) {
+      priorUserTexts = conversationHistory
+        .filter((item) => (item.role === 'user' || item.role === 'HUMAN'))
+        .map((item) => (item.parts?.[0]?.text || item.content || item.text || ''))
+        .filter(Boolean);
+    }
+
+    // 2. Trích xuất bổ sung từ ConversationMemory (nếu có sessionId)
+    if (sessionId && conversationMemory) {
+      const memoryMsgs = conversationMemory.getRecentUserMessages(sessionId, 5) || [];
+      const memoryTexts = memoryMsgs.map((m) => m.content).filter(Boolean);
+      for (const mt of memoryTexts) {
+        if (!priorUserTexts.includes(mt)) {
+          priorUserTexts.push(mt);
+        }
+      }
+    }
+
+    // Lọc bỏ tin nhắn của lượt gọi hiện tại để không tự so sánh với chính mình
+    const currentNorm = normalizeText(text);
+    const filteredPriorTexts = priorUserTexts.filter((t) => {
+      const norm = normalizeText(t);
+      return norm.length > 0 && norm !== currentNorm && !currentNorm.includes(norm);
+    });
+
+    if (filteredPriorTexts.length > 0) {
+      // Tin nhắn người dùng gần nhất trước đó
+      const latestPriorText = filteredPriorTexts[filteredPriorTexts.length - 1];
+      const priorDetected = detectFormIntent(latestPriorText);
+
+      // Nếu tin nhắn trước có ý định về 1 biểu mẫu khác với biểu mẫu hiện tại đang nộp
+      if (priorDetected && priorDetected.code !== currentFormCode) {
+        // Kiểm tra xem sinh viên có từ khóa chủ động chuyển đổi ý định không
+        const isDeliberateSwitch = /đổi sang|chuyển sang|thay vì|không làm .* nữa|hủy .* làm|không xin .* nữa|đổi ý|làm thêm|làm cả/i.test(normalizedText);
+
+        if (!isDeliberateSwitch) {
+          const prevTarget = priorDetected;
+          const currentTarget = HUTECH_FORMS[currentFormCode] || { name: currentFormCode, shortName: currentFormCode };
+          const prevGuide = getFormFieldsGuide(prevTarget.code);
+
+          return {
+            isMismatch: true,
+            reason: `Ngữ cảnh hội thoại trước đó bạn vừa trao đổi về "${prevTarget.shortName}" nhưng hiện tại lại đang gửi "${currentTarget.shortName}".`,
+            targetForm: prevTarget,
+            guidanceMessage:
+              `Dạ mình nhận thấy có sự chưa thống nhất giữa trao đổi trước đó và biểu mẫu bạn vừa gửi:\n` +
+              `- Ở tin nhắn trước, bạn vừa hỏi/trao đổi về: **${prevTarget.name}**\n` +
+              `- Nhưng hiện tại, bạn lại đang gửi thông tin cho: **${currentTarget.name}**\n\n` +
+              `Bạn vui lòng xác nhận lại giúp mình xem có bị chọn/bấm nhầm biểu mẫu không nhé:\n` +
+              `👉 **Nếu bạn muốn làm ${prevTarget.shortName}**: Vui lòng bấm vào mục **"${prevTarget.shortName}"** ở danh mục bên tay trái (hoặc nhắn trực tiếp cho mình):\n${prevGuide}\n` +
+              `👉 **Nếu bạn thực sự muốn chuyển sang làm ${currentTarget.shortName}**: Bạn chỉ cần nhắn xác nhận lại (ví dụ: *"Mình muốn đổi sang làm ${currentTarget.shortName}"*) để mình hỗ trợ tiếp ngay nhé!`,
+          };
+        }
+      }
+    }
   }
 
   return { isMismatch: false, targetForm: null, guidanceMessage: null };
@@ -455,6 +527,8 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     text: inputData.purpose || inputData.reason || '',
     student,
     inputData,
+    conversationHistory: inputData.conversationHistory || [],
+    sessionId: inputData.sessionId || null,
   });
 
   if (mismatchCheck.isMismatch) {

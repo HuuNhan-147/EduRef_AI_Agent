@@ -292,7 +292,18 @@ export class AgentOrchestrator {
         const toolStart = Date.now();
         const mergedArgs = {
           ...toolArgs,
+          studentCode: toolArgs.studentCode || currentUser?.studentCode || currentUser?.code || null,
           studentClass: toolArgs.studentClass || currentUser?.studentClass || currentUser?.class || null,
+          phone: toolArgs.phone || currentUser?.phone || null,
+          permanentAddress: toolArgs.permanentAddress || currentUser?.permanentAddress || currentUser?.address || null,
+          idCard: toolArgs.idCard || currentUser?.idCard || null,
+          currentUser,
+          inputData: {
+            ...(inputData || {}),
+            ...(toolArgs.inputData || {}),
+          },
+          conversationHistory: history,
+          sessionId: this.sessionId,
         };
         const toolResult = await ToolResolver.resolve(toolName, mergedArgs);
         const toolDuration = Date.now() - toolStart;

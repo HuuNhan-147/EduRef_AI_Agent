@@ -13,6 +13,8 @@ export const workflowTools = {
     idCard = null,
     studentClass = null,
     inputData = {},
+    conversationHistory = [],
+    sessionId = null,
   }) {
     return await AcademicWorkflowService.processStudentConfirmation({
       studentCode,
@@ -25,6 +27,8 @@ export const workflowTools = {
       idCard,
       studentClass,
       inputData,
+      conversationHistory,
+      sessionId,
     });
   },
   // A. Student Context
