@@ -5,6 +5,7 @@ import {
   evaluateStudentConfirmation,
   detectFormIntent,
   detectCrossFormMismatch,
+  validatePermanentAddress,
   getFormFieldsGuide,
   TRACK_A_DECISION,
 } from './StudentConfirmationDecisionService.js';
@@ -23,6 +24,8 @@ class AcademicWorkflowService {
     phone = null,
     idCard = null,
     studentClass = null,
+    reissueReason = null,
+    existingApprovedCount = null,
     inputData = {},
     conversationHistory = [],
     sessionId = null,
@@ -49,7 +52,7 @@ class AcademicWorkflowService {
       if (studentRec?.status === 'SUSPENDED') {
         return {
           success: true,
-          decision: 'AUTO_REJECT',
+          decision: TRACK_A_DECISION.AUTO_REJECT,
           status: 'REJECTED',
           classification: 'ROUTINE_POLICY_DENY',
           formCode: activeFormCode,
@@ -62,7 +65,7 @@ class AcademicWorkflowService {
       if (studentRec?.status === 'DROPPED') {
         return {
           success: true,
-          decision: 'AUTO_REJECT',
+          decision: TRACK_A_DECISION.AUTO_REJECT,
           status: 'REJECTED',
           classification: 'ROUTINE_POLICY_DENY',
           formCode: activeFormCode,
@@ -137,18 +140,21 @@ class AcademicWorkflowService {
       }
 
       // Tìm đơn đã duyệt gần nhất của cùng biểu mẫu này để kế thừa dữ liệu
+      // Tìm đơn đã duyệt gần nhất của cùng biểu mẫu này để kiểm tra hạn ngạch cấp lại
       const previousApproved = historyRequests.find(
         (r) => ['APPROVED', 'COMPLETED'].includes(r.status) &&
                (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === activeFormCode
       );
-      const prevInput = previousApproved?.inputData || {};
 
-      // 2. Kiểm tra cơ sở nhận giấy (ưu tiên dữ liệu nhập -> dữ liệu kế thừa từ đơn cũ -> hỏi nếu cả 2 đều không có)
+      // 2. Kiểm tra cơ sở nhận giấy (ZERO-TOLERANCE GUARD - CẤM KẾ THỪA TỪ ĐƠN CŨ, CẤM DEFAULT)
       const campusRaw = String(
-        pickupCampus || inputData?.pickupCampus || inputData?.campus || prevInput.pickupCampus || prevInput.campus || ''
+        pickupCampus || inputData?.pickupCampus || inputData?.campus || ''
       ).trim();
 
-      if (!campusRaw) {
+      const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
+      const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm|trụ sở/i.test(campusRaw);
+
+      if (!campusRaw || (!isThuDuc && !isSaiGon)) {
         return {
           success: true,
           decision: 'ASK_CLARIFICATION',
@@ -163,26 +169,90 @@ class AcademicWorkflowService {
         };
       }
 
-      const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
-      const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm|trụ sở/i.test(campusRaw);
       const normalizedCampus = isThuDuc
         ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
-        : isSaiGon
-        ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
-        : campusRaw;
+        : 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
 
-      // 1.3. SINGLE SOURCE OF TRUTH: Tự động trích xuất đầy đủ hồ sơ nhân thân sinh viên từ MSSV Registry
+      // 1.3. SINGLE SOURCE OF TRUTH: Chỉ lấy thông tin định danh tĩnh (MSSV, Họ tên, Ngày sinh, Khoa, Ngành)
       const fullProfile = getStudentFullProfile(studentCode, studentRec || inputData);
 
-      // Kế thừa các trường hành chính từ đơn cũ nếu lần này sinh viên không nhập lại
-      const resolvedAddress = permanentAddress || inputData?.permanentAddress || inputData?.address || prevInput.permanentAddress || prevInput.address || fullProfile.permanentAddress;
-      const resolvedRecipientAgency = inputData?.recipientAgency || prevInput.recipientAgency || null;
-      const resolvedDebtCourses = debtCourses || inputData?.debtCourses || prevInput.debtCourses || null;
-      const resolvedPhone = phone || inputData?.phone || prevInput.phone || fullProfile.phone;
-      const resolvedIdCard = idCard || inputData?.idCard || prevInput.idCard || fullProfile.idCard;
-      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || prevInput.studentClass || fullProfile.studentClass;
+      // CÁC TRƯỜNG DỮ LIỆU ĐƠN: TUYỆT ĐỐI KHÔNG KẾ THỪA TỪ ĐƠN CŨ, KHÔNG FALLBACK TỪ FULLPROFILE
+      const resolvedAddress = permanentAddress || inputData?.permanentAddress || inputData?.address || null;
+      const resolvedRecipientAgency = inputData?.recipientAgency || null;
+      const resolvedDebtCourses = debtCourses || inputData?.debtCourses || null;
+      const resolvedPhone = phone || inputData?.phone || null;
+      const resolvedIdCard = idCard || inputData?.idCard || fullProfile.idCard;
+      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || fullProfile.studentClass;
 
-      const isReissueCase = Boolean(previousApproved);
+      // 2.1. Kiểm tra bắt buộc: Số điện thoại liên lạc hợp lệ (10 số)
+      const phoneClean = String(resolvedPhone || '').replace(/[\s\.\-\+]/g, '');
+      const isValidPhone = /^(?:0|\+84)(?:3|5|7|8|9)\d{8}$/.test(phoneClean);
+      if (!isValidPhone) {
+        return {
+          success: true,
+          decision: 'ASK_CLARIFICATION',
+          status: 'WAITING_STUDENT',
+          classification: 'UNKNOWN_FACT',
+          uncertaintyType: 'UNKNOWN_FACT',
+          actionableQuestion: 'Để Nhà trường có thể liên hệ thông báo khi bản cứng được ký mộc, bạn vui lòng cung cấp số điện thoại di động chính xác (10 chữ số, ví dụ: 0901234567) nhé!',
+          message: resolvedPhone ? 'Số điện thoại không đúng chuẩn di động Việt Nam (10 chữ số).' : 'Vui lòng cung cấp số điện thoại liên lạc.',
+        };
+      }
+
+      // 2.2. Kiểm tra bắt buộc: Địa chỉ thường trú 4 cấp Title Case cho Biểu mẫu NVQS & Giảm thuế
+      if (['MILITARY_DEFERMENT', 'TAX_DEDUCTION'].includes(activeFormCode)) {
+        if (!resolvedAddress) {
+          return {
+            success: true,
+            decision: 'ASK_CLARIFICATION',
+            status: 'WAITING_STUDENT',
+            classification: 'UNKNOWN_FACT',
+            uncertaintyType: 'UNKNOWN_FACT',
+            actionableQuestion: 'Dạ Thầy cô Phòng CTSV lưu ý biểu mẫu này bắt buộc phải có địa chỉ thường trú đầy đủ 4 cấp hành chính (Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố) và viết hoa đúng chuẩn (Ví dụ: "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu"). Bạn vui lòng cung cấp địa chỉ hộ khẩu thường trú nhé!',
+            message: 'Thiếu thông tin địa chỉ hộ khẩu thường trú bắt buộc.',
+          };
+        }
+
+        const addressCheck = validatePermanentAddress(resolvedAddress);
+        if (!addressCheck.isValid) {
+          return {
+            success: true,
+            decision: 'ASK_CLARIFICATION',
+            status: 'WAITING_STUDENT',
+            classification: 'UNKNOWN_FACT',
+            uncertaintyType: 'UNKNOWN_FACT',
+            actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý: ${addressCheck.reason}\n\nBạn vui lòng điều chỉnh lại địa chỉ ghi rõ đủ 4 cấp hành chính và viết hoa chữ cái đầu (Ví dụ: "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu") để được cấp giấy hợp lệ nhé!`,
+            message: addressCheck.reason,
+          };
+        }
+      }
+
+      // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY LẦN 2 (REISSUE GUARD)
+      const effectiveApprovedCount = existingApprovedCount !== null && existingApprovedCount !== undefined
+        ? Number(existingApprovedCount)
+        : (inputData?.existingApprovedCount !== undefined
+            ? Number(inputData.existingApprovedCount)
+            : historyRequests.filter(
+                (r) => ['APPROVED', 'COMPLETED', 'ESCALATED'].includes(r.status) &&
+                       (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === activeFormCode
+              ).length);
+
+      const isReissueCase = effectiveApprovedCount >= 1;
+      const finalReissueReason = String(reissueReason || inputData?.reissueReason || inputData?.repeatReason || inputData?.explanation || '').trim();
+
+      if (isReissueCase && !finalReissueReason) {
+        return {
+          success: true,
+          decision: 'ASK_CLARIFICATION',
+          status: 'WAITING_STUDENT',
+          classification: 'UNKNOWN_FACT',
+          uncertaintyType: 'UNKNOWN_FACT',
+          actionableQuestion:
+            `Dạ hệ thống ghi nhận bạn đã được cấp Giấy xác nhận cho biểu mẫu này trong học kỳ này rồi. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu. Để xin cấp lại lần 2, bạn vui lòng cung cấp lý do chính đáng (ví dụ: bị mất giấy, bị rách, nộp bổ sung cho cơ quan thứ 2...) để Cán bộ Phòng CTSV/PĐT xem xét nhé!`,
+          message: 'Xin cấp lại lần 2 bắt buộc phải giải trình lý do chính đáng.',
+          formCode: activeFormCode,
+        };
+      }
 
       const payload = {
         // Hồ sơ nhân thân chuẩn hóa cố định (Single Source of Truth)
@@ -205,7 +275,9 @@ class AcademicWorkflowService {
         formCode: activeFormCode,
         purpose: finalPurpose,
         historyRequests,
+        existingApprovedCount: effectiveApprovedCount,
         isReissue: isReissueCase,
+        reissueReason: finalReissueReason,
         originalRequestId: previousApproved?.id || null,
         originalRequestCode: previousApproved?.requestCode || null,
         originalApprovedAt: previousApproved?.createdAt || null,

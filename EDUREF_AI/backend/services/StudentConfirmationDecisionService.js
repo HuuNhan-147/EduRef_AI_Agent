@@ -89,35 +89,58 @@ export function validatePermanentAddress(address = '') {
   if (!raw) {
     return {
       isValid: false,
-      missingLevels: ['Số nhà/đường', 'Phường/Xã', 'Quận/Huyện', 'Tỉnh/Thành phố'],
+      missingLevels: ['Số nhà/đường/ấp', 'Phường/Xã/Thị trấn', 'Quận/Huyện/Thị xã/TP', 'Tỉnh/Thành phố'],
       reason: 'Thiếu hoàn toàn địa chỉ hộ khẩu thường trú.',
     };
   }
 
+  // 1. CHỐT CHẶN NHẦM ĐỊA CHỈ TẠM TRÚ / NHÀ TRỌ / KTX (Theo chỉ đạo Thầy CTSV)
+  const isTemporaryAddress = /(?:ktx|ký túc xá|ky tuc xa|phòng trọ|phong tro|nhà trọ|nha tro|tạm trú|tam tru|ở trọ|o tro)/i.test(raw);
+  if (isTemporaryAddress) {
+    return {
+      isValid: false,
+      isTemporaryAddress: true,
+      reason: 'Phát hiện địa chỉ tạm trú/nhà trọ/KTX. Giấy tạm hoãn NVQS bắt buộc phải khai địa chỉ Hộ khẩu thường trú tại quê quán (nơi nhận lệnh gọi NVQS), không được khai địa chỉ tạm trú.',
+    };
+  }
+
   const parts = raw.split(/[,;\-]+/).map((p) => p.trim()).filter(Boolean);
-  
-  // Cần tối thiểu 3-4 thành phần hành chính được phân tách rõ ràng
+
+  // 2. CHỐT CHẶN VIẾT THƯỜNG CẨU THẢ (TITLE CASE THEO CHUẨN VĂN THƯ CỦA THẦY CTSV)
+  // Bắt lỗi nếu có thành phần nào viết thường toàn bộ (VD: "phạm thị tư", "ấp châu phú", "bạc liêu")
+  const lowercaseParts = parts.filter((part) => {
+    const words = part.split(/\s+/).filter(Boolean);
+    // Nếu toàn bộ từ trong phần này đều viết chữ thường (không viết hoa chữ cái đầu)
+    return words.length > 0 && words.every((w) => w === w.toLowerCase());
+  });
+
+  const isAllLowerCase = raw === raw.toLowerCase() && raw.length > 5;
+  const hasBadCasing = isAllLowerCase || lowercaseParts.length >= 2;
+
+  // 3. KIỂM TRA ĐỦ 4 CẤP HÀNH CHÍNH
   const hasWard = /(?:phường|phuong|xã|xa|thị trấn|thi tran|p\.|x\.)\s+/i.test(raw);
   const hasDistrict = /(?:quận|quan|huyện|huyen|thị xã|thi xa|thành phố|thanh pho|tp\.|tx\.|q\.|h\.)\s+/i.test(raw);
-  const hasProvince = /(?:tỉnh|tinh|thành phố|thanh pho|tp\.|bình dương|hồ chí minh|hà nội|đồng nai|long an|tiền giang|bến tre|cần thơ|vũng tàu|đà nẵng|bình định|quảng nam|khánh hòa|lâm đồng|tây ninh|bình phước)/i.test(raw);
+  const hasProvince = /(?:tỉnh|tinh|thành phố|thanh pho|tp\.|bình dương|hồ chí minh|hà nội|đồng nai|long an|tiền giang|bến tre|cần thơ|vũng tàu|đà nẵng|bình định|quảng nam|khánh hòa|lâm đồng|tây ninh|bình phước|bạc liêu|an giang|cà mau|kiên giang|sóc trăng|trà vinh|vĩnh long|hậu gian)/i.test(raw);
 
   const missingLevels = [];
-  if (parts.length < 2) missingLevels.push('Số nhà và tên đường');
+  if (parts.length < 2) missingLevels.push('Số nhà/tên đường/ấp');
   if (!hasWard) missingLevels.push('Phường/Xã/Thị trấn');
-  if (!hasDistrict && parts.length < 3) missingLevels.push('Quận/Huyện/Thị xã/Thành phố');
+  if (!hasDistrict && parts.length < 3) missingLevels.push('Quận/Huyện/Thị xã/Thành phố thuộc tỉnh');
   if (!hasProvince && parts.length < 4) missingLevels.push('Tỉnh/Thành phố');
 
-  // Kiểm tra lỗi viết thường toàn bộ (theo chỉ đạo thầy: bắt buộc viết hoa chữ cái đầu)
-  const isAllLowerCase = raw === raw.toLowerCase() && raw.length > 5;
+  if (missingLevels.length > 0 || hasBadCasing) {
+    let failureReason = '';
+    if (hasBadCasing) {
+      failureReason = 'Địa chỉ thường trú viết chữ thường, chưa viết hoa chữ cái đầu theo chuẩn văn thư hành chính (Ví dụ đúng: "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu").';
+    } else {
+      failureReason = `Địa chỉ hộ khẩu chưa đủ cấp hành chính (thiếu hoặc chưa ghi rõ: ${missingLevels.join(', ')}).`;
+    }
 
-  if (missingLevels.length > 0 || isAllLowerCase) {
     return {
       isValid: false,
       missingLevels,
-      isAllLowerCase,
-      reason: isAllLowerCase
-        ? 'Địa chỉ thường trú viết thường toàn bộ, không đúng chuẩn văn thư (cần viết hoa chữ cái đầu: VD "Phường Dĩ An, Tỉnh Bình Dương").'
-        : `Địa chỉ hộ khẩu chưa đủ cấp hành chính (thiếu: ${missingLevels.join(', ')}).`,
+      isAllLowerCase: hasBadCasing,
+      reason: failureReason,
     };
   }
 
@@ -157,7 +180,7 @@ export function checkCohortOverdueStatus(student = {}) {
   }
 
   // Tín chỉ tích lũy hoặc tình trạng tốt nghiệp
-  const credits = Number(student.enrolledCredits ?? student.credits ?? student.accumulatedCredits ?? 0);
+  const credits = Number(student.completedCredits ?? student.accumulatedCredits ?? student.credits ?? student.enrolledCredits ?? 0);
   const isCompleted = student.status === 'GRADUATED' || credits >= 150;
   const hasDebtCourses = isOverdue && !isCompleted;
 
@@ -599,49 +622,113 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     }
   }
 
-  // 5. ĐIỀU KIỆN SỐ 3: KIỂM TRA ĐỊA CHỈ HỘ KHẨU THƯỜNG TRÚ (Trọng tâm của Thầy cho Mẫu NVQS, Giảm thuế, Nợ môn)
-  if (['MILITARY_DEFERMENT', 'TAX_DEDUCTION', 'COURSE_DEBT'].includes(targetForm.code)) {
-    const address = inputData.permanentAddress || inputData.address || inputData.REQ_ADDRESS;
-    if (address !== undefined && address !== null && address !== '') {
-      const addressCheck = validatePermanentAddress(address);
-      if (!addressCheck.isValid) {
-        return {
-          classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-          uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-          decision: TRACK_A_DECISION.ASK_CLARIFICATION,
-          rule: 'REQ_PERMANENT_ADDRESS_STANDARD',
-          reason: `Địa chỉ hộ khẩu chưa đạt chuẩn: ${addressCheck.reason}`,
-          actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý địa chỉ hộ khẩu trong ${targetForm.name} phải ghi rõ ràng, đủ 4 cấp hành chính (Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố) và viết hoa đúng chuẩn (Ví dụ: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh). Bạn vui lòng bổ sung đầy đủ và đúng định dạng nhé!`,
-          policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
-        };
-      }
-    } else if (inputData.requireStrictAddress === true) {
+  // 4.1. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY THEO SƠ ĐỒ .MDJ: CHECK CÓ TRÙNG BIỂU MẪU KHÔNG
+  const approvedCount = inputData.existingApprovedCount !== undefined
+    ? Number(inputData.existingApprovedCount)
+    : (Array.isArray(inputData.historyRequests)
+        ? inputData.historyRequests.filter((r) => ['APPROVED', 'COMPLETED', 'ESCALATED'].includes(r.status) && (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === targetForm.code).length
+        : 0);
+
+  if (approvedCount >= 1) {
+    const reissueReason = String(inputData.repeatReason || inputData.reissueReason || inputData.explanation || inputData.reissueExplanation || '').trim();
+    if (!reissueReason) {
+      return {
+        classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+        rule: 'REQ_REISSUE_REASON',
+        reason: `Sinh viên đã được cấp Giấy xác nhận cho biểu mẫu [${targetForm.code}] trước đó trong học kỳ. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu; nếu xin cấp lại lần 2 bắt buộc phải giải trình lý do chính đáng.`,
+        actionableQuestion:
+          `Dạ hệ thống ghi nhận bạn đã được cấp Giấy xác nhận cho biểu mẫu "${targetForm.name}" trong học kỳ này rồi. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu. Để xin cấp lại lần 2, bạn vui lòng cung cấp lý do chính đáng (ví dụ: bị mất giấy, bị rách, nộp bổ sung cho cơ quan thứ 2...) để Cán bộ Phòng CTSV/PĐT xem xét nhé!`,
+        policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+      };
+    }
+
+    // Sơ đồ .mdj: Có lý do đóng gói chuyển tiếp cho Cán bộ (ESCALATE_TO_STAFF)
+    const prevCode = inputData.originalRequestCode ? ` (Đơn lần 1 mã: ${inputData.originalRequestCode})` : '';
+    return {
+      classification: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
+      uncertaintyType: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
+      decision: TRACK_A_DECISION.ESCALATE_STAFF,
+      targetRole: 'STAFF',
+      rule: 'POLICY_REISSUE_QUOTA_ESCALATE',
+      reason: `Sinh viên xin cấp lại lần thứ 2 trong cùng học kỳ cho biểu mẫu [${targetForm.code}] với lý do giải trình: "${reissueReason}". Vượt hạn ngạch tự động 1 bản/kỳ, bắt buộc chuyển Cán bộ Phòng CTSV/PĐT xem xét phê duyệt ngoại lệ.`,
+      actionableQuestion:
+        `Sinh viên ${student.fullName} (${student.studentCode}) xin cấp lại lần 2 biểu mẫu "${targetForm.name}" do: "${reissueReason}"${prevCode}. Cán bộ CTSV/PĐT có chấp thuận phê duyệt cấp lại không?`,
+      userMessage:
+        `Yêu cầu xin cấp lại lần 2 biểu mẫu ${targetForm.name} của bạn đã được tiếp nhận kèm lý do giải trình ("${reissueReason}"). Hệ thống đã đóng gói chuyển tiếp hồ sơ lên Cán bộ Phòng CTSV/PĐT để xem xét phê duyệt ngoại lệ. Bạn vui lòng chờ thông báo từ Nhà trường nhé!`,
+      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+    };
+  }
+
+  // 5. ĐIỀU KIỆN SỐ 3: KIỂM TRA SỐ ĐIỆN THOẠI LIÊN HỆ (Bắt buộc cho mọi biểu mẫu - Không default)
+  const rawPhone = String(inputData.phone || '').trim();
+  const phoneClean = rawPhone.replace(/[\s\.\-\+]/g, '');
+  const isValidPhone = /^(?:0|\+84)(?:3|5|7|8|9)\d{8}$/.test(phoneClean);
+  if (!isValidPhone) {
+    return {
+      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+      rule: 'REQ_PHONE_NUMBER_REQUIRED',
+      reason: rawPhone ? 'Số điện thoại không đúng định dạng di động Việt Nam (10 chữ số).' : 'Thiếu số điện thoại liên lạc của sinh viên.',
+      actionableQuestion: 'Để Nhà trường có thể liên hệ thông báo khi bản cứng được ký mộc, bạn vui lòng cung cấp số điện thoại di động chính xác (10 chữ số, ví dụ: 0901234567) nhé!',
+      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+    };
+  }
+
+  // 6. ĐIỀU KIỆN SỐ 4: KIỂM TRA ĐỊA CHỈ HỘ KHẨU THƯỜNG TRÚ (Trọng tâm của Thầy cho Mẫu NVQS, Giảm thuế)
+  if (['MILITARY_DEFERMENT', 'TAX_DEDUCTION'].includes(targetForm.code)) {
+    const address = String(inputData.permanentAddress || inputData.address || '').trim();
+    if (!address) {
       return {
         classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
         uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
         decision: TRACK_A_DECISION.ASK_CLARIFICATION,
         rule: 'REQ_PERMANENT_ADDRESS_REQUIRED',
-        reason: 'Thiếu thông tin địa chỉ hộ khẩu thường trú bắt buộc cho biểu mẫu này.',
-        actionableQuestion: `Biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ thường trú đủ 4 cấp hành chính viết hoa đúng chuẩn. Bạn vui lòng bổ sung địa chỉ thường trú nhé!`,
+        reason: `Biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ hộ khẩu thường trú đầy đủ 4 cấp hành chính.`,
+        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ thường trú đầy đủ 4 cấp hành chính (Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố) và viết hoa đúng chuẩn (Ví dụ: "180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh" hoặc "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu"). Bạn vui lòng cung cấp địa chỉ hộ khẩu thường trú nhé!`,
+        policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+      };
+    }
+
+    const addressCheck = validatePermanentAddress(address);
+    if (!addressCheck.isValid) {
+      return {
+        classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+        rule: 'REQ_PERMANENT_ADDRESS_STANDARD',
+        reason: `Địa chỉ hộ khẩu chưa đạt chuẩn: ${addressCheck.reason}`,
+        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý: ${addressCheck.reason}\n\nBạn vui lòng điều chỉnh lại địa chỉ ghi rõ đủ 4 cấp hành chính và viết hoa chữ cái đầu (Ví dụ: "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu") để được cấp giấy hợp lệ nhé!`,
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
       };
     }
   }
 
-  // 6. KIỂM TRA MỤC ĐÍCH / CƠ SỞ NHẬN GIẤY BẢN CỨNG
-  const campusRaw = inputData.pickupCampus || inputData.campus;
-  if (!campusRaw && inputData.requireCampus === true) {
+  // 7. ĐIỀU KIỆN SỐ 5: KIỂM TRA CƠ SỞ NHẬN GIẤY BẢN CỨNG (KHÔNG DEFAULT - BẮT BUỘC CHỌN 1 TRONG 2 CƠ SỞ)
+  const campusRaw = String(inputData.pickupCampus || inputData.campus || '').trim();
+  const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
+  const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm|trụ sở/i.test(campusRaw);
+
+  if (!campusRaw || (!isThuDuc && !isSaiGon)) {
     return {
       classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
       uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
       decision: TRACK_A_DECISION.ASK_CLARIFICATION,
       rule: 'REQ_PICKUP_CAMPUS',
-      reason: 'Chưa chọn cơ sở nhận giấy bản cứng có mộc đỏ và chữ ký sống.',
-      actionableQuestion: 'Vui lòng chọn cơ sở Phòng Công tác Sinh viên bạn muốn đến nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở Thu Duc (E1-01.08).',
+      reason: 'Chưa chọn cơ sở nhận giấy bản cứng hợp lệ có mộc đỏ và chữ ký sống.',
+      actionableQuestion:
+        'Để Nhà trường chuẩn bị bản cứng có chữ ký sống và mộc đỏ của Phòng CTSV, bạn vui lòng chọn 1 trong 2 cơ sở sau để nhận giấy nhé:\n' +
+        '1. 🏢 Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)\n' +
+        '2. 🏢 Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
-  const campus = campusRaw || 'Trụ sở chính: phòng Công tác sinh viên (A-01.01)';
+
+  const campus = isThuDuc
+    ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
+    : 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
 
   // 7. KIỂM TRA NGOẠI LỆ / ÉP QUYỀN DUYỆT MIỆNG
   if (inputData.userClaimedOverride === true || inputData.forceApprove === true) {
@@ -675,45 +762,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     };
   }
 
-  // 8.1. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY (MỖI KỲ 1 BẢN/MẪU; CẤP LẦN 2 BẮT BUỘC GIẢI TRÌNH & CHUYỂN TIẾP CÁN BỘ)
-  const approvedCount = inputData.existingApprovedCount !== undefined
-    ? Number(inputData.existingApprovedCount)
-    : (Array.isArray(inputData.historyRequests)
-        ? inputData.historyRequests.filter((r) => ['APPROVED', 'COMPLETED', 'ESCALATED'].includes(r.status) && (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === targetForm.code).length
-        : 0);
 
-  if (approvedCount >= 1) {
-    const reissueReason = String(inputData.repeatReason || inputData.reissueReason || inputData.explanation || inputData.reissueExplanation || '').trim();
-    if (!reissueReason) {
-      return {
-        classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-        uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-        decision: TRACK_A_DECISION.ASK_CLARIFICATION,
-        rule: 'REQ_REISSUE_REASON',
-        reason: `Sinh viên đã được cấp Giấy xác nhận cho biểu mẫu [${targetForm.code}] trước đó trong học kỳ. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu; nếu xin cấp lại lần 2 bắt buộc phải giải trình lý do chính đáng.`,
-        actionableQuestion:
-          `Dạ hệ thống ghi nhận bạn đã được cấp Giấy xác nhận cho biểu mẫu "${targetForm.name}" trong học kỳ này rồi. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu. Để xin cấp lại lần 2, bạn vui lòng cung cấp lý do chính đáng (ví dụ: bị mất giấy, bị rách, nộp bổ sung cho cơ quan thứ 2...) để Cán bộ Phòng CTSV/PĐT xem xét nhé!`,
-        policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
-      };
-    }
-
-    // Nếu đã có lý do giải trình -> CHUYỂN TIẾP CHO CÁN BỘ (ESCALATE_TO_STAFF), KHÔNG ĐƯỢC TỰ DUYỆT
-    const prevCode = inputData.originalRequestCode ? ` (Đơn lần 1 mã: ${inputData.originalRequestCode})` : '';
-    const inheritedNote = inputData.isReissue ? ' Dữ liệu hành chính (địa chỉ, cơ sở nhận, nơi gửi) đã được hệ thống kế thừa nguyên vẹn từ lần 1.' : '';
-    return {
-      classification: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
-      uncertaintyType: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,
-      decision: TRACK_A_DECISION.ESCALATE_STAFF,
-      targetRole: 'STAFF',
-      rule: 'POLICY_REISSUE_QUOTA_ESCALATE',
-      reason: `Sinh viên xin cấp lại lần thứ 2 trong cùng học kỳ cho biểu mẫu [${targetForm.code}] với lý do giải trình: "${reissueReason}". Vượt hạn ngạch tự động 1 bản/kỳ, bắt buộc chuyển Cán bộ Phòng CTSV/PĐT xem xét phê duyệt ngoại lệ.${inheritedNote}`,
-      actionableQuestion:
-        `Sinh viên ${student.fullName} (${student.studentCode}) xin cấp lại lần 2 biểu mẫu "${targetForm.name}" do: "${reissueReason}"${prevCode}.${inheritedNote} Cán bộ CTSV/PĐT có chấp thuận phê duyệt cấp lại không?`,
-      userMessage:
-        `Yêu cầu xin cấp lại lần 2 biểu mẫu ${targetForm.name} của bạn đã được tiếp nhận kèm lý do giải trình ("${reissueReason}"). Hệ thống đã tự động giữ nguyên các thông tin như lần cấp trước và chuyển tiếp hồ sơ lên Cán bộ Phòng CTSV/PĐT để xem xét phê duyệt ngoại lệ. Bạn vui lòng chờ thông báo từ Nhà trường nhé!`,
-      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
-    };
-  }
 
   // 9. ĐỦ ĐIỀU KIỆN PHÊ DUYỆT TỰ ĐỘNG (ROUTINE AUTO APPROVE)
   return {

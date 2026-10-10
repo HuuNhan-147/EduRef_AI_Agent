@@ -5,6 +5,7 @@ import { BasePetitionHandler } from '../BasePetitionHandler.js';
 import { getStudentFullProfile } from '../../../config/studentRegistry.js';
 import {
   evaluateStudentConfirmation,
+  validatePermanentAddress,
   TRACK_A_CLASSIFICATION,
   TRACK_A_DECISION,
 } from '../../../services/StudentConfirmationDecisionService.js';
@@ -62,12 +63,18 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       missing.push({ code: 'REQ_CLASS', name: 'Lớp sinh hoạt', description: 'Vui lòng cung cấp lớp quản lý học vụ.' });
     }
 
-    // 2. Nhóm thông tin liên lạc & định danh công dân
-    const phone = inputData?.phone || fullProfile.phone;
-    if (phone && String(phone).trim()) {
-      passed.push({ code: 'REQ_PHONE', name: 'Số điện thoại', value: String(phone).trim() });
+    // 2. Nhóm thông tin liên lạc & định danh công dân (ZERO-TOLERANCE GUARD - BẮT BUỘC SV KHAI)
+    const rawPhone = String(inputData?.phone || '').trim();
+    const phoneClean = rawPhone.replace(/[\s\.\-\+]/g, '');
+    const isValidPhone = /^(?:0|\+84)(?:3|5|7|8|9)\d{8}$/.test(phoneClean);
+    if (isValidPhone) {
+      passed.push({ code: 'REQ_PHONE', name: 'Số điện thoại', value: rawPhone });
     } else {
-      missing.push({ code: 'REQ_PHONE', name: 'Số điện thoại', description: 'Vui lòng cung cấp số điện thoại liên lạc.' });
+      missing.push({
+        code: 'REQ_PHONE',
+        name: 'Số điện thoại',
+        description: rawPhone ? 'Số điện thoại không đúng chuẩn di động Việt Nam (10 chữ số).' : 'Vui lòng cung cấp số điện thoại di động chính xác (10 chữ số).',
+      });
     }
 
     const idCard = inputData?.idCard || inputData?.idCardNumber || inputData?.citizenId || fullProfile.idCard;
@@ -77,29 +84,52 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       missing.push({ code: 'REQ_ID_CARD', name: 'Số CMND/CCCD', description: 'Vui lòng cung cấp số Căn cước công dân / CMND.' });
     }
 
-    const permanentAddress = inputData?.permanentAddress || inputData?.address || fullProfile.permanentAddress;
-    if (permanentAddress && String(permanentAddress).trim()) {
-      passed.push({ code: 'REQ_ADDRESS', name: 'Hộ khẩu thường trú', value: String(permanentAddress).trim() });
-    } else {
-      missing.push({ code: 'REQ_ADDRESS', name: 'Hộ khẩu thường trú', description: 'Vui lòng cung cấp địa chỉ hộ khẩu thường trú.' });
+    // Hộ khẩu thường trú: Bắt buộc cho NVQS, Thuế (và kiểm tra 4 cấp hành chính + Title Case)
+    const isStrictAddressForm = ['MILITARY_DEFERMENT', 'TAX_DEDUCTION'].includes(formCode);
+    const rawAddress = String(inputData?.permanentAddress || inputData?.address || '').trim();
+    if (isStrictAddressForm) {
+      if (!rawAddress) {
+        missing.push({
+          code: 'REQ_ADDRESS',
+          name: 'Hộ khẩu thường trú',
+          description: 'Biểu mẫu này bắt buộc phải có địa chỉ thường trú đủ 4 cấp hành chính viết hoa đúng chuẩn (Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/TP).',
+        });
+      } else {
+        const addressCheck = validatePermanentAddress(rawAddress);
+        if (!addressCheck.isValid) {
+          missing.push({
+            code: 'REQ_ADDRESS_STANDARD',
+            name: 'Định dạng địa chỉ thường trú',
+            description: addressCheck.reason,
+          });
+        } else {
+          passed.push({ code: 'REQ_ADDRESS', name: 'Hộ khẩu thường trú', value: rawAddress });
+        }
+      }
+    } else if (rawAddress) {
+      passed.push({ code: 'REQ_ADDRESS', name: 'Hộ khẩu thường trú', value: rawAddress });
     }
 
-    // 3. Cơ sở nhận bản cứng có mộc đỏ P.CTSV
-    const campusRaw = inputData?.pickupCampus || inputData?.campus;
-    let normalizedCampus = fullProfile ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)' : '';
-    if (campusRaw && String(campusRaw).trim().length > 0) {
+    // 3. Cơ sở nhận bản cứng có mộc đỏ P.CTSV (BẮT BUỘC CHỌN 1 TRONG 2 CƠ SỞ - CẤM DEFAULT)
+    const campusRaw = String(inputData?.pickupCampus || inputData?.campus || '').trim();
+    let normalizedCampus = '';
+    if (campusRaw) {
       const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
       const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm|trụ sở/i.test(campusRaw);
-      normalizedCampus = isThuDuc
-        ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
-        : isSaiGon
-        ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
-        : String(campusRaw).trim();
+      if (isThuDuc) {
+        normalizedCampus = 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)';
+      } else if (isSaiGon) {
+        normalizedCampus = 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
+      }
     }
     if (normalizedCampus) {
       passed.push({ code: 'REQ_CAMPUS', name: 'Cơ sở nhận giấy', value: normalizedCampus });
     } else {
-      missing.push({ code: 'REQ_CAMPUS', name: 'Cơ sở nhận giấy', description: 'Vui lòng chọn cơ sở nhận giấy (Sai Gon Campus hoặc Thu Duc Campus).' });
+      missing.push({
+        code: 'REQ_CAMPUS',
+        name: 'Cơ sở nhận giấy',
+        description: 'Vui lòng chọn 1 trong 2 cơ sở nhận giấy bản cứng: Sai Gon Campus (A-01.01) hoặc Thu Duc Campus (E1-01.08).',
+      });
     }
 
     // 4. Lý do xác nhận (Bắt buộc cho mọi biểu mẫu)

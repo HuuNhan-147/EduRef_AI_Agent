@@ -292,11 +292,15 @@ export class AgentOrchestrator {
         const toolStart = Date.now();
         const mergedArgs = {
           ...toolArgs,
+          // Định danh tài khoản đăng nhập để xác thực phiên
           studentCode: toolArgs.studentCode || currentUser?.studentCode || currentUser?.code || null,
           studentClass: toolArgs.studentClass || currentUser?.studentClass || currentUser?.class || null,
-          phone: toolArgs.phone || currentUser?.phone || null,
-          permanentAddress: toolArgs.permanentAddress || currentUser?.permanentAddress || currentUser?.address || null,
-          idCard: toolArgs.idCard || currentUser?.idCard || null,
+          // CÁC TRƯỜNG DỮ LIỆU ĐƠN: TUYỆT ĐỐI KHÔNG FALLBACK TỪ CURRENTUSER (ZERO-TOLERANCE GUARD)
+          // Chỉ lấy đúng những gì sinh viên khai báo hoặc gửi qua payload
+          phone: toolArgs.phone || inputData?.phone || null,
+          permanentAddress: toolArgs.permanentAddress || inputData?.permanentAddress || null,
+          idCard: toolArgs.idCard || inputData?.idCard || null,
+          pickupCampus: toolArgs.pickupCampus || inputData?.pickupCampus || null,
           currentUser,
           inputData: {
             ...(inputData || {}),
@@ -400,6 +404,22 @@ export class AgentOrchestrator {
       const totalPad = `${totalDuration} ms (~${(totalDuration / 1000).toFixed(2)}s)`.padStart(12, ' ');
       console.log(`│ 🎯 TỔNG THỜI GIAN TOÀN TRÌNH                         │ ${totalPad} │     100.0%       │`);
       console.log('└──────────────────────────────────────────────────────┴──────────────┴──────────────────┘\n');
+
+      // 🛡️ OUTPUT GUARDRAIL: Ngăn chặn triệt để hiện tượng Gemini ảo giác (Hallucination)
+      // Nếu Tool trả về ASK_CLARIFICATION nhưng LLM lại nói "đã duyệt" hoặc quên hỏi câu hỏi làm rõ
+      if (lastToolResult?.decision === 'ASK_CLARIFICATION') {
+        const actionableQ = lastToolResult.actionableQuestion || lastToolResult.message;
+        const saysApproved = /(?:đã được duyệt|được phê duyệt|duyệt thành công|đã cấp giấy|hoàn tất xét duyệt)/i.test(finalReplyText);
+        if (saysApproved || !finalReplyText || !finalReplyText.includes('?')) {
+          finalReplyText = actionableQ || finalReplyText;
+        }
+      } else if (lastToolResult?.decision === 'AUTO_REJECT') {
+        const rejectMsg = lastToolResult.userMessage || lastToolResult.message || lastToolResult.reason;
+        const saysApproved = /(?:đã được duyệt|được phê duyệt|duyệt thành công|đã cấp giấy)/i.test(finalReplyText);
+        if (saysApproved || !finalReplyText) {
+          finalReplyText = rejectMsg || finalReplyText;
+        }
+      }
 
       // Lưu câu trả lời trợ lý vào bộ nhớ phiên
       conversationMemory.saveAssistantMessage(this.sessionId, finalReplyText);

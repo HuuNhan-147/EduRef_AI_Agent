@@ -5,7 +5,7 @@ export class ToolRegistry {
       {
         name: 'process_student_confirmation',
         description:
-          'CÔNG CỤ DUYỆT VÀ CẤP GIẤY XÁC NHẬN SINH VIÊN (XNSV): Chỉ được gọi công cụ này khi sinh viên ĐÃ CUNG CẤP ĐỦ CẢ MỤC ĐÍCH VÀ ĐÃ CHỌN 1 TRONG 2 CƠ SỞ NHẬN GIẤY BẢN CỨNG. Hỗ trợ bóc tách trực tiếp thông tin sinh viên nhắn trong chat (địa chỉ thường trú, môn nợ, số điện thoại, CCCD...) theo 5 biểu mẫu chuẩn HUTECH.',
+          'CÔNG CỤ DUYỆT VÀ CẤP GIẤY XÁC NHẬN SINH VIÊN (XNSV): Chỉ gọi khi sinh viên có nhu cầu nộp đơn hoặc cung cấp thông tin đơn. Nếu thiếu số điện thoại, thiếu cơ sở nhận hoặc địa chỉ thường trú chưa đủ 4 cấp viết hoa chuẩn, tool sẽ trả về ASK_CLARIFICATION. Bạn BẮT BUỘC phải hỏi lại sinh viên, tuyệt đối không được tự bịa tham số và không được tự nói là đơn đã duyệt!',
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -40,7 +40,7 @@ export class ToolRegistry {
             },
             permanentAddress: {
               type: 'STRING',
-              description: 'Địa chỉ hộ khẩu thường trú 4 cấp hành chính viết hoa đúng chuẩn (bắt buộc cho Tạm hoãn NVQS, Giảm thuế TNCN, Nợ môn).',
+              description: 'Địa chỉ hộ khẩu thường trú 4 cấp hành chính viết hoa đúng chuẩn (bắt buộc cho Tạm hoãn NVQS, Giảm thuế TNCN). Phải đủ Số nhà/đường/ấp, Phường/Xã, Quận/Huyện, Tỉnh/TP và viết hoa chữ cái đầu.',
             },
             debtCourses: {
               type: 'STRING',
@@ -48,7 +48,7 @@ export class ToolRegistry {
             },
             phone: {
               type: 'STRING',
-              description: 'Số điện thoại liên hệ của sinh viên.',
+              description: 'Số điện thoại di động chính xác (10 chữ số) của sinh viên (BẮT BUỘC).',
             },
             idCard: {
               type: 'STRING',
