@@ -25,6 +25,7 @@ test('1. TC-1: Sinh viên ACTIVE, có TKB, đủ thông tin, không trùng -> AU
     pickupCampus: 'Trụ sở chính: phòng Công tác sinh viên (A-01.01)',
     permanentAddress: '180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
     phone: '0901234567',
+    isAddressConfirmed: true,
   };
 
   const result = evaluateStudentConfirmation({ student, inputData });

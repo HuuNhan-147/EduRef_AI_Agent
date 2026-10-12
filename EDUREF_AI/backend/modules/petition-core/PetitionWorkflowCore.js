@@ -357,29 +357,28 @@ export class PetitionWorkflowCore {
     const totalDuration = Date.now() - startTime;
     console.log(`  🎉 [Core] Hoàn tất tự động duyệt đơn [${request.requestCode}] trong ${totalDuration}ms!\n`);
 
-    return {
-      success: true,
-      decision: 'AUTO_APPROVED',
-      classification: authResult.classification || 'ROUTINE',
-      uncertaintyType: null,
-      status: 'APPROVED',
-      requestId: request.id,
-      requestCode: request.requestCode,
-      qrCodeUrl: null,
-      sha256Proof: auditLog?.sha256Hash,
-      totalDuration,
-      message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công trong ${totalDuration}ms. Bạn vui lòng mang thẻ sinh viên đến ${inputData?.pickupCampus || 'Phòng CTSV'} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường trong giờ hành chính nhé!`,
-      confirmationDetails: {
-        studentName: student.fullName,
-        studentCode: student.studentCode,
-        department: student.department?.name,
-        formCode: inputData?.formCode || 'GENERAL_CONFIRMATION',
-        purpose: inputData?.purpose || inputData?.reason,
-        pickupCampus: inputData?.pickupCampus,
-        issuedDate: new Date().toLocaleDateString('vi-VN'),
-        validDays: 30,
-      },
-    };
+      return {
+        success: true,
+        decision: 'AUTO_APPROVED',
+        classification: authResult.classification || 'ROUTINE',
+        uncertaintyType: null,
+        status: 'APPROVED',
+        requestId: request.id,
+        requestCode: request.requestCode,
+        qrCodeUrl: null,
+        sha256Proof: auditLog?.sha256Hash,
+        totalDuration,
+        message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công trong ${totalDuration}ms. Bạn vui lòng mang thẻ sinh viên đến ${inputData?.pickupCampus || 'Phòng CTSV'} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường trong giờ hành chính nhé!`,
+        confirmationDetails: {
+          studentName: student.fullName,
+          studentCode: student.studentCode,
+          department: student.department?.name,
+          formCode: inputData?.formCode || 'GENERAL_CONFIRMATION',
+          purpose: inputData?.purpose || inputData?.reason,
+          pickupCampus: inputData?.pickupCampus,
+          issuedDate: new Date().toLocaleDateString('vi-VN'),
+        },
+      };
   }
 
   /**
@@ -395,6 +394,14 @@ export class PetitionWorkflowCore {
 
     if (!request) {
       return { success: false, message: 'Không tìm thấy hồ sơ đơn cần bổ sung.' };
+    }
+
+    // Chốt chặn State Machine: Chỉ cho phép bổ sung khi đơn đang chờ sinh viên (WAITING_STUDENT)
+    if (request.status !== 'WAITING_STUDENT') {
+      return {
+        success: false,
+        message: `Hồ sơ [${request.requestCode}] đang ở trạng thái [${request.status}], không thể bổ sung thông tin. Chỉ có thể bổ sung khi hồ sơ ở trạng thái WAITING_STUDENT.`,
+      };
     }
 
     // 1. Lưu các chứng từ mới nếu có vào DB

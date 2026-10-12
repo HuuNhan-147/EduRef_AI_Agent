@@ -144,12 +144,19 @@ router.post('/verify-custom-prompt', authenticateToken, async (req, res) => {
  */
 router.post('/rollback', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
-    const { requestCode, reason } = req.body;
-    if (!requestCode) {
-      return res.status(400).json({ success: false, message: 'Thiếu requestCode.' });
+    const { requestCode, requestId, reason } = req.body;
+    if (!requestCode && !requestId) {
+      return res.status(400).json({ success: false, message: 'Thiếu requestCode hoặc requestId.' });
     }
 
-    const result = await petitionTools.rollback_student_request({ requestCode, reason });
+    const { default: AcademicWorkflowService } = await import('../services/AcademicWorkflowService.js');
+    const result = await AcademicWorkflowService.rollbackRequest({
+      requestCode,
+      requestId,
+      reason,
+      actorType: req.user?.role || 'STAFF',
+      staffName: req.user?.fullName || req.user?.username || 'Cán bộ Quản lý',
+    });
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

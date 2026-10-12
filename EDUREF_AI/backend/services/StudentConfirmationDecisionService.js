@@ -2,6 +2,7 @@
 // Lõi Thẩm Định Quy Chế Học Vụ 5 Biểu Mẫu Chuẩn Thực Tế HUTECH (Phòng Công Tác Sinh Viên)
 
 import { conversationMemory } from '../modules/ai-agent/memory/ConversationMemory.js';
+import { STUDENT_REGISTRY } from '../config/studentRegistry.js';
 
 export const TRACK_A_CLASSIFICATION = Object.freeze({
   ROUTINE: 'ROUTINE',
@@ -175,8 +176,7 @@ export function checkCohortOverdueStatus(student = {}) {
   if (student.studentCode === '2110005' || student.isOverdueCohort === true) {
     isOverdue = true;
   } else if (admissionYear > 0) {
-    const currentYear = new Date().getFullYear();
-    isOverdue = (currentYear - admissionYear) > 4;
+    isOverdue = admissionYear <= 2020 || (new Date().getFullYear() - admissionYear) > 5;
   }
 
   // Tín chỉ tích lũy hoặc tình trạng tốt nghiệp
@@ -494,9 +494,15 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     };
   }
 
-  // 2. ĐIỀU KIỆN TIÊN QUYẾT SỐ 1: CÓ THỜI KHÓA BIỂU / CÓ ĐĂNG KÝ TÍN CHỈ KỲ NÀY
-  const enrolledCredits = student.enrolledCredits !== undefined ? Number(student.enrolledCredits) : (student.status === 'ACTIVE' ? 15 : 0);
-  const hasSchedule = student.hasSchedule !== undefined ? Boolean(student.hasSchedule) : (enrolledCredits > 0);
+  // 2. ĐIỀU KIỆN TIÊN QUYẾT SỐ 1: CÓ THỜI KHÓA BIỂU / CÓ PHÁT SINH TÍN CHỈ KỲ NÀY (TÍNH CẢ HỌC KỲ PHỤ)
+  // Tra cứu nguồn chân lý học vụ (Student Entity hoặc Student Registry)
+  const registryProfile = student?.studentCode ? STUDENT_REGISTRY[String(student.studentCode).trim()] : null;
+  const rawEnrolledCredits = student.enrolledCredits ?? student.credits ?? registryProfile?.enrolledCredits ?? null;
+  const enrolledCredits = rawEnrolledCredits !== null ? Number(rawEnrolledCredits) : null;
+  const hasSchedule = student.hasSchedule !== undefined && student.hasSchedule !== null
+    ? Boolean(student.hasSchedule)
+    : (enrolledCredits !== null ? enrolledCredits > 0 : false);
+
   const urgentText = String(inputData.urgentReason || inputData.specialReason || inputData.reason || inputData.purpose || '').trim();
   const isUrgent = /cần gấp|can gap|gấp|gap|đặc biệt|dac biet|việc gấp|nộp gấp|hồ sơ gấp/i.test(urgentText);
 
@@ -509,7 +515,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
         decision: TRACK_A_DECISION.ESCALATE_STAFF,
         targetRole: 'STAFF',
         rule: 'POL_NO_SCHEDULE_BUT_URGENT_ESCALATE',
-        reason: `Sinh viên chưa có học phần/TKB trong học kỳ hiện tại nhưng có lý do cần gấp: "${urgentText}". Vượt thẩm quyền tự động của AI, đóng gói chuyển tiếp Cán bộ xem xét.`,
+        reason: `Sinh viên chưa có học phần/TKB trong học kỳ hiện tại (tính cả học kỳ phụ) nhưng có lý do cần gấp: "${urgentText}". Vượt thẩm quyền tự động của AI, đóng gói chuyển tiếp Cán bộ xem xét.`,
         actionableQuestion: `Sinh viên ${student.fullName} (${student.studentCode}) chưa có TKB học kỳ này nhưng xin cấp giấy gấp với lý do: "${urgentText}". Cán bộ PĐT/CTSV có chấp thuận xem xét giải quyết ngoại lệ không?`,
         userMessage: `Hồ sơ của bạn hiện chưa có học phần/TKB trong học kỳ hiện tại nên không thể cấp tự động. Tuy nhiên, hệ thống đã ghi nhận lý do cần gấp của bạn ("${urgentText}") và đã đóng gói chuyển tiếp hồ sơ lên Cán bộ Phòng Đào tạo / CTSV để xem xét hỗ trợ. Bạn vui lòng chờ phản hồi từ Nhà trường nhé!`,
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
@@ -521,8 +527,8 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
       uncertaintyType: null,
       decision: TRACK_A_DECISION.AUTO_REJECT,
       rule: 'POL_NO_ACTIVE_SCHEDULE_OR_CREDITS',
-      reason: 'Sinh viên không có thời khóa biểu hoặc chưa đăng ký tín chỉ trong học kỳ hiện tại.',
-      userMessage: 'Theo quy định của Nhà trường, Giấy xác nhận sinh viên chỉ cấp cho sinh viên đang có thời khóa biểu / có phát sinh hoạt động học tập (tối thiểu 1 tín chỉ) trong học kỳ hiện tại. Hồ sơ của bạn hiện chưa có thời khóa biểu học kỳ này nên không đủ điều kiện giải quyết. Nếu bạn có việc đặc biệt cần gấp, vui lòng nêu rõ lý do để hệ thống đóng gói chuyển tiếp Cán bộ xem xét.',
+      reason: 'Sinh viên không có thời khóa biểu hoặc chưa đăng ký tín chỉ trong học kỳ hiện tại (tính cả học kỳ phụ).',
+      userMessage: 'Theo quy định của Nhà trường, Giấy xác nhận sinh viên chỉ cấp cho sinh viên đang có thời khóa biểu / có phát sinh hoạt động học tập (tính cả học kỳ phụ) trong học kỳ hiện tại. Hồ sơ của bạn hiện chưa có thời khóa biểu học kỳ này nên không đủ điều kiện giải quyết. Nếu bạn có việc đặc biệt cần gấp, vui lòng nêu rõ lý do để hệ thống đóng gói chuyển tiếp Cán bộ xem xét.',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
@@ -622,11 +628,21 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     }
   }
 
-  // 4.1. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY THEO SƠ ĐỒ .MDJ: CHECK CÓ TRÙNG BIỂU MẪU KHÔNG
+  // 4.1. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY THEO SƠ ĐỒ .MDJ: CHECK CÓ TRÙNG BIỂU MẪU KHÔNG (THEO HỌC KỲ HIỆN TẠI)
+  const ONE_SEMESTER_MS = 150 * 24 * 60 * 60 * 1000;
   const approvedCount = inputData.existingApprovedCount !== undefined
     ? Number(inputData.existingApprovedCount)
     : (Array.isArray(inputData.historyRequests)
-        ? inputData.historyRequests.filter((r) => ['APPROVED', 'COMPLETED', 'ESCALATED'].includes(r.status) && (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === targetForm.code).length
+        ? inputData.historyRequests.filter((r) => {
+            const isSameForm = (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === targetForm.code;
+            const isApproved = ['APPROVED', 'COMPLETED', 'ESCALATED'].includes(r.status);
+            if (!isSameForm || !isApproved) return false;
+            if (r.createdAt) {
+              const diffMs = Date.now() - new Date(r.createdAt).getTime();
+              return diffMs <= ONE_SEMESTER_MS;
+            }
+            return true;
+          }).length
         : 0);
 
   if (approvedCount >= 1) {

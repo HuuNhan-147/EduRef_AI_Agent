@@ -117,7 +117,7 @@ router.post('/', authenticateToken, async (req, res) => {
       idCardDate: inputData?.idCardDate || fullProfile.idCardDate,
       idCardPlace: inputData?.idCardPlace || fullProfile.idCardPlace,
       permanentAddress: inputData?.permanentAddress || fullProfile.permanentAddress,
-      pickupCampus: inputData?.pickupCampus || 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+      pickupCampus: inputData?.pickupCampus || null,
       ...inputData,
     };
 
@@ -379,10 +379,21 @@ router.post('/ocr-certificate', authenticateToken, async (req, res) => {
 router.post('/:id/resume', authenticateToken, async (req, res) => {
   try {
     const { additionalData = {}, newDocuments = [] } = req.body;
-    const ownedRequest = await prisma.studentRequest.findUnique({ where: { id: req.params.id } });
+    const ownedRequest = await prisma.studentRequest.findUnique({
+      where: { id: req.params.id },
+      include: { student: true },
+    });
     if (!ownedRequest) return res.status(404).json({ success: false, message: 'Không tìm thấy hồ sơ đơn.' });
-    if (req.user?.role === 'STUDENT' && ownedRequest.studentId !== req.user.id) {
+
+    if (req.user?.role === 'STUDENT' && ownedRequest.studentId !== req.user.id && ownedRequest.student?.studentCode !== req.user?.studentCode) {
       return res.status(403).json({ success: false, message: 'Bạn không có quyền tiếp tục hồ sơ của sinh viên khác.' });
+    }
+
+    if (ownedRequest.status !== 'WAITING_STUDENT') {
+      return res.status(400).json({
+        success: false,
+        message: `Hồ sơ [${ownedRequest.requestCode}] đang ở trạng thái [${ownedRequest.status}], không thể bổ sung thông tin. Chỉ có thể bổ sung khi hồ sơ ở trạng thái WAITING_STUDENT.`,
+      });
     }
     const { default: petitionWorkflowCore } = await import('../modules/petition-core/PetitionWorkflowCore.js');
 
@@ -408,6 +419,12 @@ router.post('/reset-test', authenticateToken, async (req, res) => {
       return res.status(400).json({ success: false, message: 'Thiếu studentCode để làm sạch dữ liệu test.' });
     }
 
+    const isStaff = ['STAFF', 'DEAN', 'ADMIN'].includes(req.user?.role);
+    const isOwner = req.user?.studentCode && String(req.user.studentCode).trim() === String(studentCode).trim();
+    if (!isStaff && !isOwner) {
+      return res.status(403).json({ success: false, message: 'Bạn không có quyền dọn dẹp dữ liệu của sinh viên khác.' });
+    }
+
     const student = await prisma.student.findUnique({
       where: { studentCode: String(studentCode).trim() },
       select: { id: true, studentCode: true, fullName: true },
@@ -426,17 +443,12 @@ router.post('/reset-test', authenticateToken, async (req, res) => {
 
     let deletedCount = 0;
     if (requestIds.length > 0) {
-      // 2. Xóa các bản ghi AuditLog liên quan
-      await prisma.auditLog.deleteMany({
-        where: { requestId: { in: requestIds } },
-      });
-
-      // 3. Xóa các RequestDocument nếu có
+      // 2. Xóa các RequestDocument nếu có
       await prisma.requestDocument.deleteMany({
         where: { requestId: { in: requestIds } },
       });
 
-      // 4. Xóa các đơn StudentRequest
+      // 3. Xóa các đơn StudentRequest (Không xóa AuditLog để bảo toàn chuỗi băm SHA-256 bất biến)
       const deleteResult = await prisma.studentRequest.deleteMany({
         where: { id: { in: requestIds } },
       });

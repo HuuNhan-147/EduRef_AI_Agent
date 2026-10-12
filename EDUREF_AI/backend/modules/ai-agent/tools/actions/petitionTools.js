@@ -184,7 +184,7 @@ export const petitionTools = {
 
       // Case 4: Thường quy hợp lệ -> Tự động duyệt 100% trong 0.8s
       if (evalResult.decision === 'ROUTINE_AUTO_APPROVE') {
-        const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=EDUREF_VERIFIED_${requestCode}_${student.studentCode}`;
+        const qrCodeUrl = null;
 
         const newRequest = await prisma.studentRequest.create({
           data: {
@@ -194,7 +194,7 @@ export const petitionTools = {
             status: 'APPROVED',
             inputData,
             decision: 'ROUTINE_AUTO_APPROVED',
-            qrCodeUrl,
+            qrCodeUrl: null,
           },
         });
 
@@ -240,55 +240,15 @@ export const petitionTools = {
   /**
    * Hoàn tác 1-chạm (One-Click Rollback) khi phát hiện gian lận hoặc sai sót
    */
-  async rollback_student_request({ requestCode, reason = 'Phát hiện khai báo sai lệch thông tin' }) {
-    const startTime = Date.now();
-    try {
-      const request = await prisma.studentRequest.findUnique({
-        where: { requestCode },
-        include: { student: true, requestType: true },
-      });
-
-      if (!request) {
-        return { success: false, message: `Không tìm thấy đơn có mã: ${requestCode}` };
-      }
-
-      const beforeState = { status: request.status, qrCodeUrl: request.qrCodeUrl };
-
-      // Chuyển trạng thái sang CANCELLED và xóa mã QR
-      const updated = await prisma.studentRequest.update({
-        where: { id: request.id },
-        data: {
-          status: 'CANCELLED',
-          qrCodeUrl: null,
-          decision: 'CANCELLED_ROLLBACK',
-          escalationReason: `Hoàn tác bởi Quản lý: ${reason}`,
-        },
-      });
-
-      // Ghi vết kiểm toán hành động hoàn tác
-      const auditLog = await AuditLogService.recordLog({
-        requestId: request.id,
-        actorType: 'STAFF',
-        action: 'ROLLBACK_REQUEST',
-        decision: 'CANCELLED',
-        reason,
-        inputSnapshot: { requestCode, reason },
-        beforeState,
-        afterState: { status: 'CANCELLED', qrCodeUrl: null },
-        decisionTimeMs: Date.now() - startTime,
-      });
-
-      return {
-        success: true,
-        requestCode,
-        previousStatus: beforeState.status,
-        currentStatus: 'CANCELLED',
-        sha256Proof: auditLog?.sha256Hash,
-        message: `Đã hoàn tác thành công đơn [${requestCode}]. Mã chứng thực số và QR Code đã bị vô hiệu hóa hoàn toàn.`,
-      };
-    } catch (error) {
-      return { success: false, message: error.message };
-    }
+  async rollback_student_request({ requestCode, requestId, reason = 'Phát hiện khai báo sai lệch thông tin' }) {
+    const { default: AcademicWorkflowService } = await import('../../../../services/AcademicWorkflowService.js');
+    return AcademicWorkflowService.rollbackRequest({
+      requestCode,
+      requestId,
+      reason,
+      actorType: 'STAFF',
+      staffName: 'Cán bộ Quản lý (AI Action Tool)',
+    });
   },
 
   /**
@@ -323,9 +283,7 @@ export const petitionTools = {
 
       const beforeState = { status: request.status, qrCodeUrl: request.qrCodeUrl };
       const newStatus = approved ? 'APPROVED' : 'REJECTED';
-      const qrCodeUrl = approved
-        ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=EDUREF_STAFF_APPROVED_${request.requestCode}`
-        : null;
+      const qrCodeUrl = null;
 
       const auditLog = await AuditLogService.recordLogWithMutation({
         requestId: request.id,

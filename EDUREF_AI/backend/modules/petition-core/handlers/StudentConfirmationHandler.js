@@ -177,11 +177,11 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
     if (missing.length === 1 && missing[0].code === 'REQ_PURPOSE') {
       return (
         'Bạn cần giấy xác nhận sinh viên cho mục đích nào:\n' +
-        '1. Tạm hoãn nghĩa vụ quân sự (MILITARY_DEFERMENT)\n' +
-        '2. Vay vốn ngân hàng chính sách xã hội (BANK_LOAN)\n' +
-        '3. Giảm trừ thuế thu nhập cá nhân (TAX_DEDUCTION)\n' +
-        '4. Biểu mẫu nợ môn / Tiếp tục học tập (COURSE_DEBT)\n' +
-        '5. Xác nhận sinh viên chung: vé xe buýt, học bổng, visa (GENERAL_CONFIRMATION)?\n\n' +
+        '1. Tạm hoãn nghĩa vụ quân sự\n' +
+        '2. Vay vốn ngân hàng chính sách xã hội (Mẫu 01)\n' +
+        '3. Giảm trừ thuế thu nhập cá nhân\n' +
+        '4. Biểu mẫu nợ môn / Tiếp tục học tập\n' +
+        '5. Xác nhận sinh viên chung: vé xe buýt, học bổng, visa, việc làm...?\n\n' +
         '👉 Bạn có thể bấm chọn biểu mẫu tương ứng bên tay trái hoặc nhắn trực tiếp cho mình nhé!'
       );
     }

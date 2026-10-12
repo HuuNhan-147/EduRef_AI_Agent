@@ -8,6 +8,10 @@ const defaultStudent = {
   fullName: 'Sinh viên kiểm thử',
   status: 'ACTIVE',
   tuitionDebt: 0,
+  hasSchedule: true,
+  enrolledCredits: 15,
+  admissionYear: 2022,
+  department: 'CNTT',
 };
 
 test('Track A fixture has exactly 3 routine auto cases and 2 escalation cases (60% Auto / 40% Escalate)', () => {

@@ -167,7 +167,12 @@ io.on('connection', (socket) => {
           };
         }
       } else {
-        const codeToFind = explicitStudentCode || socket.user?.studentCode;
+        // AN NINH (ZERO-TRUST IDENTITY): Nếu phiên là STUDENT, bắt buộc dùng studentCode từ JWT token đã xác thực
+        // Tuyệt đối không cho phép client mạo danh sinh viên khác qua data.studentCode!
+        const isStudentToken = socket.user?.role === 'STUDENT' || socket.user?.type === 'STUDENT';
+        const codeToFind = isStudentToken
+          ? (socket.user?.studentCode || explicitStudentCode)
+          : (explicitStudentCode || socket.user?.studentCode);
         if (codeToFind) {
           const student = await prisma.student.findUnique({
             where: { studentCode: String(codeToFind).trim() },

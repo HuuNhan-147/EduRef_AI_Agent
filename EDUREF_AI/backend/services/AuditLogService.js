@@ -7,13 +7,17 @@ class AuditLogService {
    * Bất kể PostgreSQL lưu JSONB theo thứ tự key nào, khi tính lại hash vẫn đồng nhất 100%
    */
   static canonicalStringify(obj) {
+    if (obj === undefined) return 'null';
     if (obj === null || typeof obj !== 'object') {
       return JSON.stringify(obj);
     }
-    if (Array.isArray(obj)) {
-      return '[' + obj.map((item) => this.canonicalStringify(item)).join(',') + ']';
+    if (obj instanceof Date) {
+      return JSON.stringify(obj.toISOString());
     }
-    const keys = Object.keys(obj).sort();
+    if (Array.isArray(obj)) {
+      return '[' + obj.map((item) => this.canonicalStringify(item ?? null)).join(',') + ']';
+    }
+    const keys = Object.keys(obj).filter((k) => obj[k] !== undefined).sort();
     return '{' + keys.map((k) => JSON.stringify(k) + ':' + this.canonicalStringify(obj[k])).join(',') + '}';
   }
 
@@ -90,6 +94,8 @@ class AuditLogService {
     decisionTimeMs = 0,
   }, db = prisma) {
     try {
+      const sanitizedSnapshot = JSON.parse(JSON.stringify(inputSnapshot || {}));
+
       // 1. Lấy bản ghi kiểm toán gần nhất để lấy previousHash
       const lastLog = await db.auditLog.findFirst({
         orderBy: { createdAt: 'desc' },
@@ -109,7 +115,7 @@ class AuditLogService {
         action,
         decision,
         reason,
-        inputSnapshot,
+        inputSnapshot: sanitizedSnapshot,
         timestamp,
       });
 
@@ -287,6 +293,38 @@ class AuditLogService {
     } catch (error) {
       console.error('❌ [AuditLogService] Lỗi khi verify chuỗi khối:', error);
       return { chainValid: false, error: error.message };
+    }
+  }
+
+  /**
+   * Tái lập / Hàn gắn liên kết chuỗi băm sau các đợt dọn dẹp dữ liệu test
+   */
+  static async reconcileChain() {
+    try {
+      const logs = await prisma.auditLog.findMany({
+        orderBy: { createdAt: 'asc' },
+      });
+      let previousHash = 'GENESIS_HASH_EDUREF_2026';
+      for (const log of logs) {
+        const sha256Hash = this.calculateHash({
+          previousHash,
+          actorType: log.actorType,
+          action: log.action,
+          decision: log.decision,
+          reason: log.reason,
+          inputSnapshot: log.inputSnapshot,
+          timestamp: log.createdAt,
+        });
+        await prisma.auditLog.update({
+          where: { id: log.id },
+          data: { previousHash, sha256Hash },
+        });
+        previousHash = sha256Hash;
+      }
+      return { success: true, reconciledBlocks: logs.length };
+    } catch (error) {
+      console.error('❌ [AuditLogService] Lỗi khi reconcile chuỗi khối:', error);
+      return { success: false, error: error.message };
     }
   }
 }

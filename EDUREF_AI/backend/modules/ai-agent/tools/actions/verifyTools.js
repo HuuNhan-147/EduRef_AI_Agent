@@ -5,6 +5,7 @@ import {
   inferStudentConfirmationInput,
   STUDENT_CONFIRMATION_POLICY_VERSION,
 } from '../../../../services/StudentConfirmationDecisionService.js';
+import { getStudentFullProfile } from '../../../../config/studentRegistry.js';
 
 function toPublicCase(testCase) {
   return {
@@ -222,9 +223,21 @@ export const verifyTools = {
   },
 
   async run_custom_prompt({ prompt, studentCode = null }) {
-    const codeFromPrompt = String(prompt || '').match(/\b\d{7,10}\b/)?.[0];
+    // Không nhận nhầm SĐT (bắt đầu bằng 03, 05, 07, 08, 09) làm MSSV
+    const explicitCodeMatch = String(prompt || '').match(/(?:mssv|mã sv|mã số sinh viên|sv)[\s:]*([0-9]{7,10})/i);
+    const fallbackCodeMatch = String(prompt || '').match(/\b(?:1[0-9]|2[0-9])[0-9]{5,8}\b/);
+    const codeFromPrompt = explicitCodeMatch ? explicitCodeMatch[1] : fallbackCodeMatch?.[0];
     const resolvedStudentCode = studentCode || codeFromPrompt || '2280602154';
     const inputData = inferStudentConfirmationInput(prompt);
+
+    // Kế thừa thông tin liên lạc mặc định từ hồ sơ nếu Giám khảo không nhập trong câu prompt tự do
+    const profile = getStudentFullProfile(resolvedStudentCode);
+    if (!inputData.phone && profile?.phone) {
+      inputData.phone = profile.phone;
+    }
+    if (!inputData.pickupCampus) {
+      inputData.pickupCampus = 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
+    }
 
     agentTerminalLogger.log({
       step: 'CUSTOM_CASE',

@@ -86,11 +86,11 @@ class AcademicWorkflowService {
           uncertaintyType: 'UNKNOWN_FACT',
           actionableQuestion:
             'Bạn cần cấp giấy xác nhận sinh viên cho mục đích nào:\n' +
-            '1. Tạm hoãn nghĩa vụ quân sự (MILITARY_DEFERMENT)\n' +
-            '2. Vay vốn ngân hàng chính sách xã hội (BANK_LOAN)\n' +
-            '3. Giảm trừ thuế thu nhập cá nhân (TAX_DEDUCTION)\n' +
-            '4. Biểu mẫu nợ môn / Tiếp tục học tập (COURSE_DEBT)\n' +
-            '5. Xác nhận sinh viên chung: vé xe buýt, học bổng, visa (GENERAL_CONFIRMATION)?\n\n' +
+            '1. Tạm hoãn nghĩa vụ quân sự\n' +
+            '2. Vay vốn ngân hàng chính sách xã hội (Mẫu 01)\n' +
+            '3. Giảm trừ thuế thu nhập cá nhân\n' +
+            '4. Biểu mẫu nợ môn / Tiếp tục học tập\n' +
+            '5. Xác nhận sinh viên chung: vé xe buýt, học bổng, visa, việc làm...?\n\n' +
             '👉 Bạn có thể bấm chọn mục tương ứng ở danh mục bên tay trái hoặc nhắn trực tiếp cho mình nhé!',
           message: 'Vui lòng cung cấp mục đích sử dụng Giấy xác nhận sinh viên.',
         };
@@ -254,15 +254,24 @@ class AcademicWorkflowService {
         }
       }
 
-      // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY LẦN 2 (REISSUE GUARD)
+      // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY LẦN 2 (REISSUE GUARD) THEO HỌC KỲ HIỆN TẠI
+      const ONE_SEMESTER_MS = 150 * 24 * 60 * 60 * 1000;
+      const currentSemesterApprovedCount = historyRequests.filter((r) => {
+        const isSameForm = (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === activeFormCode;
+        const isApprovedStatus = ['APPROVED', 'COMPLETED', 'ESCALATED'].includes(r.status);
+        if (!isSameForm || !isApprovedStatus) return false;
+        if (r.createdAt) {
+          const diffMs = Date.now() - new Date(r.createdAt).getTime();
+          return diffMs <= ONE_SEMESTER_MS;
+        }
+        return true;
+      }).length;
+
       const effectiveApprovedCount = existingApprovedCount !== null && existingApprovedCount !== undefined
         ? Number(existingApprovedCount)
         : (inputData?.existingApprovedCount !== undefined
             ? Number(inputData.existingApprovedCount)
-            : historyRequests.filter(
-                (r) => ['APPROVED', 'COMPLETED', 'ESCALATED'].includes(r.status) &&
-                       (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === activeFormCode
-              ).length);
+            : currentSemesterApprovedCount);
 
       const isReissueCase = effectiveApprovedCount >= 1;
       const finalReissueReason = String(reissueReason || inputData?.reissueReason || inputData?.repeatReason || inputData?.explanation || '').trim();
@@ -446,7 +455,7 @@ class AcademicWorkflowService {
         idCardDate: inputData?.idCardDate || fullProfile.idCardDate,
         idCardPlace: inputData?.idCardPlace || fullProfile.idCardPlace,
         permanentAddress: inputData?.permanentAddress || fullProfile.permanentAddress,
-        pickupCampus: inputData?.pickupCampus || 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+        pickupCampus: inputData?.pickupCampus || null,
         ...inputData,
         purpose: purpose || inputData.purpose || null,
       };
@@ -900,8 +909,8 @@ class AcademicWorkflowService {
         throw new Error(`Không thể duyệt đơn: Vượt thẩm quyền của Tác tử AI`);
       }
 
-      // Tạo mã QR chứng thực số
-      const qrCodeUrl = `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=EDUREF_VERIFIED_${request.requestCode}_${request.student.studentCode}`;
+      // Bản cứng có chữ ký sống và mộc đỏ do Nhà trường cấp, không sinh mã QR bên thứ ba
+      const qrCodeUrl = null;
 
       // Ghi log Audit với chữ ký SHA-256
       const auditLog = await AuditLogService.recordLogWithMutation({
@@ -912,14 +921,14 @@ class AcademicWorkflowService {
         reason: 'Tác tử tự động phê duyệt thành công sau khi vượt qua tất cả các chốt chặn',
         inputSnapshot: request.inputData,
         beforeState,
-        afterState: { status: 'APPROVED', qrCodeUrl },
+        afterState: { status: 'APPROVED', qrCodeUrl: null },
       }, async (tx, log) => {
         await tx.studentRequest.update({
           where: { id: request.id },
           data: {
             status: 'APPROVED',
             decision: 'ROUTINE_AUTO_APPROVED',
-            qrCodeUrl,
+            qrCodeUrl: null,
             sha256Proof: log.sha256Hash,
           },
         });
@@ -933,9 +942,9 @@ class AcademicWorkflowService {
         studentName: request.student.fullName,
         studentCode: request.student.studentCode,
         requestTypeName: request.requestType.name,
-        qrCodeUrl,
+        qrCodeUrl: null,
         sha256Proof: auditLog?.sha256Hash,
-        message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công. Mã QR chứng thực số đã sẵn sàng.`,
+        message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công. Bạn vui lòng mang thẻ sinh viên đến ${request.inputData?.pickupCampus || 'Phòng CTSV'} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường trong giờ hành chính nhé!`,
       };
     } catch (error) {
       return { success: false, error: error.message };
@@ -1081,9 +1090,7 @@ class AcademicWorkflowService {
       }
 
       const newStatus = approved ? 'APPROVED' : 'REJECTED';
-      const qrCodeUrl = approved
-        ? `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=EDUREF_STAFF_APPROVED_${request.requestCode}`
-        : null;
+      const qrCodeUrl = null;
 
       const beforeState = { status: request.status, qrCodeUrl: request.qrCodeUrl };
 

@@ -304,10 +304,14 @@ export class AgentOrchestrator {
           ? (toolArgs.pickupCampus || inputData?.pickupCampus || null)
           : null;
 
+        const isStudentCaller = currentUser?.role === 'STUDENT' || currentUser?.type === 'STUDENT';
         const mergedArgs = {
           ...toolArgs,
-          // Định danh tài khoản đăng nhập để xác thực phiên
-          studentCode: toolArgs.studentCode || currentUser?.studentCode || currentUser?.code || null,
+          // AN NINH (IDENTITY LOCKDOWN): Khóa chặt MSSV theo tài khoản đăng nhập JWT,
+          // phớt lờ toolArgs.studentCode do LLM sinh ra để ngăn chặn Prompt Injection mạo danh sinh viên khác.
+          studentCode: isStudentCaller
+            ? (currentUser?.studentCode || currentUser?.code || null)
+            : (toolArgs.studentCode || currentUser?.studentCode || currentUser?.code || null),
           studentClass: toolArgs.studentClass || currentUser?.studentClass || currentUser?.class || null,
           // CÁC TRƯỜNG DỮ LIỆU ĐƠN: TUYỆT ĐỐI KHÔNG FALLBACK TỪ CURRENTUSER (ZERO-TOLERANCE GUARD)
           phone: toolArgs.phone || inputData?.phone || null,
@@ -422,11 +426,12 @@ export class AgentOrchestrator {
       console.log('└──────────────────────────────────────────────────────┴──────────────┴──────────────────┘\n');
 
       // 🛡️ OUTPUT GUARDRAIL: Ngăn chặn triệt để hiện tượng Gemini ảo giác (Hallucination)
-      // Nếu Tool trả về ASK_CLARIFICATION nhưng LLM lại nói "đã duyệt" hoặc quên hỏi câu hỏi làm rõ
+      // Chỉ can thiệp ghi đè khi LLM nói dối là "đã duyệt" trong khi Tool trả về ASK_CLARIFICATION / AUTO_REJECT,
+      // hoặc khi LLM không sinh được nội dung nào. Nếu LLM đang chào hỏi và giải thích tự nhiên thì GIỮ NGUYÊN 100%!
       if (lastToolResult?.decision === 'ASK_CLARIFICATION') {
         const actionableQ = lastToolResult.actionableQuestion || lastToolResult.message;
         const saysApproved = /(?:đã được duyệt|được phê duyệt|duyệt thành công|đã cấp giấy|hoàn tất xét duyệt)/i.test(finalReplyText);
-        if (saysApproved || !finalReplyText || !finalReplyText.includes('?')) {
+        if (saysApproved || !finalReplyText) {
           finalReplyText = actionableQ || finalReplyText;
         }
       } else if (lastToolResult?.decision === 'AUTO_REJECT') {
