@@ -124,7 +124,7 @@ class AcademicWorkflowService {
       let historyRequests = [];
       if (studentRec?.id) {
         try {
-          historyRequests = await prisma.studentRequest.findMany({
+          const rawHistory = await prisma.studentRequest.findMany({
             where: {
               studentId: studentRec.id,
               requestType: { code: 'STUDENT_CONFIRMATION' },
@@ -133,6 +133,16 @@ class AcademicWorkflowService {
             select: { id: true, requestCode: true, status: true, inputData: true, createdAt: true },
             orderBy: { createdAt: 'desc' },
           });
+          // Sanitize để triệt tiêu đệ quy inputData phình to cấp số nhân
+          historyRequests = rawHistory.map((r) => ({
+            id: r.id,
+            requestCode: r.requestCode,
+            status: r.status,
+            createdAt: r.createdAt,
+            inputData: {
+              formCode: r.inputData?.formCode || 'GENERAL_CONFIRMATION',
+            },
+          }));
         } catch (_e) {
           historyRequests = inputData?.historyRequests || [];
         }
@@ -371,8 +381,8 @@ class AcademicWorkflowService {
           studentCode: student.studentCode,
           fullName: student.fullName,
           email: student.email,
-          department: student.department.name,
-          departmentCode: student.department.code,
+          department: student.department?.name || 'Khoa Công Nghệ Thông Tin',
+          departmentCode: student.department?.code || 'CNTT',
           status: student.status, // ACTIVE, DROPPED, SUSPENDED, GRADUATED
           tuitionDebt: Number(student.tuitionDebt),
           gpa: Number(student.gpa),
@@ -584,7 +594,7 @@ class AcademicWorkflowService {
           student: {
             studentCode: request.student.studentCode,
             fullName: request.student.fullName,
-            department: request.student.department.name,
+            department: request.student?.department?.name || 'Khoa Công Nghệ Thông Tin',
             status: request.student.status,
             tuitionDebt: Number(request.student.tuitionDebt),
             gpa: Number(request.student.gpa),
