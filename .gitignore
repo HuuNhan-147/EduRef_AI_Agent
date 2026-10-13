@@ -7,3 +7,4 @@ dist/
 # Scratch and temporary scripts
 scratch/
 **/scratch/
+.agents/
