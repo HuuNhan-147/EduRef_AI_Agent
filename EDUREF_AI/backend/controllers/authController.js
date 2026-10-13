@@ -244,15 +244,33 @@ export const getMe = async (req, res) => {
  * POST /api/auth/custom-student
  * Cho phép sinh viên tạo hồ sơ tùy biến để thử nghiệm hệ thống (lưu database và trả về JWT session)
  */
+export const RESERVED_BENCHMARK_STUDENT_CODES = Object.freeze([
+  '2280602154', // Cao Hữu Nhân (Active chính)
+  '2110001',   // Nguyễn Văn An (Active alias)
+  '2110002',   // Trần Thị Bình (DROPPED)
+  '2110003',   // Lê Hoàng Cường (Nợ học phí 15.000.000đ)
+  '2110004',   // Phạm Văn Dũng (SUSPENDED)
+  '2110005',   // Hoàng Thị Mai (Khóa cũ nợ môn)
+]);
+
 export const registerCustomStudent = async (req, res) => {
   try {
-    const { fullName, studentCode, departmentName, status = 'ACTIVE', tuitionDebt = 0, phone = '0901234567' } = req.body;
+    const { fullName, studentCode, departmentName, status = 'ACTIVE', tuitionDebt = 0, phone = '0901234567', birthDate, gender, studentClass } = req.body;
     if (!fullName || !studentCode) {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập Họ tên và MSSV.' });
     }
     const cleanCode = String(studentCode).trim();
+    if (RESERVED_BENCHMARK_STUDENT_CODES.includes(cleanCode)) {
+      return res.status(403).json({
+        success: false,
+        message: `Mã sinh viên [${cleanCode}] là hồ sơ kiểm thử quy chế chuẩn của Nhà trường. Bạn không được phép ghi đè hay chỉnh sửa học phí/trạng thái của hồ sơ này! Vui lòng nhập MSSV khác để tạo hồ sơ riêng.`,
+      });
+    }
     const cleanName = String(fullName).trim();
     const cleanPhone = String(phone || '0901234567').trim();
+    const cleanBirthDate = birthDate ? String(birthDate).trim() : '26/07/2003';
+    const cleanGender = gender ? String(gender).trim() : 'Nam';
+    const cleanClass = studentClass ? String(studentClass).trim() : '22DTHE4';
     const debtNum = Math.max(0, Number(tuitionDebt) || 0);
 
     const targetDeptName = String(departmentName || 'Khoa Công nghệ thông tin').trim();
@@ -279,6 +297,9 @@ export const registerCustomStudent = async (req, res) => {
       update: {
         fullName: cleanName,
         phone: cleanPhone,
+        birthDate: cleanBirthDate,
+        gender: cleanGender,
+        studentClass: cleanClass,
         status: status || 'ACTIVE',
         tuitionDebt: debtNum,
         departmentId: dept.id,
@@ -288,6 +309,9 @@ export const registerCustomStudent = async (req, res) => {
         fullName: cleanName,
         email: `${cleanCode}@hutech.edu.vn`,
         phone: cleanPhone,
+        birthDate: cleanBirthDate,
+        gender: cleanGender,
+        studentClass: cleanClass,
         status: status || 'ACTIVE',
         tuitionDebt: debtNum,
         gpa: 3.2,
