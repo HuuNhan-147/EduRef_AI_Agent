@@ -428,17 +428,23 @@ export class AgentOrchestrator {
       // 🛡️ OUTPUT GUARDRAIL: Ngăn chặn triệt để hiện tượng Gemini ảo giác (Hallucination)
       // Chỉ can thiệp ghi đè khi LLM nói dối là "đã duyệt" trong khi Tool trả về ASK_CLARIFICATION / AUTO_REJECT,
       // hoặc khi LLM không sinh được nội dung nào. Nếu LLM đang chào hỏi và giải thích tự nhiên thì GIỮ NGUYÊN 100%!
-      if (lastToolResult?.decision === 'ASK_CLARIFICATION') {
+      if (lastToolResult?.decision === 'ASK_CLARIFICATION' || lastToolResult?.status === 'WAITING_STUDENT') {
         const actionableQ = lastToolResult.actionableQuestion || lastToolResult.message;
         const saysApproved = /(?:đã được duyệt|được phê duyệt|duyệt thành công|đã cấp giấy|hoàn tất xét duyệt)/i.test(finalReplyText);
         if (saysApproved || !finalReplyText) {
           finalReplyText = actionableQ || finalReplyText;
         }
-      } else if (lastToolResult?.decision === 'AUTO_REJECT') {
+      } else if (lastToolResult?.decision === 'AUTO_REJECT' || lastToolResult?.decision === 'REJECTED_POLICY' || lastToolResult?.status === 'REJECTED') {
         const rejectMsg = lastToolResult.userMessage || lastToolResult.message || lastToolResult.reason;
         const saysApproved = /(?:đã được duyệt|được phê duyệt|duyệt thành công|đã cấp giấy)/i.test(finalReplyText);
         if (saysApproved || !finalReplyText) {
           finalReplyText = rejectMsg || finalReplyText;
+        }
+      } else if (lastToolResult?.decision === 'ESCALATE_TO_STAFF' || lastToolResult?.status === 'ESCALATED') {
+        const escalateMsg = lastToolResult.userMessage || lastToolResult.message || lastToolResult.actionableQuestion;
+        const saysApproved = /(?:đã được duyệt|được phê duyệt|duyệt thành công|đã cấp giấy)/i.test(finalReplyText);
+        if (saysApproved || !finalReplyText) {
+          finalReplyText = escalateMsg || finalReplyText;
         }
       }
 

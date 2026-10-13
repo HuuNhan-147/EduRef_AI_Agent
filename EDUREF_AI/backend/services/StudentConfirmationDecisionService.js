@@ -528,7 +528,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
       decision: TRACK_A_DECISION.AUTO_REJECT,
       rule: 'POL_NO_ACTIVE_SCHEDULE_OR_CREDITS',
       reason: 'Sinh viên không có thời khóa biểu hoặc chưa đăng ký tín chỉ trong học kỳ hiện tại (tính cả học kỳ phụ).',
-      userMessage: 'Theo quy định của Nhà trường, Giấy xác nhận sinh viên chỉ cấp cho sinh viên đang có thời khóa biểu / có phát sinh hoạt động học tập (tính cả học kỳ phụ) trong học kỳ hiện tại. Hồ sơ của bạn hiện chưa có thời khóa biểu học kỳ này nên không đủ điều kiện giải quyết. Nếu bạn có việc đặc biệt cần gấp, vui lòng nêu rõ lý do để hệ thống đóng gói chuyển tiếp Cán bộ xem xét.',
+      userMessage: 'Theo quy chế của Nhà trường, các biểu mẫu in sẵn chuẩn chỉ cấp tự động cho sinh viên đang có thời khóa biểu / phát sinh học phần trong học kỳ hiện tại (tính cả học kỳ phụ). Trường hợp bạn chưa đăng ký TKB nhưng cần xác nhận: Nhà trường vẫn có thể hỗ trợ đóng mộc nếu bạn tự soạn biểu mẫu/đơn riêng của sinh viên (hoặc biểu mẫu riêng của cơ quan ngoài) mang trực tiếp lên Phòng Công tác Sinh viên (A-01.01 Sài Gòn hoặc E1-01.08 Thủ Đức) để Thầy cô xem xét hỗ trợ. Nếu bạn có việc đặc biệt cần gấp, vui lòng nêu rõ lý do để hệ thống đóng gói chuyển tiếp Cán bộ xem xét ngoại lệ nhé!',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }

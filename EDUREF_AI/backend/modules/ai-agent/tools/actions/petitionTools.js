@@ -27,7 +27,7 @@ export const petitionTools = {
           studentCode: student.studentCode,
           fullName: student.fullName,
           email: student.email,
-          department: student.department.name,
+          department: student.department?.name || 'Chưa cập nhật',
           status: student.status,
           tuitionDebt: Number(student.tuitionDebt),
           gpa: Number(student.gpa),
