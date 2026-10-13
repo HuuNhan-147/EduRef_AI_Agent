@@ -45,12 +45,12 @@ const QUICK_TEST_CHIPS = [
     tip: 'ESCALATE_TO_STAFF: Yêu cầu ngoại lệ vượt thẩm quyền tự động',
   },
   {
-    label: 'Bị nợ học phí',
+    label: 'Bị bảo lưu',
     badge: 'REJECT',
     color: 'border-rose-300 bg-rose-50 text-rose-900 hover:bg-rose-100',
-    prompt: 'Cho em xin giấy xác nhận sinh viên để làm hồ sơ học bổng',
-    studentCode: '2110003',
-    tip: 'AUTO_REJECT: Sinh viên nợ học phí 15.000.000đ (Quy chế nợ 0đ)',
+    prompt: 'Em đang trong thời gian bảo lưu học tập kỳ này, xin giấy xác nhận sinh viên làm vé xe buýt',
+    studentCode: '2110004',
+    tip: 'REJECTED_POLICY: Sinh viên đang bảo lưu học tập bị từ chối tự động không bypass',
   },
   {
     label: 'Đã thôi học',

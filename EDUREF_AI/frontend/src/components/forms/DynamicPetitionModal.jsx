@@ -78,8 +78,13 @@ export default function DynamicPetitionModal({
     }
   }, [petitionType]);
 
-  const initialFaculty = currentAccount.department || currentAccount.faculty || currentAccount.departmentName || 'Khoa Công nghệ thông tin';
-  const initialMajor = currentAccount.major || (initialFaculty.startsWith('Khoa ') ? initialFaculty.replace('Khoa ', '') : initialFaculty);
+  const getFacultyString = (val) => {
+    if (typeof val === 'string') return val;
+    return val?.name || 'Khoa Công nghệ thông tin';
+  };
+
+  const initialFaculty = getFacultyString(currentAccount.department || currentAccount.faculty || currentAccount.departmentName);
+  const initialMajor = currentAccount.major || (initialFaculty && typeof initialFaculty === 'string' && initialFaculty.startsWith('Khoa ') ? initialFaculty.replace('Khoa ', '') : initialFaculty);
 
   // State cho Form: Giấy Xác Nhận Sinh Viên (5 Biểu mẫu HUTECH)
   const [confirmData, setConfirmData] = useState({
@@ -106,8 +111,8 @@ export default function DynamicPetitionModal({
   useEffect(() => {
     if (isOpen) {
       const acc = getEffectiveAccount();
-      const activeFaculty = acc?.department || acc?.faculty || acc?.departmentName || '';
-      const activeMajor = acc?.major || (activeFaculty.startsWith('Khoa ') ? activeFaculty.replace('Khoa ', '') : activeFaculty);
+      const activeFaculty = getFacultyString(acc?.department || acc?.faculty || acc?.departmentName);
+      const activeMajor = acc?.major || (activeFaculty && typeof activeFaculty === 'string' && activeFaculty.startsWith('Khoa ') ? activeFaculty.replace('Khoa ', '') : activeFaculty);
 
       setConfirmData((prev) => ({
         ...prev,

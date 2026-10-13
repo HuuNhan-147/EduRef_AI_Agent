@@ -268,7 +268,7 @@ export default function TopNavbar({
                             </span>
                           </div>
                           <div className="text-[11px] text-slate-500">
-                            {acc.role || acc.class} — {acc.faculty || 'Phòng Đào Tạo'}
+                            {acc.role || acc.class} — {(typeof acc.faculty === 'string' ? acc.faculty : acc.faculty?.name) || 'Phòng Đào Tạo'}
                           </div>
                           <div className="text-[10px] text-blue-600 font-medium">
                             {acc.tag}

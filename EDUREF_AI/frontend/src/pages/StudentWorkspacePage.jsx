@@ -1132,7 +1132,7 @@ export default function StudentWorkspacePage({
                       MSSV: {currentAccount.code}
                     </div>
                     <div className="text-[10px] text-slate-500 truncate mt-0.5">
-                      {currentAccount.faculty || 'Khoa Công Nghệ Thông Tin'}
+                      {(typeof currentAccount.faculty === 'string' ? currentAccount.faculty : currentAccount.faculty?.name) || (typeof currentAccount.department === 'string' ? currentAccount.department : currentAccount.department?.name) || 'Khoa Công Nghệ Thông Tin'}
                     </div>
                   </div>
                 </div>
