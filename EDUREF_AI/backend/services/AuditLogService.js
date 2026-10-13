@@ -63,11 +63,17 @@ class AuditLogService {
    */
   static async recordLogWithMutation(params, mutation) {
     const writeTask = this._writeQueue.then(() =>
-      prisma.$transaction(async (tx) => {
-        const auditLog = await this._executeRecordLog(params, tx);
-        await mutation(tx, auditLog);
-        return auditLog;
-      })
+      prisma.$transaction(
+        async (tx) => {
+          const auditLog = await this._executeRecordLog(params, tx);
+          await mutation(tx, auditLog);
+          return auditLog;
+        },
+        {
+          maxWait: 15000,
+          timeout: 30000,
+        }
+      )
     );
     this._writeQueue = writeTask.catch((error) => {
       console.error('❌ [AuditLogService] Lỗi transaction audit/mutation:', error);
