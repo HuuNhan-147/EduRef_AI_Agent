@@ -15,6 +15,7 @@ import { agentTerminalLogger } from './modules/ai-agent/core/AgentTerminalLogger
 import { scopeSessionId } from './modules/ai-agent/memory/sessionScope.js';
 import { warnIfInsecureJwtSecret } from './config/jwtSecret.js';
 import { checkRateLimit } from './middlewares/rateLimit.js';
+import { publicErrorMessage } from './services/ErrorShield.js';
 
 // Global error handlers để tránh crash tiến trình
 process.on('uncaughtException', (err) => {
@@ -117,7 +118,9 @@ app.get('/health', async (req, res) => {
       timestamp: new Date().toISOString(),
     });
   } catch (err) {
-    res.status(500).json({ status: 'unhealthy', error: err.message });
+    // Endpoint công khai: không trả chi tiết lỗi DB (host, tên bảng...) ra ngoài
+    console.error('❌ [Health] Kiểm tra DB thất bại:', err);
+    res.status(500).json({ status: 'unhealthy' });
   }
 });
 
@@ -279,7 +282,7 @@ io.on('connection', (socket) => {
       console.error('❌ [Socket.IO] Lỗi khi xử lý tin nhắn:', err);
       socket.emit('agent_error', {
         sessionId,
-        error: err.message,
+        error: publicErrorMessage(err, `Socket client_send_message (${sessionId})`),
       });
     } finally {
       activeAgentSessions.delete(sessionKey);

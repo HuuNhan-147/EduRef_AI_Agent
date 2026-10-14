@@ -1,4 +1,5 @@
 import prisma from '../../../../config/prisma.js';
+import { publicErrorMessage } from '../../../../services/ErrorShield.js';
 import AcademicPolicyEngine from '../../../../services/AcademicPolicyEngine.js';
 import AuditLogService from '../../../../services/AuditLogService.js';
 
@@ -34,7 +35,7 @@ export const petitionTools = {
         },
       };
     } catch (error) {
-      return { found: false, message: error.message };
+      return { found: false, message: publicErrorMessage(error) };
     }
   },
 
@@ -233,7 +234,7 @@ export const petitionTools = {
       return { success: false, message: 'Trạng thái xử lý không xác định.' };
     } catch (error) {
       console.error('❌ [create_student_request] Lỗi:', error);
-      return { success: false, message: error.message };
+      return { success: false, message: publicErrorMessage(error) };
     }
   },
 
@@ -321,7 +322,7 @@ export const petitionTools = {
           : `Cán bộ đã bác bỏ yêu cầu [${request.requestCode}].`,
       };
     } catch (error) {
-      return { success: false, message: error.message };
+      return { success: false, message: publicErrorMessage(error) };
     }
   },
 };

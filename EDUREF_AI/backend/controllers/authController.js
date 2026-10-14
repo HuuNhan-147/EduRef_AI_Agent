@@ -4,6 +4,7 @@
 import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 import prisma from '../config/prisma.js';
+import { respondServerError } from '../services/ErrorShield.js';
 
 function getJwtSecret() {
   if (process.env.JWT_SECRET) return process.env.JWT_SECRET;
@@ -150,7 +151,7 @@ export const login = async (req, res) => {
 
     return res.status(400).json({ success: false, message: 'Vui lòng cung cấp MSSV hoặc tên đăng nhập.' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 };
 
@@ -189,7 +190,7 @@ export const demoLogin = async (req, res) => {
     }
     return res.json(buildStaffSession(user, jwtSecret));
   } catch (error) {
-    return res.status(500).json({ success: false, error: error.message });
+    return respondServerError(req, res, error);
   }
 };
 
@@ -250,7 +251,7 @@ export const getDemoAccounts = async (req, res) => {
 
     res.json({ success: true, total: accounts.length, data: accounts });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 };
 
@@ -390,7 +391,7 @@ export const registerCustomStudent = async (req, res) => {
     });
   } catch (error) {
     console.error('Error registerCustomStudent:', error);
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 };
 

@@ -1,6 +1,7 @@
 import express from 'express';
 import AuditLogService from '../services/AuditLogService.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
+import { respondServerError } from '../services/ErrorShield.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
 
 const router = express.Router();
@@ -25,7 +26,7 @@ router.get('/logs', authenticateToken, async (req, res) => {
     });
     res.json({ success: true, total: logs.length, data: logs });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -38,7 +39,7 @@ router.get('/verify-chain', authenticateToken, rateLimit({ name: 'verify-chain',
     const result = await AuditLogService.verifyEntireChain();
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -50,7 +51,7 @@ router.get('/verify/:id', authenticateToken, requireStaffOrDean, async (req, res
     const result = await AuditLogService.verifyLogIntegrity(req.params.id);
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 

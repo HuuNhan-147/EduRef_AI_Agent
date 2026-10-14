@@ -9,6 +9,7 @@ import certificateVisionService from '../../../services/CertificateVisionService
 import AuditLogService from '../../../services/AuditLogService.js';
 import { describeToolOutcome } from './toolOutcome.js';
 import { stripServerAuthoritativeFields } from '../../../services/ClientInputGuard.js';
+import { publicErrorMessage } from '../../../services/ErrorShield.js';
 
 export class AgentOrchestrator {
   constructor(socket = null, sessionId = null) {
@@ -490,15 +491,18 @@ export class AgentOrchestrator {
       };
     } catch (error) {
       console.error('❌ [AgentOrchestrator] Lỗi:', error);
+      // Lỗi nội bộ (Prisma, axios, TypeError...) chỉ ghi log máy chủ kèm mã tham chiếu;
+      // người dùng và terminal chỉ thấy thông báo đã che.
+      const safeMessage = publicErrorMessage(error, 'AgentOrchestrator');
       this.logger.log({
         step: 'ERROR',
-        message: `Lỗi xử lý tác tử: ${error.message}`,
+        message: `Lỗi xử lý tác tử: ${safeMessage}`,
         type: 'error',
       });
 
       return {
-        reply: `Xin lỗi bạn, đã xảy ra lỗi trong quá trình thẩm định học vụ: ${error.message}`,
-        error: error.message,
+        reply: `Xin lỗi bạn, đã xảy ra lỗi trong quá trình thẩm định học vụ: ${safeMessage}`,
+        error: safeMessage,
         sessionId: this.sessionId,
       };
     }

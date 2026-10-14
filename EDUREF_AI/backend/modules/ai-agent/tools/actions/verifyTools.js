@@ -1,4 +1,5 @@
 import { petitionWorkflowCore } from '../../../petition-core/PetitionWorkflowCore.js';
+import { publicErrorMessage } from '../../../../services/ErrorShield.js';
 import { agentTerminalLogger } from '../../core/AgentTerminalLogger.js';
 import { TRACK_A_VERIFY_CASES } from '../../../../fixtures/trackAVerifyCases.js';
 import {
@@ -140,7 +141,7 @@ async function executeSuite({ mode, cases }) {
       agentTerminalLogger.log({
         step: 'ERROR',
         type: 'ERROR',
-        text: `  ❌ [${testCase.id}] Lỗi xử lý: ${error.message}`,
+        text: `  ❌ [${testCase.id}] Lỗi xử lý: ${publicErrorMessage(error)}`,
       });
       results.push({
         ...toPublicCase(testCase),
@@ -150,7 +151,7 @@ async function executeSuite({ mode, cases }) {
         startedAt: caseStartedAt.toISOString(),
         completedAt: new Date().toISOString(),
         actionableQuestion: null,
-        message: error.message,
+        message: publicErrorMessage(error),
         sha256Proof: null,
       });
     }
@@ -217,7 +218,7 @@ export const verifyTools = {
         startedAt: startedAt.toISOString(),
         completedAt: new Date().toISOString(),
         durationMs: Date.now() - startedAt.getTime(),
-        error: error.message,
+        error: publicErrorMessage(error),
       };
     }
   },

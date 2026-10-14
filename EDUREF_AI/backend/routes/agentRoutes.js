@@ -1,6 +1,7 @@
 import express from 'express';
 import prisma from '../config/prisma.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
+import { respondServerError } from '../services/ErrorShield.js';
 import { runAgent } from '../modules/ai-agent/index.js';
 import verifyTools from '../modules/ai-agent/tools/actions/verifyTools.js';
 import petitionTools from '../modules/ai-agent/tools/actions/petitionTools.js';
@@ -108,7 +109,7 @@ router.post('/chat', authenticateToken, chatLimiter, async (req, res) => {
 
     res.json({ success: true, data: result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -120,7 +121,7 @@ router.post('/verify-90s', authenticateToken, verifyLimiter, async (req, res) =>
     const result = await verifyTools.run_verify_90s();
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -134,7 +135,7 @@ router.post('/verify-custom', authenticateToken, requireStaffOrDean, async (req,
     const result = await verifyTools.run_custom_verify({ studentCode, requestTypeCode, inputData, documents });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -167,7 +168,7 @@ router.post('/verify-custom-prompt', authenticateToken, verifyLimiter, async (re
     const result = await verifyTools.run_custom_prompt({ prompt, studentCode });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -191,7 +192,7 @@ router.post('/rollback', authenticateToken, requireStaffOrDean, async (req, res)
     });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -215,7 +216,7 @@ router.post('/staff-confirm', authenticateToken, requireStaffOrDean, async (req,
     });
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -233,7 +234,7 @@ router.get('/terminal-logs', authenticateToken, async (req, res) => {
     });
     res.json({ success: true, data: logs });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -246,7 +247,7 @@ router.post('/terminal-logs/clear', authenticateToken, requireStaffOrDean, async
     agentTerminalLogger.clear();
     res.json({ success: true, message: 'Đã xóa bộ đệm terminal log.' });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 

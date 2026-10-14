@@ -1,6 +1,7 @@
 import express from 'express';
 import prisma from '../config/prisma.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
+import { respondServerError } from '../services/ErrorShield.js';
 import { stripServerAuthoritativeFields, sanitizeDocumentUrl } from '../services/ClientInputGuard.js';
 import { isDemoRoleSwitchEnabled } from '../controllers/authController.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
@@ -64,7 +65,7 @@ router.get('/', authenticateToken, async (req, res) => {
 
     res.json({ success: true, total: petitions.length, data: petitions });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -158,7 +159,7 @@ router.post('/', authenticateToken, async (req, res) => {
 
     res.json({ success: true, data: result.request || result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -178,7 +179,7 @@ router.get('/types', async (req, res) => {
 
     res.json({ success: true, data: types });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -194,7 +195,7 @@ router.get('/students', authenticateToken, requireStaffOrDean, async (req, res) 
 
     res.json({ success: true, data: students });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -237,7 +238,7 @@ router.get('/stats/metrics', authenticateToken, requireStaffOrDean, async (req, 
       },
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -265,7 +266,7 @@ router.get('/:id', authenticateToken, async (req, res) => {
 
     res.json({ success: true, data: petition });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -289,7 +290,7 @@ router.post('/:id/approve', authenticateToken, requireStaffOrDean, async (req, r
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -318,7 +319,7 @@ router.post('/:id/reject', authenticateToken, requireStaffOrDean, async (req, re
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -341,7 +342,7 @@ router.post('/:id/rollback', authenticateToken, requireStaffOrDean, async (req, 
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -374,7 +375,7 @@ router.post('/:id/documents', authenticateToken, async (req, res) => {
 
     res.json({ success: true, message: 'Đã đính kèm chứng từ thành công.', data: doc });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -394,7 +395,7 @@ router.post('/ocr-certificate', authenticateToken, ocrLimiter, async (req, res) 
 
     res.json({ success: true, data: result });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -431,7 +432,7 @@ router.post('/:id/resume', authenticateToken, async (req, res) => {
 
     res.json(result);
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 
@@ -491,7 +492,7 @@ router.post('/reset-test', authenticateToken, async (req, res) => {
       message: `Đã xóa sạch ${deletedCount} đơn thử nghiệm của sinh viên ${student.fullName} (${student.studentCode}). Bạn có thể bắt đầu nộp đơn test lại từ đầu!`,
     });
   } catch (error) {
-    res.status(500).json({ success: false, error: error.message });
+    respondServerError(req, res, error);
   }
 });
 

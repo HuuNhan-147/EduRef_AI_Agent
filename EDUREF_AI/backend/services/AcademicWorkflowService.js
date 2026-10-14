@@ -1,4 +1,5 @@
 import prisma from '../config/prisma.js';
+import { publicErrorMessage } from './ErrorShield.js';
 import AuditLogService from './AuditLogService.js';
 import { getStudentFullProfile } from '../config/studentRegistry.js';
 import {
@@ -367,7 +368,7 @@ class AcademicWorkflowService {
       };
     } catch (err) {
       console.error('❌ [processStudentConfirmation] Lỗi:', err);
-      return { success: false, error: err.message };
+      return { success: false, error: publicErrorMessage(err) };
     }
   }
 
@@ -407,7 +408,7 @@ class AcademicWorkflowService {
         },
       };
     } catch (error) {
-      return { found: false, error: error.message };
+      return { found: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -444,7 +445,7 @@ class AcademicWorkflowService {
         })),
       };
     } catch (error) {
-      return { requests: [], error: error.message };
+      return { requests: [], error: publicErrorMessage(error) };
     }
   }
 
@@ -569,7 +570,7 @@ class AcademicWorkflowService {
         status: newRequest.status,
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -630,7 +631,7 @@ class AcademicWorkflowService {
         },
       };
     } catch (error) {
-      return { found: false, error: error.message };
+      return { found: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -712,7 +713,7 @@ class AcademicWorkflowService {
           : `Hồ sơ còn thiếu: ${missing.map((m) => m.name).join(', ')}.`,
       };
     } catch (error) {
-      return { complete: false, error: error.message };
+      return { complete: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -815,7 +816,7 @@ class AcademicWorkflowService {
             : `Từ chối do vi phạm quy chế: ${violations.map((v) => v.reason).join(' ')}`,
       };
     } catch (error) {
-      return { decision: 'FAIL', error: error.message };
+      return { decision: 'FAIL', error: publicErrorMessage(error) };
     }
   }
 
@@ -894,7 +895,7 @@ class AcademicWorkflowService {
         reason: 'ROUTINE_AUTO: Đơn thuộc thẩm quyền tự xử lý của Tác tử AI.',
       };
     } catch (error) {
-      return { allowed: false, error: error.message };
+      return { allowed: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -975,7 +976,7 @@ class AcademicWorkflowService {
         message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công. Bạn vui lòng mang thẻ sinh viên đến ${request.inputData?.pickupCampus || 'Phòng CTSV'} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường trong giờ hành chính nhé!`,
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -1021,7 +1022,7 @@ class AcademicWorkflowService {
         message: question,
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -1083,7 +1084,7 @@ class AcademicWorkflowService {
         message: `Hồ sơ [${request.requestCode}] đã được chuyển tiếp lên ${requiredRole === 'DEAN' ? 'Trưởng phòng Đào tạo' : 'Chuyên viên PĐT'}. ${actionableQuestion}`,
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -1187,7 +1188,7 @@ class AcademicWorkflowService {
           : `Cán bộ [${staffName}] đã từ chối đơn [${request.requestCode}]. Lý do: ${reviewerNote}`,
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -1251,7 +1252,7 @@ class AcademicWorkflowService {
         message: `Đã hoàn tác / thu hồi thành công đơn [${request.requestCode}]. Mã chứng thực số và QR Code đã bị vô hiệu hóa hoàn toàn.`,
       };
     } catch (error) {
-      return { success: false, error: error.message };
+      return { success: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -1285,7 +1286,7 @@ class AcademicWorkflowService {
         })),
       };
     } catch (error) {
-      return { trace: [], error: error.message };
+      return { trace: [], error: publicErrorMessage(error) };
     }
   }
 }

@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { publicErrorMessage } from './ErrorShield.js';
 import prisma from '../config/prisma.js';
 
 class AuditLogService {
@@ -228,7 +229,7 @@ class AuditLogService {
       };
     } catch (error) {
       console.error('❌ [AuditLogService] Lỗi khi kiểm tra tính toàn vẹn:', error);
-      return { isValid: false, message: error.message };
+      return { isValid: false, message: publicErrorMessage(error) };
     }
   }
 
@@ -301,7 +302,7 @@ class AuditLogService {
       };
     } catch (error) {
       console.error('❌ [AuditLogService] Lỗi khi verify chuỗi khối:', error);
-      return { chainValid: false, error: error.message };
+      return { chainValid: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -333,7 +334,7 @@ class AuditLogService {
       return { success: true, reconciledBlocks: logs.length };
     } catch (error) {
       console.error('❌ [AuditLogService] Lỗi khi reconcile chuỗi khối:', error);
-      return { success: false, error: error.message };
+      return { success: false, error: publicErrorMessage(error) };
     }
   }
 }
