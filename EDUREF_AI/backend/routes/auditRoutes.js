@@ -1,6 +1,7 @@
 import express from 'express';
 import AuditLogService from '../services/AuditLogService.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
+import { rateLimit } from '../middlewares/rateLimit.js';
 
 const router = express.Router();
 
@@ -31,7 +32,8 @@ router.get('/logs', authenticateToken, async (req, res) => {
 /**
  * GET /api/audit/verify-chain (Kiểm tra tính toàn vẹn của TOÀN BỘ CHUỖI BĂM từ đầu tới cuối)
  */
-router.get('/verify-chain', authenticateToken, async (req, res) => {
+// verifyEntireChain đọc và băm lại TOÀN BỘ bảng audit nên rất nặng: giới hạn tần suất
+router.get('/verify-chain', authenticateToken, rateLimit({ name: 'verify-chain', max: 6, windowMs: 60_000 }), async (req, res) => {
   try {
     const result = await AuditLogService.verifyEntireChain();
     res.json(result);
