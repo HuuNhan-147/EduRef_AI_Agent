@@ -29,14 +29,8 @@ export default function App() {
   };
   const [activeTab, setActiveTab] = useState(getInitialTab);
 
-  // Popup Onboarding chào mừng 30 giây (Kiểm tra xem người dùng đã chọn không hiển thị lại chưa)
-  const [onboardingOpen, setOnboardingOpen] = useState(() => {
-    try {
-      return localStorage.getItem('eduref_hide_onboarding') !== 'true';
-    } catch {
-      return true;
-    }
-  });
+  // Popup Onboarding chào mừng 30 giây (mặc định tắt để tránh che khuất giao diện khi tải trang)
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
 
   // Hồ sơ sinh viên tùy biến (lưu cục bộ trên máy của sinh viên đó)
   const [customProfile, setCustomProfile] = useState(() => {

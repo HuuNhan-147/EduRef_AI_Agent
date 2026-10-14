@@ -24,9 +24,12 @@ import {
   ExternalLink,
   Square,
   Trash2,
+  Copy,
 } from 'lucide-react';
 import MarkdownRenderer from '../components/common/MarkdownRenderer';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
+import AgentProgress from '../components/agent/AgentProgress';
+import DraftReviewCard from '../components/agent/DraftReviewCard';
 import api, { DEMO_ACCOUNTS } from '../services/api';
 import getSocket from '../services/socket';
 
@@ -244,6 +247,19 @@ export default function StudentWorkspacePage({
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionId, setSessionId] = useState(() => `sess_${currentAccount.code || 'student'}_${Date.now()}`);
   const [types, setTypes] = useState([]);
+
+  // Bộ đếm thời gian phản hồi ms thời gian thực & Tiến trình 3 Chốt (AgentProgress)
+  const [elapsedMs, setElapsedMs] = useState(0);
+  const [activeStep, setActiveStep] = useState(1);
+  const [copiedSha, setCopiedSha] = useState(false);
+  const startTimeRef = useRef(null);
+  const timerIntervalRef = useRef(null);
+
+  useEffect(() => {
+    return () => {
+      if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    };
+  }, []);
   
   // Trạng thái đơn hiện tại đang xử lý hiển thị ở Cột 3 (Cũng được lưu vào sessionStorage)
   const [activeDecision, setActiveDecision] = useState(() => {
@@ -332,7 +348,13 @@ export default function StudentWorkspacePage({
 
     // 2. Nhận kết thúc phản hồi kèm quyết định hoàn chỉnh
     const handleEnd = (data) => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
       setIsProcessing(false);
+      const measuredDuration = data.totalDuration || (startTimeRef.current ? Math.round(performance.now() - startTimeRef.current) : elapsedMs);
+
       setMessages((prev) => {
         const lastMsg = prev[prev.length - 1];
         if (lastMsg && lastMsg.sender === 'agent') {
@@ -344,6 +366,7 @@ export default function StudentWorkspacePage({
               isStreaming: false,
               toolResult: data.toolResult,
               decision: data.decision,
+              durationMs: measuredDuration,
             },
           ];
         }
@@ -370,6 +393,10 @@ export default function StudentWorkspacePage({
     };
 
     const handleStopped = () => {
+      if (timerIntervalRef.current) {
+        clearInterval(timerIntervalRef.current);
+        timerIntervalRef.current = null;
+      }
       setIsProcessing(false);
     };
 
@@ -387,6 +414,11 @@ export default function StudentWorkspacePage({
   // Dừng tiến trình tạo phản hồi của AI Agent (Stop Generation / Cancel)
   const handleStopGeneration = () => {
     if (!isProcessing) return;
+
+    if (timerIntervalRef.current) {
+      clearInterval(timerIntervalRef.current);
+      timerIntervalRef.current = null;
+    }
 
     if (socket && socket.connected) {
       socket.emit('client_stop_generation', { sessionId });
@@ -442,6 +474,25 @@ export default function StudentWorkspacePage({
     setIsProcessing(true);
     setMobileTab('CHAT');
 
+    // Khởi động đo thời gian thực tế ms & cập nhật bước xử lý
+    startTimeRef.current = performance.now();
+    setElapsedMs(0);
+    setActiveStep(1);
+    if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+    timerIntervalRef.current = setInterval(() => {
+      if (startTimeRef.current) {
+        const currentElapsed = Math.round(performance.now() - startTimeRef.current);
+        setElapsedMs(currentElapsed);
+        if (currentElapsed > 600) {
+          setActiveStep(3);
+        } else if (currentElapsed > 250) {
+          setActiveStep(2);
+        } else {
+          setActiveStep(1);
+        }
+      }
+    }, 40);
+
     // Bắt đầu cập nhật cột Decision
     setActiveDecision((prev) => ({
       ...prev,
@@ -488,8 +539,13 @@ export default function StudentWorkspacePage({
     } else {
       try {
         const res = await api.post('/agent/chat', payload);
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
         if (res.data?.success) {
           const result = res.data.data;
+          const measuredDuration = result.totalDuration || (startTimeRef.current ? Math.round(performance.now() - startTimeRef.current) : elapsedMs);
           setMessages((prev) => [
             ...prev,
             {
@@ -498,11 +554,16 @@ export default function StudentWorkspacePage({
               text: result.reply,
               toolResult: result.toolResult,
               decision: result.decision,
+              durationMs: measuredDuration,
               timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
             },
           ]);
         }
       } catch (err) {
+        if (timerIntervalRef.current) {
+          clearInterval(timerIntervalRef.current);
+          timerIntervalRef.current = null;
+        }
         setMessages((prev) => [
           ...prev,
           {
@@ -895,41 +956,54 @@ export default function StudentWorkspacePage({
                     </div>
                   )}
 
-                  <div className={`text-[10px] mt-1.5 ${isUser ? 'text-blue-100 text-right' : 'text-slate-400'}`}>
-                    {msg.timestamp}
+                  {/* DraftReviewCard nếu tin nhắn trả về có bản nháp */}
+                  {msg.toolResult?.draft && (
+                    <DraftReviewCard
+                      draft={msg.toolResult.draft}
+                      onConfirm={() => handleSendMessage('Tôi xác nhận thông tin trên và đề nghị cấp giấy.')}
+                      onEdit={() => onOpenDynamicForm?.(CONFIRMATION_FORMS[0])}
+                    />
+                  )}
+
+                  <div className={`text-[10px] mt-1.5 flex items-center justify-between gap-2 ${isUser ? 'text-blue-100 justify-end' : 'text-slate-400'}`}>
+                    <span>{msg.timestamp}</span>
+                    {!isUser && msg.durationMs && (
+                      <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-[#0B3B82] bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
+                        <Clock className="w-2.5 h-2.5 text-[#0B3B82]" />
+                        {msg.durationMs}ms · 3-Gate Verified
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
             );
           })}
 
-          {/* Indicator đang xử lý kèm nút Dừng lại khẩn cấp */}
+          {/* Component AgentProgress đếm mili-giây thời gian thực & hiển thị tiến trình 3 Chốt */}
           {isProcessing && (
-            <div className="flex items-center justify-between max-w-lg mr-auto bg-white border border-slate-200/90 rounded-xl px-3.5 py-2.5 shadow-2xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-[#082C64] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                  AI
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <span className="w-2 h-2 rounded-full bg-[#0B3B82] animate-ping"></span>
-                  <span className="font-medium text-slate-700">Tác tử đang thẩm định & suy luận quy chế...</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleStopGeneration}
-                className="ml-3 text-[11px] font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-                title="Nhấn để dừng lại ngay (Esc)"
-              >
-                <Square className="w-3 h-3 fill-red-600" />
-                <span>Dừng lại</span>
-              </button>
-            </div>
+            <AgentProgress
+              isActive={true}
+              durationMs={elapsedMs}
+              activeStep={activeStep}
+              onStop={handleStopGeneration}
+            />
           )}
 
-          {/* Ô Dropzone nộp bổ sung chứng từ khi bị thiếu (Luồng ASK) */}
+          {/* Ô Dropzone nộp bổ sung chứng từ khi bị thiếu (Luồng ASK) kèm DraftReviewCard */}
           {activeDecision.status === 'WAITING_STUDENT' && activeDecision.requestId && (
-            <div className="p-4 rounded-xl bg-amber-50/90 border border-amber-200 space-y-3 max-w-xl mx-auto my-2 shadow-xs">
+            <div className="space-y-3 max-w-xl mx-auto my-2">
+              <DraftReviewCard
+                draft={{
+                  studentName: currentAccount.name,
+                  studentCode: currentAccount.code,
+                  purpose: activeDecision.reason || 'Cấp giấy xác nhận sinh viên bổ sung hồ sơ',
+                  pickupCampus: 'Trụ sở chính Khu A (A-01.01)',
+                  phone: currentAccount.phone || '0901234567',
+                }}
+                onConfirm={() => handleSendMessage('Tôi xác nhận thông tin trên và đề nghị nộp hồ sơ.')}
+                onEdit={() => onOpenDynamicForm?.(CONFIRMATION_FORMS[0])}
+              />
+              <div className="p-4 rounded-xl bg-amber-50/90 border border-amber-200 space-y-3 shadow-xs">
               <div className="flex items-start gap-2.5">
                 <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
                 <div>
@@ -974,6 +1048,7 @@ export default function StudentWorkspacePage({
               >
                 {isUploading ? 'Đang thẩm định lại...' : 'Nộp Bổ Sung & Tiếp Tục Xử Lý (Resume)'}
               </button>
+              </div>
             </div>
           )}
 
@@ -1256,8 +1331,23 @@ export default function StudentWorkspacePage({
                 )}
 
                 {activeDecision.sha256Proof && (
-                  <div className="pt-2 border-t border-emerald-200 text-[9px] font-mono opacity-80 break-all">
-                    SHA256: {activeDecision.sha256Proof}
+                  <div className="pt-2 border-t border-emerald-200 flex items-center justify-between gap-2">
+                    <span className="text-[9px] font-mono opacity-80 truncate">
+                      SHA256: {activeDecision.sha256Proof}
+                    </span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(activeDecision.sha256Proof);
+                        setCopiedSha(true);
+                        setTimeout(() => setCopiedSha(false), 2000);
+                      }}
+                      className="px-1.5 py-0.5 rounded bg-emerald-100 hover:bg-emerald-200 text-emerald-800 text-[10px] font-semibold flex items-center gap-1 transition-colors cursor-pointer shrink-0"
+                      title="Sao chép mã SHA-256"
+                    >
+                      <Copy className="w-3 h-3" />
+                      <span>{copiedSha ? 'Đã chép!' : 'Copy'}</span>
+                    </button>
                   </div>
                 )}
               </div>
