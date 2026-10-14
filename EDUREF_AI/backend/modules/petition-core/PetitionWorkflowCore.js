@@ -32,6 +32,39 @@ export class PetitionWorkflowCore {
     return handler;
   }
 
+  async rejectForPolicy({ request, studentCode, actorType, policyResult, startTime }) {
+    await AuditLogService.recordLogWithMutation({
+      requestId: request.id,
+      actorType,
+      action: 'POLICY_VIOLATION_REJECT',
+      decision: 'REJECTED',
+      reason: policyResult.reason,
+      inputSnapshot: { studentCode, violatedPolicy: policyResult.violatedPolicy },
+      decisionTimeMs: Date.now() - startTime,
+    }, async (tx) => {
+      await tx.studentRequest.update({
+        where: { id: request.id },
+        data: {
+          status: 'REJECTED',
+          decision: 'REJECTED_POLICY',
+          escalationReason: policyResult.reason,
+        },
+      });
+    });
+
+    return {
+      success: true,
+      decision: 'REJECTED_POLICY',
+      classification: policyResult.classification || 'ROUTINE_POLICY_DENY',
+      uncertaintyType: policyResult.uncertaintyType || null,
+      status: 'REJECTED',
+      requestId: request.id,
+      requestCode: request.requestCode,
+      reason: policyResult.reason,
+      message: policyResult.userMessage || `Từ chối cấp đơn: ${policyResult.reason}`,
+    };
+  }
+
   /**
    * Pipeline điều phối và thẩm định đơn từ đầu tới cuối (5 Chốt chặn cố định)
    */
@@ -144,6 +177,17 @@ export class PetitionWorkflowCore {
     // Kết hợp chứng từ hiện có trong database và chứng từ mới truyền vào
     const allDocs = [...(request.documents || []), ...documents];
 
+    // Trạng thái thôi học/bảo lưu đã đủ căn cứ từ chối, không yêu cầu sinh viên
+    // bổ sung địa chỉ/SĐT cho một hồ sơ không thể được cấp. Áp dụng cả submit/resume.
+    if (['DROPPED', 'SUSPENDED'].includes(student.status)) {
+      // Đây là hồ sơ đã gửi vào workflow, không phải lượt tư vấn: không để cờ
+      // isInquiry hoặc dữ kiện do client khai làm đổi kết luận về trạng thái DB.
+      const precheck = await handler.evaluatePolicies(student, { ...request, inputData: {} });
+      if (!precheck.passed && precheck.decision === 'REJECTED_POLICY') {
+        return this.rejectForPolicy({ request, studentCode, actorType, policyResult: precheck, startTime });
+      }
+    }
+
     // =========================================================================
     // CHỐT 1: VALIDATE REQUIREMENTS (Kiểm tra dữ kiện & chứng từ bắt buộc)
     // =========================================================================
@@ -234,36 +278,7 @@ export class PetitionWorkflowCore {
 
       console.log(`  🚨 [Core Chốt 2] Vi phạm quy chế -> Chuyển REJECTED. Lý do: ${policyResult.reason}`);
 
-      await AuditLogService.recordLogWithMutation({
-        requestId: request.id,
-        actorType,
-        action: 'POLICY_VIOLATION_REJECT',
-        decision: 'REJECTED',
-        reason: policyResult.reason,
-        inputSnapshot: { studentCode, violatedPolicy: policyResult.violatedPolicy },
-        decisionTimeMs: Date.now() - startTime,
-      }, async (tx) => {
-        await tx.studentRequest.update({
-          where: { id: request.id },
-          data: {
-            status: 'REJECTED',
-            decision: 'REJECTED_POLICY',
-            escalationReason: policyResult.reason,
-          },
-        });
-      });
-
-      return {
-        success: true,
-        decision: 'REJECTED_POLICY',
-        classification: policyResult.classification || 'ROUTINE_POLICY_DENY',
-        uncertaintyType: policyResult.uncertaintyType || null,
-        status: 'REJECTED',
-        requestId: request.id,
-        requestCode: request.requestCode,
-        reason: policyResult.reason,
-        message: policyResult.userMessage || `Từ chối cấp đơn: ${policyResult.reason}`,
-      };
+      return this.rejectForPolicy({ request, studentCode, actorType, policyResult, startTime });
     }
 
     // =========================================================================

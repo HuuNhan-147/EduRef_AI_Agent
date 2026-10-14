@@ -119,7 +119,7 @@ export class ToolRegistry {
             },
             inputData: {
               type: 'OBJECT',
-              description: 'Các dữ liệu khác: courseCode (mã môn), hasAttachment (có file viện), userClaimedOverride (cờ ép quyền)',
+              description: 'Thông tin biểu mẫu: formCode, phone, pickupCampus, permanentAddress, debtCourses, recipientAgency, reissueReason. Chỉ dùng dữ kiện sinh viên đã cung cấp.',
             },
           },
           required: ['studentCode', 'requestTypeCode'],
@@ -143,7 +143,7 @@ export class ToolRegistry {
       // C. Requirement & Document
       {
         name: 'check_requirements',
-        description: 'Kiểm tra xem hồ sơ đơn đã đủ các thông tin và chứng từ bắt buộc chưa (Ví dụ: mục đích, mã môn, giấy viện).',
+        description: 'Kiểm tra thông tin bắt buộc của biểu mẫu xác nhận sinh viên: mục đích, số điện thoại, cơ sở nhận và dữ kiện riêng theo mẫu.',
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -159,7 +159,7 @@ export class ToolRegistry {
       // D. Policy & Authority
       {
         name: 'evaluate_policy',
-        description: 'Thẩm định hồ sơ theo Quy chế Đào tạo (sinh viên phải ACTIVE, nợ phí dưới 10M, phúc khảo trong 7 ngày).',
+        description: 'Thẩm định giấy xác nhận sinh viên theo trạng thái học vụ, lịch học, niên khóa, hạn mức cấp giấy và dữ kiện của biểu mẫu. Dùng quyết định và câu hỏi do backend trả về.',
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -194,7 +194,7 @@ export class ToolRegistry {
       {
         name: 'process_request',
         description:
-          'Thực thi phê duyệt tự động đối với đơn thường quy hợp lệ (Backend tự động re-check 100% trước khi cấp QR Code).',
+          'Thực thi phê duyệt tự động đối với giấy xác nhận sinh viên thường quy hợp lệ. Backend kiểm tra lại điều kiện trước khi ghi quyết định và bằng chứng SHA-256; sinh viên nhận giấy bản cứng.',
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -236,7 +236,7 @@ export class ToolRegistry {
             },
             reason: {
               type: 'STRING',
-              description: 'Lý do chuyển tiếp (vượt thẩm quyền, yêu cầu ngoại lệ, cần thẩm định bệnh án)',
+              description: 'Lý do chuyển tiếp: dữ kiện học vụ cần xác minh, yêu cầu ngoại lệ hoặc vượt thẩm quyền AI.',
             },
             actionableQuestion: {
               type: 'STRING',
@@ -252,6 +252,15 @@ export class ToolRegistry {
       },
 
       // F. Observability & Self-Testing
+      {
+        name: 'get_execution_trace',
+        description: 'Tra cứu dấu vết xử lý của một hồ sơ được phép truy cập.',
+        parameters: {
+          type: 'OBJECT',
+          properties: { requestId: { type: 'STRING', description: 'ID hoặc mã hồ sơ' } },
+          required: ['requestId'],
+        },
+      },
       {
         name: 'run_verify_90s',
         description: 'Chạy kiểm thử tự hành 5 ca chuẩn Đề A track VNG trong 90 giây phục vụ Ban Giám Khảo.',

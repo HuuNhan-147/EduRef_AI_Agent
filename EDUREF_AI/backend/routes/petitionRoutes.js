@@ -78,7 +78,7 @@ router.post('/', authenticateToken, async (req, res) => {
     let requestCode = req.body.requestCode || req.body.requestTypeCode;
     let inputData = {};
 
-    // Xử lý cả JSON body lẫn FormData
+    // JSON body hỗ trợ trường formData cũ hoặc inputData; không phải multipart upload.
     if (typeof req.body.formData === 'string') {
       try {
         inputData = JSON.parse(req.body.formData);

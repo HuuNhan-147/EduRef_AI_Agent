@@ -306,37 +306,6 @@ class AuditLogService {
     }
   }
 
-  /**
-   * Tái lập / Hàn gắn liên kết chuỗi băm sau các đợt dọn dẹp dữ liệu test
-   */
-  static async reconcileChain() {
-    try {
-      const logs = await prisma.auditLog.findMany({
-        orderBy: { createdAt: 'asc' },
-      });
-      let previousHash = 'GENESIS_HASH_EDUREF_2026';
-      for (const log of logs) {
-        const sha256Hash = this.calculateHash({
-          previousHash,
-          actorType: log.actorType,
-          action: log.action,
-          decision: log.decision,
-          reason: log.reason,
-          inputSnapshot: log.inputSnapshot,
-          timestamp: log.createdAt,
-        });
-        await prisma.auditLog.update({
-          where: { id: log.id },
-          data: { previousHash, sha256Hash },
-        });
-        previousHash = sha256Hash;
-      }
-      return { success: true, reconciledBlocks: logs.length };
-    } catch (error) {
-      console.error('❌ [AuditLogService] Lỗi khi reconcile chuỗi khối:', error);
-      return { success: false, error: publicErrorMessage(error) };
-    }
-  }
 }
 
 export default AuditLogService;

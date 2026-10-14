@@ -2,14 +2,7 @@ import prisma from '../config/prisma.js';
 import { publicErrorMessage } from './ErrorShield.js';
 import AuditLogService from './AuditLogService.js';
 import { getStudentFullProfile } from '../config/studentRegistry.js';
-import {
-  evaluateStudentConfirmation,
-  detectFormIntent,
-  detectCrossFormMismatch,
-  validatePermanentAddress,
-  getFormFieldsGuide,
-  TRACK_A_DECISION,
-} from './StudentConfirmationDecisionService.js';
+import { evaluateStudentConfirmation, detectFormIntent, detectCrossFormMismatch, validatePermanentAddress, TRACK_A_DECISION } from "./StudentConfirmationDecisionService.js";
 
 class AcademicWorkflowService {
   /**
@@ -68,7 +61,6 @@ class AcademicWorkflowService {
     conversationHistory = [],
     sessionId = null,
   }) {
-    const startTime = Date.now();
     try {
       const finalPurpose = String(purpose || inputData?.purpose || inputData?.reason || '').trim();
       const detectedForm = detectFormIntent(finalPurpose);
@@ -939,8 +931,6 @@ class AcademicWorkflowService {
       }
 
       // Bản cứng có chữ ký sống và mộc đỏ do Nhà trường cấp, không sinh mã QR bên thứ ba
-      const qrCodeUrl = null;
-
       // Ghi log Audit với chữ ký SHA-256
       const auditLog = await AuditLogService.recordLogWithMutation({
         requestId: request.id,

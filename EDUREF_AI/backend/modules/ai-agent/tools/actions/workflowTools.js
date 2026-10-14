@@ -77,10 +77,6 @@ export const workflowTools = {
   },
 
   // F. Observability & Rollback
-  async rollback_request({ requestCode, reason }) {
-    return await AcademicWorkflowService.rollbackRequest({ requestCode, reason });
-  },
-
   async get_execution_trace({ requestId }) {
     return await AcademicWorkflowService.getExecutionTrace(requestId);
   },

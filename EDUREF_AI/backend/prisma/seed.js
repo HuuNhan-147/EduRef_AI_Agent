@@ -43,7 +43,7 @@ async function main() {
   console.log('✅ Đã tạo 2 Khoa đào tạo (Khoa CNTT & Khoa Điện - Điện tử).');
 
   // 3. Tạo Sinh viên mẫu chuẩn 10 số HUTECH
-  const studentMain = await prisma.student.create({
+  await prisma.student.create({
     data: {
       studentCode: '2280602154',
       fullName: 'Cao Hữu Nhân',
@@ -56,7 +56,7 @@ async function main() {
     },
   });
 
-  const studentActive2023 = await prisma.student.create({
+  await prisma.student.create({
     data: {
       studentCode: '2380600001',
       fullName: 'Nguyễn Văn An',
@@ -69,7 +69,7 @@ async function main() {
     },
   });
 
-  const studentDropped10 = await prisma.student.create({
+  await prisma.student.create({
     data: {
       studentCode: '2150200002',
       fullName: 'Trần Thị Bình',
@@ -82,7 +82,7 @@ async function main() {
     },
   });
 
-  const studentDebt10 = await prisma.student.create({
+  await prisma.student.create({
     data: {
       studentCode: '2150200003',
       fullName: 'Lê Hoàng Cường',
@@ -95,7 +95,7 @@ async function main() {
     },
   });
 
-  const studentSuspended10 = await prisma.student.create({
+  await prisma.student.create({
     data: {
       studentCode: '2280600004',
       fullName: 'Phạm Văn Dũng',
@@ -108,7 +108,7 @@ async function main() {
     },
   });
 
-  const studentOverdue10 = await prisma.student.create({
+  await prisma.student.create({
     data: {
       studentCode: '2050200005',
       fullName: 'Hoàng Thị Mai',
@@ -121,7 +121,7 @@ async function main() {
     },
   });
 
-  const studentOverdueCompleted10 = await prisma.student.create({
+  await prisma.student.create({
     data: {
       studentCode: '2080600099',
       fullName: 'Võ Minh Quân',
@@ -150,7 +150,7 @@ async function main() {
   // 4. Tạo Tài khoản Cán bộ & Lãnh đạo
   const defaultPassword = await bcrypt.hash('123456', 10);
 
-  const staff = await prisma.user.create({
+  await prisma.user.create({
     data: {
       username: 'staff_daotao',
       fullName: 'Thầy Trần Hữu Nghĩa (Chuyên viên PĐT)',
@@ -160,7 +160,7 @@ async function main() {
     },
   });
 
-  const dean = await prisma.user.create({
+  await prisma.user.create({
     data: {
       username: 'dean_daotao',
       fullName: 'PGS.TS Nguyễn Văn Dũng (Trưởng Phòng Đào Tạo)',
@@ -174,7 +174,7 @@ async function main() {
 
   // 5. Chỉ tạo workflow duy nhất của bản chung kết
   // Giấy xác nhận sinh viên -> Cổng AUTO/HITL
-  const typeConfirm = await prisma.requestType.create({
+  await prisma.requestType.create({
     data: {
       code: 'STUDENT_CONFIRMATION',
       name: 'Giấy Xác Nhận Sinh Viên',
@@ -202,7 +202,7 @@ async function main() {
           {
             code: 'REQ_PHONE',
             name: 'Điện thoại liên hệ',
-            isRequired: false,
+            isRequired: true,
             description: 'Số điện thoại di động đang hoạt động.',
           },
           {
@@ -214,7 +214,7 @@ async function main() {
           {
             code: 'REQ_CAMPUS',
             name: 'Chọn cơ sở nhận giấy',
-            isRequired: false,
+            isRequired: true,
             description: 'Trụ sở chính (A-01.01) hoặc Cơ sở E (E1-01.05).',
           },
         ],
@@ -231,17 +231,6 @@ async function main() {
               errorMessage: 'Chỉ cấp giấy xác nhận cho sinh viên có trạng thái học tập hợp lệ (ACTIVE).',
             },
             priority: 1,
-          },
-          {
-            code: 'POL_NO_TUITION_DEBT',
-            name: 'Quy định nợ học phí',
-            ruleDefinition: {
-              field: 'student.tuitionDebt',
-              operator: 'LTE',
-              value: 0,
-              errorMessage: 'Sinh viên phải hoàn thành 100% nghĩa vụ học phí (nợ 0 VNĐ) trước khi xin giấy.',
-            },
-            priority: 2,
           },
         ],
       },
