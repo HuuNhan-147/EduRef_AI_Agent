@@ -92,6 +92,14 @@ export const login = async (req, res) => {
 
     // 1. Luồng đăng nhập cho Sinh viên (bằng MSSV)
     if (studentCode) {
+      // Đăng nhập chỉ bằng MSSV (không mật khẩu) = ai biết MSSV là vào được hồ sơ đó.
+      // Chỉ chấp nhận ở chế độ demo, giống /demo-login.
+      if (!isDemoRoleSwitchEnabled()) {
+        return res.status(403).json({
+          success: false,
+          message: 'Đăng nhập bằng MSSV không mật khẩu chỉ khả dụng ở chế độ demo.',
+        });
+      }
       const student = await prisma.student.findUnique({
         where: { studentCode: String(studentCode).trim() },
         include: { department: true },
@@ -261,11 +269,23 @@ export const RESERVED_BENCHMARK_STUDENT_CODES = Object.freeze([
   '2110005',
 ]);
 
+const VALID_STUDENT_STATUSES = Object.freeze(['ACTIVE', 'INACTIVE', 'DROPPED', 'GRADUATED', 'SUSPENDED']);
+
 export const registerCustomStudent = async (req, res) => {
   try {
+    // Endpoint công khai, không xác thực, tự tạo/ghi đè hồ sơ và cấp JWT: chỉ dành cho demo.
+    if (!isDemoRoleSwitchEnabled()) {
+      return res.status(403).json({
+        success: false,
+        message: 'Tạo hồ sơ sinh viên tùy biến chỉ khả dụng ở chế độ demo.',
+      });
+    }
     const { fullName, studentCode, departmentName, status = 'ACTIVE', tuitionDebt = 0, phone = '0901234567', birthDate, gender, studentClass } = req.body;
     if (!fullName || !studentCode) {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập Họ tên và MSSV.' });
+    }
+    if (status && !VALID_STUDENT_STATUSES.includes(status)) {
+      return res.status(400).json({ success: false, message: `Trạng thái sinh viên không hợp lệ. Chấp nhận: ${VALID_STUDENT_STATUSES.join(', ')}.` });
     }
     const cleanCode = String(studentCode).trim();
     if (RESERVED_BENCHMARK_STUDENT_CODES.includes(cleanCode)) {
