@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { UserCheck, X, Sparkles, AlertCircle, CheckCircle2, RotateCw } from 'lucide-react';
+import { UserCheck, X, AlertCircle, RotateCw } from "lucide-react";
 import api from '../../services/api';
 import { updateSocketAuth } from '../../services/socket';
 
@@ -190,7 +190,7 @@ export default function CustomProfileModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in duration-200">
       <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Nút đóng */}

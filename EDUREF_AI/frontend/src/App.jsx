@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from "react";
 import TopNavbar from './components/common/TopNavbar';
 import StudentWorkspacePage from './pages/StudentWorkspacePage';
 import StaffEscalationPage from './pages/StaffEscalationPage';
@@ -279,7 +279,6 @@ export default function App() {
             <div className="flex-1 h-full overflow-y-auto w-full">
               <MyPetitionsPage
                 currentAccountKey={currentAccountKey}
-                onSwitchTab={setActiveTab}
               />
             </div>
           )}
@@ -336,6 +335,7 @@ export default function App() {
         onProfileSaved={(savedProfile) => {
           setCustomProfile(savedProfile);
           setCurrentAccountKey('CUSTOM_STUDENT');
+          setActiveTab('STUDENT_ASSISTANT');
           showToast(`Đã lưu và kích hoạt hồ sơ: ${savedProfile.name}`, 'success');
         }}
       />

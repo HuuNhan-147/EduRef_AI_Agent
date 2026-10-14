@@ -1,31 +1,8 @@
 // src/pages/StudentWorkspacePage.jsx
 // Không gian làm việc Trợ lý Sinh viên: Bố cục 3 Cột (Catalog Thủ Tục | Hội Thoại ReAct | Bảng Thẩm Định & Quyết Định)
 
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  Send,
-  Sparkles,
-  FileText,
-  CheckCircle,
-  AlertTriangle,
-  Clock,
-  ShieldAlert,
-  QrCode,
-  Upload,
-  ArrowRight,
-  RefreshCw,
-  Info,
-  Check,
-  Building2,
-  Paperclip,
-  Terminal,
-  Zap,
-  Play,
-  ExternalLink,
-  Square,
-  Trash2,
-  Copy,
-} from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import { Send, FileText, CheckCircle, Clock, ShieldAlert, ArrowRight, RefreshCw, Terminal, Play, ExternalLink, Square, Trash2, Copy } from "lucide-react";
 import MarkdownRenderer from '../components/common/MarkdownRenderer';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
 import AgentProgress from '../components/agent/AgentProgress';
@@ -33,59 +10,10 @@ import DraftReviewCard from '../components/agent/DraftReviewCard';
 import api, { DEMO_ACCOUNTS } from '../services/api';
 import getSocket from '../services/socket';
 
-// Danh mục 5 Biểu Mẫu Học Vụ Thực Tế của Trường Đại học HUTECH (Phòng Công tác Sinh viên)
-export const CONFIRMATION_FORMS = [
-  {
-    id: 'form_tax',
-    formCode: 'TAX_DEDUCTION',
-    badge: 'DV-01 · THUẾ',
-    badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
-    title: 'Đơn Xác Nhận Giảm Trừ Gia Cảnh',
-    name: 'Đơn xác nhận giảm trừ gia cảnh (Thuế TNCN)',
-    description: 'Nộp Cơ quan Thuế để giảm trừ gia cảnh thuế TNCN cho phụ huynh. Thời hạn 1 học kỳ.',
-    quickPrompt: 'Em muốn xin cấp giấy xác nhận giảm trừ gia cảnh thuế TNCN nộp Chi cục Thuế cho ba mẹ em',
-  },
-  {
-    id: 'form_bank',
-    formCode: 'BANK_LOAN',
-    badge: 'DV-02 · VAY VỐN',
-    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    title: 'Giấy Xác Nhận Vay Vốn NHCSXH',
-    name: 'Giấy xác nhận vay vốn Ngân hàng Chính sách Xã hội',
-    description: 'Theo Mẫu 01/TDSV (TT 27/2019/TT-NHCS), nộp Ngân hàng CSXH địa phương. Hạn 1 học kỳ.',
-    quickPrompt: 'Em muốn xin giấy xác nhận vay vốn ngân hàng chính sách xã hội theo mẫu 01',
-  },
-  {
-    id: 'form_military',
-    formCode: 'MILITARY_DEFERMENT',
-    badge: 'DV-03 · NVQS',
-    badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
-    title: 'Đơn Xin Tạm Hoãn Nghĩa Vụ Quân Sự',
-    name: 'Đơn xin tạm hoãn nghĩa vụ quân sự',
-    description: 'Gửi Ban Chỉ huy Quân sự cấp Xã/Phường/Thị trấn để tạm hoãn gọi nhập ngũ. Hiệu lực 30 ngày.',
-    quickPrompt: 'Em xin cấp Giấy chứng nhận tạm hoãn nghĩa vụ quân sự nộp Ban chỉ huy quân sự',
-  },
-  {
-    id: 'form_debt',
-    formCode: 'COURSE_DEBT',
-    badge: 'DV-04 · NỢ MÔN',
-    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
-    title: 'Đơn Xác Nhận Sinh Viên Nợ Môn',
-    name: 'Đơn xác nhận sinh viên nợ môn / hoàn thành chương trình',
-    description: 'Xác nhận sinh viên còn nợ học phần và đang trong thời gian trả nợ môn để hoàn thành chương trình đào tạo.',
-    quickPrompt: 'Em muốn xin đơn xác nhận sinh viên còn nợ môn để bổ sung hồ sơ và trả nợ học phần',
-  },
-  {
-    id: 'form_general',
-    formCode: 'GENERAL_CONFIRMATION',
-    badge: 'DV-05 · CHUNG',
-    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
-    title: 'Giấy Xác Nhận Sinh Viên (Mục Đích Chung)',
-    name: 'Giấy xác nhận sinh viên (Mục đích chung)',
-    description: 'Xác nhận làm vé tháng xe buýt, xin visa du lịch, việc làm, bổ sung hồ sơ. Hạn 1 học kỳ.',
-    quickPrompt: 'Em xin cấp giấy xác nhận sinh viên mục đích thông thường để làm vé xe buýt hoặc xin visa',
-  },
-];
+import PetitionSupplementForm from '../components/forms/PetitionSupplementForm';
+import { supplementDecisionState } from '../config/petitionSupplement';
+
+import { CONFIRMATION_FORMS } from '../config/confirmationForms';
 
 export default function StudentWorkspacePage({
   currentAccountKey,
@@ -246,7 +174,6 @@ export default function StudentWorkspacePage({
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionId, setSessionId] = useState(() => `sess_${currentAccount.code || 'student'}_${Date.now()}`);
-  const [types, setTypes] = useState([]);
 
   // Bộ đếm thời gian phản hồi ms thời gian thực & Tiến trình 3 Chốt (AgentProgress)
   const [elapsedMs, setElapsedMs] = useState(0);
@@ -289,9 +216,6 @@ export default function StudentWorkspacePage({
     }
   }, [activeDecision, currentAccount.code]);
 
-  // State cho việc nộp file bổ sung (Mẫu 01/NHCS hoặc Lệnh NVQS)
-  const [supplementFile, setSupplementFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
 
   const chatEndRef = useRef(null);
   const socket = getSocket();
@@ -304,21 +228,6 @@ export default function StudentWorkspacePage({
   useEffect(() => {
     scrollToBottom();
   }, [messages, isProcessing]);
-
-  // Nạp danh mục thủ tục từ Backend
-  useEffect(() => {
-    const fetchTypes = async () => {
-      try {
-        const res = await api.get('/petitions/types');
-        if (res.data?.success) {
-          setTypes(res.data.data || []);
-        }
-      } catch (err) {
-        console.warn('Không thể nạp danh mục loại thủ tục:', err.message);
-      }
-    };
-    fetchTypes();
-  }, []);
 
   // Lắng nghe sự kiện Socket.IO
   useEffect(() => {
@@ -591,61 +500,17 @@ export default function StudentWorkspacePage({
     }
   }, [externalPrompt]);
 
-  // Nộp file bổ sung Mẫu 01 hoặc Lệnh gọi NVQS (Resume flow)
-  const handleResumeSubmission = async () => {
-    if (!activeDecision.requestId) return;
-    setIsUploading(true);
-
-    try {
-      const fileName = supplementFile ? supplementFile.name : 'Mau_01_NHCS_Xac_Nhan.pdf';
-      const docType = fileName.toLowerCase().includes('nvqs') ? 'MILITARY_CALL_DOC' : 'BANK_FORM';
-
-      const res = await api.post(`/petitions/${activeDecision.requestId}/resume`, {
-        additionalData: { hasBankForm: true, hasMilitaryCallDoc: true, purpose: 'Vay vốn NHCSXH' },
-        newDocuments: [
-          {
-            documentType: docType,
-            fileName: fileName,
-            fileUrl: `https://storage.eduref.edu.vn/${fileName}`,
-          },
-        ],
-      });
-
-      if (res.data?.success) {
-        const tr = res.data;
-        setMessages((prev) => [
-          ...prev,
-          {
-            id: `resume_${Date.now()}`,
-            sender: 'agent',
-            text: `✅ **Đã tiếp nhận hồ sơ bổ sung:**\n${tr.message}`,
-            toolResult: tr,
-            decision: tr.decision,
-            timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-          },
-        ]);
-
-        setActiveDecision({
-          status: tr.status || 'APPROVED',
-          requirementsCheck: 'PASSED',
-          policiesCheck: 'PASSED',
-          authorityCheck: tr.decision === 'ESCALATE_TO_STAFF' ? 'ESCALATED' : 'PASSED',
-          finalDecision: tr.decision,
-          reason: tr.message,
-          requestCode: tr.requestCode,
-          qrCodeUrl: tr.qrCodeUrl,
-          sha256Proof: tr.sha256Proof,
-          missingFields: [],
-          requestId: tr.requestId,
-        });
-
-        setSupplementFile(null);
-      }
-    } catch (err) {
-      console.error('Lỗi khi nộp bổ sung:', err);
-    } finally {
-      setIsUploading(false);
-    }
+  const handleSupplementSubmitted = (result) => {
+    setMessages((previous) => [...previous, {
+      id: `resume_${Date.now()}`, sender: 'agent',
+      text: result.message || result.question || 'Đã tiếp nhận thông tin bổ sung.',
+      toolResult: result, decision: result.decision,
+      timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
+    }]);
+    setActiveDecision((previous) => ({ ...previous, ...supplementDecisionState(result),
+      requestId: result.requestId || previous.requestId,
+      requestCode: result.requestCode || previous.requestCode,
+    }));
   };
 
   return (
@@ -841,7 +706,7 @@ export default function StudentWorkspacePage({
                 <span className="text-xs font-bold text-slate-900">
                   Trợ Lý Học Vụ Số HUTECH
                 </span>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                <span className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
                   <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
                   Quy chế 2026
                 </span>
@@ -989,67 +854,13 @@ export default function StudentWorkspacePage({
             />
           )}
 
-          {/* Ô Dropzone nộp bổ sung chứng từ khi bị thiếu (Luồng ASK) kèm DraftReviewCard */}
           {activeDecision.status === 'WAITING_STUDENT' && activeDecision.requestId && (
-            <div className="space-y-3 max-w-xl mx-auto my-2">
-              <DraftReviewCard
-                draft={{
-                  studentName: currentAccount.name,
-                  studentCode: currentAccount.code,
-                  purpose: activeDecision.reason || 'Cấp giấy xác nhận sinh viên bổ sung hồ sơ',
-                  pickupCampus: 'Trụ sở chính Khu A (A-01.01)',
-                  phone: currentAccount.phone || '0901234567',
-                }}
-                onConfirm={() => handleSendMessage('Tôi xác nhận thông tin trên và đề nghị nộp hồ sơ.')}
-                onEdit={() => onOpenDynamicForm?.(CONFIRMATION_FORMS[0])}
-              />
-              <div className="p-4 rounded-xl bg-amber-50/90 border border-amber-200 space-y-3 shadow-xs">
-              <div className="flex items-start gap-2.5">
-                <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-                <div>
-                  <h4 className="text-xs font-bold text-amber-900">
-                    Cần bổ sung chứng từ / biểu mẫu để tiếp tục
-                  </h4>
-                  <p className="text-xs text-amber-800 mt-0.5">
-                    Hồ sơ đang chờ bạn đính kèm <strong>Mẫu 01/NHCS</strong> hoặc <strong>Lệnh gọi NVQS</strong>.
-                  </p>
-                </div>
-              </div>
-
-              {/* Dropzone Upload */}
-              <div className="border-2 border-dashed border-amber-300 rounded-lg p-3 text-center bg-white">
-                <input
-                  type="file"
-                  id="supplement-upload"
-                  className="hidden"
-                  onChange={(e) => setSupplementFile(e.target.files?.[0] || null)}
-                />
-                <label
-                  htmlFor="supplement-upload"
-                  className="cursor-pointer flex flex-col items-center gap-1 text-xs text-slate-600"
-                >
-                  <Upload className="w-5 h-5 text-amber-600" />
-                  <span className="font-medium text-[#0B3B82]">Bấm chọn tài liệu</span> hoặc kéo thả file vào đây
-                  <span className="text-[10px] text-slate-400">Hỗ trợ PDF, PNG, JPG (Tối đa 10MB)</span>
-                </label>
-
-                {supplementFile && (
-                  <div className="mt-2 text-xs font-semibold text-emerald-700 bg-emerald-50 px-2.5 py-1 rounded inline-block">
-                    ✓ Đã chọn: {supplementFile.name}
-                  </div>
-                )}
-              </div>
-
-              {/* Nút gửi bổ sung */}
-              <button
-                onClick={handleResumeSubmission}
-                disabled={isUploading}
-                className="w-full py-2 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
-              >
-                {isUploading ? 'Đang thẩm định lại...' : 'Nộp Bổ Sung & Tiếp Tục Xử Lý (Resume)'}
-              </button>
-              </div>
-            </div>
+            <PetitionSupplementForm
+              key={activeDecision.requestId}
+              requestId={activeDecision.requestId}
+              question={activeDecision.reason}
+              onSubmitted={handleSupplementSubmitted}
+            />
           )}
 
           <div ref={chatEndRef} />
@@ -1215,7 +1026,7 @@ export default function StudentWorkspacePage({
                 <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
                   <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
                     <span className="text-[10px] text-slate-500 block">Trạng thái đào tạo:</span>
-                    <span className={`inline-block mt-0.5 px-1.5 py-0.2 rounded font-semibold text-[10px] ${
+                    <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded font-semibold text-[10px] ${
                       currentAccount.code === '2110002' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
                     }`}>
                       {currentAccount.code === '2110002' ? 'DROPPED (Thôi học)' : 'ACTIVE (Đang học)'}
@@ -1223,7 +1034,7 @@ export default function StudentWorkspacePage({
                   </div>
                   <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
                     <span className="text-[10px] text-slate-500 block">Thời khóa biểu kỳ này:</span>
-                    <span className={`inline-block mt-0.5 px-1.5 py-0.2 rounded font-semibold text-[10px] ${
+                    <span className={`inline-block mt-0.5 px-1.5 py-0.5 rounded font-semibold text-[10px] ${
                       currentAccount.hasSchedule !== false && currentAccount.code !== '2110002' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
                     }`}>
                       {currentAccount.hasSchedule !== false && currentAccount.code !== '2110002' ? 'Có lịch học (Hợp lệ)' : 'Chưa có lịch học'}
@@ -1239,7 +1050,7 @@ export default function StudentWorkspacePage({
                     <ShieldAlert className="w-3.5 h-3.5 text-[#0B3B82]" />
                     4 Chốt Chặn Thẩm Định Tự Hành
                   </span>
-                  <span className="font-mono text-[9px] text-[#0B3B82] bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 font-bold">
+                  <span className="font-mono text-[9px] text-[#0B3B82] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 font-bold">
                     BOUNDED
                   </span>
                 </div>
@@ -1251,7 +1062,7 @@ export default function StudentWorkspacePage({
                     <span className={`font-semibold text-[10px] px-2 py-0.5 rounded ${
                       activeDecision.requirementsCheck === 'PASSED'
                         ? 'bg-emerald-100 text-emerald-800'
-                        : activeDecision.requirementsCheck === 'FAILED'
+                        : ['FAILED', 'INCOMPLETE'].includes(activeDecision.requirementsCheck)
                         ? 'bg-amber-100 text-amber-800'
                         : 'bg-slate-200 text-slate-600'
                     }`}>
@@ -1325,9 +1136,9 @@ export default function StudentWorkspacePage({
                 )}
 
                 {activeDecision.reason && (
-                  <p className="text-xs opacity-90 leading-relaxed pt-1">
-                    {activeDecision.reason}
-                  </p>
+                  <div className="opacity-90 pt-1">
+                    <MarkdownRenderer content={activeDecision.reason} compact inheritColor />
+                  </div>
                 )}
 
                 {activeDecision.sha256Proof && (

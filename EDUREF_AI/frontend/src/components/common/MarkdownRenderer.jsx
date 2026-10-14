@@ -1,9 +1,9 @@
 // src/components/common/MarkdownRenderer.jsx
 // Hiển thị văn bản phản hồi của AI có định dạng Markdown sạch sẽ, hỗ trợ cả giao diện User & AI
 
-import React from 'react';
 
-export default function MarkdownRenderer({ content = '', isUser = false }) {
+
+export default function MarkdownRenderer({ content = '', isUser = false, compact = false, inheritColor = false }) {
   if (!content) return null;
 
   // Chuẩn hóa nếu LLM vô tình xuống dòng giữa ] và (
@@ -12,8 +12,8 @@ export default function MarkdownRenderer({ content = '', isUser = false }) {
 
   return (
     <div
-      className={`space-y-1.5 text-sm leading-relaxed break-words font-sans ${
-        isUser ? 'text-white' : 'text-slate-800'
+      className={`${compact ? 'space-y-1 text-xs' : 'space-y-1.5 text-sm'} leading-relaxed break-words font-sans ${
+        inheritColor ? 'text-inherit [&_strong]:text-inherit [&_h3]:text-inherit [&_h4]:text-inherit' : isUser ? 'text-white' : 'text-slate-800'
       }`}
     >
       {lines.map((line, idx) => {
@@ -34,7 +34,7 @@ export default function MarkdownRenderer({ content = '', isUser = false }) {
               }`}
             >
               <span className={`w-1 h-3.5 rounded-sm inline-block ${isUser ? 'bg-white' : 'bg-blue-600'}`}></span>
-              {trimmed.replace('### ', '')}
+              {parseInlineFormatting(trimmed.replace('### ', ''), isUser)}
             </h4>
           );
         }
@@ -48,7 +48,7 @@ export default function MarkdownRenderer({ content = '', isUser = false }) {
                 isUser ? 'text-white border-blue-400/40' : 'text-slate-900 border-slate-200'
               }`}
             >
-              {trimmed.replace('## ', '')}
+              {parseInlineFormatting(trimmed.replace('## ', ''), isUser)}
             </h3>
           );
         }
@@ -60,6 +60,17 @@ export default function MarkdownRenderer({ content = '', isUser = false }) {
             <div key={idx} className="flex items-start gap-2 pl-2">
               <span className={`font-bold mt-1 text-xs ${isUser ? 'text-blue-200' : 'text-blue-600'}`}>•</span>
               <span className="flex-1">{parseInlineFormatting(bulletText, isUser)}</span>
+            </div>
+          );
+        }
+
+        // Numbered requirements are returned by the workflow as separate lines.
+        const orderedItem = trimmed.match(/^(\d+)[.)]\s+(.+)$/);
+        if (orderedItem) {
+          return (
+            <div key={idx} className="flex items-start gap-2 pl-2">
+              <span className="shrink-0 tabular-nums">{orderedItem[1]}.</span>
+              <span className="min-w-0 flex-1">{parseInlineFormatting(orderedItem[2], isUser)}</span>
             </div>
           );
         }
