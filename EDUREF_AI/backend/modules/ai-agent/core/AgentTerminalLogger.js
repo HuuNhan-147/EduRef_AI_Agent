@@ -18,9 +18,16 @@ class AgentTerminalLoggerManager {
     const logText = text || message || '';
     const logDetails = details || meta || null;
 
+    // sessionId đã được scope theo chủ sở hữu ("<MSSV|username>::<sess>", xem sessionScope.js).
+    // Log của phiên nào chỉ được phát cho chính chủ + cán bộ, vì `meta` chứa kết quả tool
+    // (CCCD, SĐT, địa chỉ...) và `text` chứa nguyên văn tin nhắn của sinh viên.
+    const sep = typeof sessionId === 'string' ? sessionId.indexOf('::') : -1;
+    const ownerKey = sep > 0 ? sessionId.slice(0, sep) : null;
+
     const logEntry = {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       sessionId,
+      ownerKey,
       timestamp,
       timeFormatted,
       step: step || type.toUpperCase(),
@@ -55,10 +62,15 @@ class AgentTerminalLoggerManager {
     const prefix = prefixMap[logEntry.type] || prefixMap[step] || '👉';
     console.log(`[${timestamp}] ${prefix} [${logEntry.step}] ${logText}`);
 
-    // 3. Broadcast thời gian thực tới TẤT CẢ web client qua Socket.IO
+    // 3. Phát thời gian thực qua Socket.IO: log có chủ sở hữu chỉ tới phòng của chủ đó + phòng cán bộ;
+    //    log hệ thống/verify (không gắn phiên) vẫn phát cho tất cả để giám khảo theo dõi.
     if (this.io) {
       try {
-        this.io.emit('agent_terminal_log', logEntry);
+        if (ownerKey) {
+          this.io.to(`user:${ownerKey}`).to('staff').emit('agent_terminal_log', logEntry);
+        } else {
+          this.io.emit('agent_terminal_log', logEntry);
+        }
       } catch (err) {
         console.warn('⚠️ [AgentTerminalLogger] Lỗi emit socket toàn cục:', err.message);
       }
@@ -67,8 +79,15 @@ class AgentTerminalLoggerManager {
     return logEntry;
   }
 
-  getRecentLogs(limit = 150) {
-    return this.buffer.slice(-limit);
+  /**
+   * @param {number} limit
+   * @param {{ key: string|null, isStaff: boolean }|null} viewer  null = nội bộ (không lọc)
+   */
+  getRecentLogs(limit = 150, viewer = null) {
+    const visible = viewer
+      ? this.buffer.filter((e) => !e.ownerKey || viewer.isStaff || (viewer.key && e.ownerKey === viewer.key))
+      : this.buffer;
+    return visible.slice(-limit);
   }
 
   clear() {

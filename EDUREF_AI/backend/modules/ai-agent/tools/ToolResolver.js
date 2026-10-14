@@ -49,7 +49,9 @@ export class ToolResolver {
   }
 
   static async resolve(toolName, args = {}) {
-    console.log(`🛠️ [ToolResolver] Thực thi công cụ: ${toolName}`, args);
+    // Không log nguyên `args`: chứa currentUser (CCCD, SĐT, địa chỉ) và cả lịch sử hội thoại,
+    // sẽ nằm lại vĩnh viễn trong log của máy chủ.
+    console.log(`🛠️ [ToolResolver] Thực thi công cụ: ${toolName}${args.requestId ? ` (requestId=${args.requestId})` : ''}`);
 
     const denied = await ToolResolver.denyIfNotOwner(toolName, args);
     if (denied) return denied;

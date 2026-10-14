@@ -1,7 +1,7 @@
 import express from 'express';
 import prisma from '../config/prisma.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
-import { stripServerAuthoritativeFields } from '../services/ClientInputGuard.js';
+import { stripServerAuthoritativeFields, sanitizeDocumentUrl } from '../services/ClientInputGuard.js';
 import { isDemoRoleSwitchEnabled } from '../controllers/authController.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
 
@@ -365,9 +365,9 @@ router.post('/:id/documents', authenticateToken, async (req, res) => {
     const doc = await prisma.requestDocument.create({
       data: {
         requestId: petition.id,
-        documentType,
-        fileName,
-        fileUrl: fileUrl || `https://storage.eduref.edu.vn/${fileName}`,
+        documentType: String(documentType).slice(0, 50),
+        fileName: String(fileName).slice(0, 200),
+        fileUrl: sanitizeDocumentUrl(fileUrl, fileName),
         verificationStatus: 'PENDING',
       },
     });

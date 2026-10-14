@@ -5,6 +5,7 @@ import prisma from '../../config/prisma.js';
 import AuditLogService from '../../services/AuditLogService.js';
 import { studentConfirmationHandler } from './handlers/StudentConfirmationHandler.js';
 import { calculatePickupAppointment } from '../../services/StudentConfirmationDecisionService.js';
+import { sanitizeDocumentUrl } from '../../services/ClientInputGuard.js';
 
 export class PetitionWorkflowCore {
   constructor() {
@@ -425,9 +426,10 @@ export class PetitionWorkflowCore {
         await prisma.requestDocument.create({
           data: {
             requestId: request.id,
-            documentType: doc.documentType || 'ATTACHMENT',
-            fileName: doc.fileName || 'document.pdf',
-            fileUrl: doc.fileUrl || `https://storage.eduref.edu.vn/${doc.fileName || 'document.pdf'}`,
+            documentType: String(doc.documentType || 'ATTACHMENT').slice(0, 50),
+            fileName: String(doc.fileName || 'document.pdf').slice(0, 200),
+            // newDocuments đến từ client (REST /resume): chỉ nhận http(s)/đường dẫn nội bộ
+            fileUrl: sanitizeDocumentUrl(doc.fileUrl, doc.fileName),
             verificationStatus: 'PENDING',
           },
         });

@@ -33,6 +33,8 @@ app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 const PORT = process.env.PORT || 5000;
+// Mỗi tin nhắn đi thẳng vào prompt Gemini: chặn văn bản khổng lồ làm tốn chi phí/độ trễ
+const MAX_MESSAGE_LENGTH = 4000;
 const allowedOrigins = [
   'http://localhost:5173',
   'http://localhost:5174',
@@ -126,11 +128,21 @@ const activeAgentSessions = new Map();
 io.on('connection', (socket) => {
   console.log('🟢 [Socket.IO] Client đã kết nối:', socket.id);
 
+  // Phòng riêng để AgentTerminalLogger chỉ phát log phiên của chủ sở hữu (và cán bộ)
+  const ownerKey = socket.user?.studentCode || socket.user?.username || socket.user?.id;
+  if (ownerKey) socket.join(`user:${ownerKey}`);
+  if (['STAFF', 'DEAN', 'ADMIN'].includes(socket.user?.role)) socket.join('staff');
+
   socket.on('client_send_message', async (data) => {
     const { message, sessionId = `sess_${socket.id}`, attachments, inputData } = data || {};
 
     if (!message) {
       socket.emit('agent_error', { message: 'Tin nhắn không được để trống.' });
+      return;
+    }
+
+    if (String(message).length > MAX_MESSAGE_LENGTH) {
+      socket.emit('agent_error', { sessionId, error: `Tin nhắn quá dài (tối đa ${MAX_MESSAGE_LENGTH} ký tự).` });
       return;
     }
 

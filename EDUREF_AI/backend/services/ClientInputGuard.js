@@ -34,4 +34,19 @@ export function stripServerAuthoritativeFields(data) {
   return clean;
 }
 
-export default { SERVER_AUTHORITATIVE_INPUT_KEYS, stripServerAuthoritativeFields };
+/**
+ * fileUrl/fileName của tài liệu đính kèm do client gửi và được trang cán bộ render thành link.
+ * Chỉ chấp nhận http(s) hoặc đường dẫn tuyệt đối nội bộ; mọi scheme khác (javascript:, data:,
+ * file:...) bị thay bằng đường dẫn kho lưu trữ mặc định.
+ */
+export function sanitizeDocumentUrl(fileUrl, fileName = 'document.pdf') {
+  const safeName = encodeURIComponent(String(fileName || 'document.pdf').slice(0, 200));
+  const fallback = `https://storage.eduref.edu.vn/${safeName}`;
+  const value = String(fileUrl || '').trim();
+  if (!value || value.length > 2048) return fallback;
+  if (/^https?:\/\/[^\s]+$/i.test(value)) return value;
+  if (/^\/(?!\/)[^\s]*$/.test(value)) return value;
+  return fallback;
+}
+
+export default { SERVER_AUTHORITATIVE_INPUT_KEYS, stripServerAuthoritativeFields, sanitizeDocumentUrl };

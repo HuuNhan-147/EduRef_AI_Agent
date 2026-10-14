@@ -5,6 +5,18 @@ export class ConversationMemory {
   constructor() {
     this.sessions = new Map(); // sessionId -> { studentCode, messages: [], meta: {}, lastActive: Date }
     this.sessionTTL = 2 * 60 * 60 * 1000; // 2 giờ
+    this.maxMessagesPerSession = 200;
+
+    // cleanupExpiredSessions() trước đây không có ai gọi nên mọi phiên (kèm toàn bộ nội dung chat)
+    // nằm lại trong RAM đến khi tiến trình chết. unref() để timer không giữ tiến trình sống.
+    this.cleanupTimer = setInterval(() => this.cleanupExpiredSessions(), 10 * 60 * 1000);
+    this.cleanupTimer.unref?.();
+  }
+
+  trimSession(session) {
+    if (session.messages.length > this.maxMessagesPerSession) {
+      session.messages.splice(0, session.messages.length - this.maxMessagesPerSession);
+    }
   }
 
   getOrCreateSession(sessionId = null, studentCode = null) {
@@ -44,6 +56,7 @@ export class ConversationMemory {
       meta,
       timestamp: Date.now(),
     });
+    this.trimSession(session);
   }
 
   saveAssistantMessage(sessionId, content, functionCalls = null) {
@@ -55,6 +68,7 @@ export class ConversationMemory {
       functionCalls,
       timestamp: Date.now(),
     });
+    this.trimSession(session);
   }
 
   setSessionMeta(sessionId, key, value) {

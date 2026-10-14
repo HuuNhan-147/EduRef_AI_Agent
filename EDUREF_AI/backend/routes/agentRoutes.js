@@ -26,6 +26,9 @@ router.post('/chat', authenticateToken, chatLimiter, async (req, res) => {
     if (!message) {
       return res.status(400).json({ success: false, message: 'Thiếu trường message.' });
     }
+    if (String(message).length > 4000) {
+      return res.status(400).json({ success: false, message: 'Tin nhắn quá dài (tối đa 4000 ký tự).' });
+    }
 
     // Tự động nạp ngữ cảnh người dùng thực tế từ Database
     let userContext = {};
@@ -222,8 +225,12 @@ router.post('/staff-confirm', authenticateToken, requireStaffOrDean, async (req,
 router.get('/terminal-logs', authenticateToken, async (req, res) => {
   try {
     const { agentTerminalLogger } = await import('../modules/ai-agent/core/AgentTerminalLogger.js');
-    const limit = parseInt(req.query.limit, 10) || 150;
-    const logs = agentTerminalLogger.getRecentLogs(limit);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 150, 300);
+    // Chỉ trả log của chính người dùng (và log hệ thống); cán bộ xem được tất cả
+    const logs = agentTerminalLogger.getRecentLogs(limit, {
+      key: req.user?.studentCode || req.user?.username || req.user?.id || null,
+      isStaff: ['STAFF', 'DEAN', 'ADMIN'].includes(req.user?.role),
+    });
     res.json({ success: true, data: logs });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

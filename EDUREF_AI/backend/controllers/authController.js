@@ -23,6 +23,9 @@ export const DEMO_ACCOUNT_TARGETS = Object.freeze({
   DEAN_DAOTAO: { type: 'STAFF', code: 'dean_daotao' },
 });
 
+// Mật khẩu mặc định do prisma/seed.js gán cho tài khoản cán bộ (đã công khai trong repo)
+const KNOWN_DEFAULT_PASSWORDS = Object.freeze(['123456']);
+
 export function isDemoRoleSwitchEnabled(env = process.env) {
   if (env.ALLOW_DEMO_ROLE_SWITCH !== undefined) {
     return String(env.ALLOW_DEMO_ROLE_SWITCH).toLowerCase() === 'true';
@@ -133,6 +136,15 @@ export const login = async (req, res) => {
         return res.status(401).json({ success: false, message: 'Tên đăng nhập hoặc mật khẩu không chính xác.' });
       }
 
+      // seed.js tạo staff_daotao/dean_daotao với mật khẩu mặc định đã nằm trong repo công khai.
+      // Ngoài chế độ demo (nơi demo-login đã cấp vai trò công khai), từ chối mật khẩu mặc định đó.
+      if (!isDemoRoleSwitchEnabled() && KNOWN_DEFAULT_PASSWORDS.includes(String(password))) {
+        return res.status(403).json({
+          success: false,
+          message: 'Tài khoản đang dùng mật khẩu mặc định. Quản trị viên cần đặt lại mật khẩu trước khi đăng nhập.',
+        });
+      }
+
       return res.json(buildStaffSession(user, jwtSecret));
     }
 
@@ -186,7 +198,19 @@ export const demoLogin = async (req, res) => {
  */
 export const getDemoAccounts = async (req, res) => {
   try {
+    // Endpoint công khai: chỉ phục vụ demo và chỉ liệt kê hồ sơ benchmark của Nhà trường,
+    // không lộ tên/MSSV/nợ học phí của các hồ sơ do người dùng khác tự tạo.
+    if (!isDemoRoleSwitchEnabled()) {
+      return res.status(403).json({ success: false, message: 'Danh sách tài khoản demo đang bị tắt.' });
+    }
+    const benchmarkCodes = [
+      ...new Set([
+        ...RESERVED_BENCHMARK_STUDENT_CODES,
+        ...Object.values(DEMO_ACCOUNT_TARGETS).filter((t) => t.type === 'STUDENT').map((t) => t.code),
+      ]),
+    ];
     const students = await prisma.student.findMany({
+      where: { studentCode: { in: benchmarkCodes } },
       include: { department: true },
       orderBy: { studentCode: 'asc' },
     });
@@ -288,6 +312,16 @@ export const registerCustomStudent = async (req, res) => {
       return res.status(400).json({ success: false, message: `Trạng thái sinh viên không hợp lệ. Chấp nhận: ${VALID_STUDENT_STATUSES.join(', ')}.` });
     }
     const cleanCode = String(studentCode).trim();
+    // MSSV HUTECH chỉ gồm chữ số. Chuỗi tùy ý sẽ đi vào sessionId, khóa phòng socket và prompt hệ thống.
+    if (!/^[0-9]{7,12}$/.test(cleanCode)) {
+      return res.status(400).json({ success: false, message: 'MSSV chỉ gồm 7–12 chữ số.' });
+    }
+    const tooLong = [
+      [fullName, 100], [departmentName, 100], [studentClass, 30], [phone, 20], [birthDate, 20], [gender, 10],
+    ].some(([value, max]) => value != null && String(value).length > max);
+    if (tooLong) {
+      return res.status(400).json({ success: false, message: 'Một số trường nhập quá dài.' });
+    }
     if (RESERVED_BENCHMARK_STUDENT_CODES.includes(cleanCode)) {
       return res.status(403).json({
         success: false,

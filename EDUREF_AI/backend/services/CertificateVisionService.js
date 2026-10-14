@@ -150,6 +150,19 @@ BẮT BUỘC TRẢ VỀ DUY NHẤT ĐỊNH DẠNG JSON HỢP LỆ THEO SCHEMA SA
 
         return parsed;
       }
+
+      // Gemini trả về rỗng (vd: bị chặn safety): trước đây hàm trả undefined làm orchestrator
+      // văng TypeError. Coi như không đủ bằng chứng và chuyển cán bộ thẩm định thủ công.
+      return {
+        isValid: false,
+        imageQuality: 'ERROR',
+        detectedType: expectedType === 'B1' ? 'B1_ENGLISH' : 'TEAMWORK_SKILLS',
+        studentNameMatch: null,
+        extractedName: null,
+        extractedData: null,
+        requiresManualReview: true,
+        feedback: 'Hệ thống AI Vision không trả về kết quả giám định cho ảnh này. Hồ sơ cần được chuyển tiếp lên Cán bộ Phòng Đào tạo thẩm định trực tiếp.',
+      };
     } catch (err) {
       console.warn('⚠️ [CertificateVisionService] Lỗi gọi Gemini Vision:', err.message);
       return {
