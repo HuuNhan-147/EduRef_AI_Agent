@@ -12,6 +12,8 @@ import auditRoutes from './routes/auditRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import { runAgent } from './modules/ai-agent/index.js';
 import { agentTerminalLogger } from './modules/ai-agent/core/AgentTerminalLogger.js';
+import { scopeSessionId } from './modules/ai-agent/memory/sessionScope.js';
+import { warnIfInsecureJwtSecret } from './config/jwtSecret.js';
 
 // Global error handlers để tránh crash tiến trình
 process.on('uncaughtException', (err) => {
@@ -130,7 +132,9 @@ io.on('connection', (socket) => {
 
     const controller = new AbortController();
     const targetSession = sessionId || `sess_${socket.id}`;
-    activeAgentSessions.set(targetSession, controller);
+    // Khóa theo socket: một client không thể dừng phiên của client khác bằng cách đoán sessionId
+    const sessionKey = `${socket.id}:${targetSession}`;
+    activeAgentSessions.set(sessionKey, controller);
     activeAgentSessions.set(socket.id, controller);
 
     try {
@@ -210,7 +214,8 @@ io.on('connection', (socket) => {
         message,
         currentUser: userContext,
         socket,
-        sessionId,
+        // Gắn chủ sở hữu vào sessionId để ConversationMemory không bị dùng chung giữa người dùng
+        sessionId: scopeSessionId(userContext, sessionId),
         attachments,
         inputData,
         signal: controller.signal,
@@ -251,7 +256,7 @@ io.on('connection', (socket) => {
         error: err.message,
       });
     } finally {
-      activeAgentSessions.delete(targetSession);
+      activeAgentSessions.delete(sessionKey);
       activeAgentSessions.delete(socket.id);
     }
   });
@@ -260,11 +265,12 @@ io.on('connection', (socket) => {
   socket.on('client_stop_generation', (data) => {
     const { sessionId: stopSessionId } = data || {};
     const targetSession = stopSessionId || `sess_${socket.id}`;
-    const controller = activeAgentSessions.get(targetSession) || activeAgentSessions.get(socket.id);
+    const sessionKey = `${socket.id}:${targetSession}`;
+    const controller = activeAgentSessions.get(sessionKey) || activeAgentSessions.get(socket.id);
     if (controller) {
       console.log(`⏹ [Socket.IO] Nhận lệnh dừng tác tử từ Client: ${targetSession}`);
       controller.abort();
-      activeAgentSessions.delete(targetSession);
+      activeAgentSessions.delete(sessionKey);
       activeAgentSessions.delete(socket.id);
       socket.emit('agent_stopped', {
         sessionId: targetSession,
@@ -284,6 +290,7 @@ io.on('connection', (socket) => {
 });
 
 // Khởi động server
+warnIfInsecureJwtSecret();
 server.listen(PORT, () => {
   console.log(`=======================================================`);
   console.log(`🚀 EduRef AI Backend đang chạy tại: http://localhost:${PORT}`);
