@@ -501,6 +501,8 @@ npm run dev
 ```text
 EduRef_AI_Agent/
 ├── README.md                           # Tài liệu tổng quan dự án cho Ban Giám Khảo
+├── ROADMAP.md                          # Lộ trình phát triển & Tiến hóa kiến trúc chuẩn Barem BGK (Tiêu chí 5)
+├── BUILD_LOG.md                        # Nhật ký phát triển 1 trang theo chuẩn Mục 3.f Đề bài
 └── EDUREF_AI/                          # Toàn bộ mã nguồn hệ thống
     ├── RUNBOOK.md                      # Kịch bản demo 90 giây dành cho BGK
     ├── backend/                        # Node.js + Express + Prisma + Gemini Agent
@@ -511,7 +513,7 @@ EduRef_AI_Agent/
     │   ├── prisma/                     # Schema Database & Script nạp Seed data
     │   ├── routes/                     # REST API endpoints (Agent, Petition, Audit, Auth)
     │   ├── services/                   # StudentConfirmationDecisionService, AuditService
-    │   ├── test/                       # 14 Unit Tests kiểm thử Bounded Autonomy & Track A
+    │   ├── test/                       # 15 Unit Tests kiểm thử Bounded Autonomy & Track A (54/54 PASS)
     │   └── server.js                   # Điểm khởi chạy máy chủ Express & Socket.IO
     ├── frontend/                       # React 18 + Vite 6.4 + TailwindCSS
     │   ├── src/
@@ -524,7 +526,9 @@ EduRef_AI_Agent/
         ├── 11_SECURITY.md              # Phòng vệ Prompt Injection & Kiểm toán
         ├── 13_ZERO_TRUST_SECURITY.md   # Nguyên lý Zero-Trust & Bảo vệ toàn vẹn quyết định học vụ
         ├── 14_TRACK_A_POLICY.md        # Toàn văn Quy chế Học vụ Đề bài A
-        └── 16_SUPABASE_DEPLOYMENT.md   # Hướng dẫn kết nối cơ sở dữ liệu Supabase
+        ├── 16_SUPABASE_DEPLOYMENT.md   # Hướng dẫn kết nối cơ sở dữ liệu Supabase
+        ├── 17_ROADMAP.md               # Lộ trình phát triển & Tiến hóa kiến trúc chuẩn Barem BGK
+        └── 18_DEFENSE_QA_PLAYBOOK.md   # Cẩm nang 12 kịch bản phản biện hóc búa với Hội đồng BGK
 ```
 
 ---

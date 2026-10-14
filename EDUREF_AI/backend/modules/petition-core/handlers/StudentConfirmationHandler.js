@@ -117,7 +117,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
       const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm|trụ sở/i.test(campusRaw);
       if (isThuDuc) {
-        normalizedCampus = 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)';
+        normalizedCampus = 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)';
       } else if (isSaiGon) {
         normalizedCampus = 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
       }
@@ -128,7 +128,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       missing.push({
         code: 'REQ_CAMPUS',
         name: 'Cơ sở nhận giấy',
-        description: 'Vui lòng chọn 1 trong 2 cơ sở nhận giấy bản cứng: Sai Gon Campus (A-01.01) hoặc Thu Duc Campus (E1-01.08).',
+        description: 'Vui lòng chọn 1 trong 2 cơ sở nhận giấy bản cứng: Sai Gon Campus (A-01.01) hoặc Thu Duc Campus (E1-01.05).',
       });
     }
 

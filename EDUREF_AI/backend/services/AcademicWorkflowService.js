@@ -124,7 +124,7 @@ class AcademicWorkflowService {
       let historyRequests = [];
       if (studentRec?.id) {
         try {
-          historyRequests = await prisma.studentRequest.findMany({
+          const rawHistory = await prisma.studentRequest.findMany({
             where: {
               studentId: studentRec.id,
               requestType: { code: 'STUDENT_CONFIRMATION' },
@@ -133,6 +133,16 @@ class AcademicWorkflowService {
             select: { id: true, requestCode: true, status: true, inputData: true, createdAt: true },
             orderBy: { createdAt: 'desc' },
           });
+          // Sanitize để triệt tiêu đệ quy inputData phình to cấp số nhân
+          historyRequests = rawHistory.map((r) => ({
+            id: r.id,
+            requestCode: r.requestCode,
+            status: r.status,
+            createdAt: r.createdAt,
+            inputData: {
+              formCode: r.inputData?.formCode || 'GENERAL_CONFIRMATION',
+            },
+          }));
         } catch (_e) {
           historyRequests = inputData?.historyRequests || [];
         }
@@ -164,14 +174,14 @@ class AcademicWorkflowService {
           uncertaintyType: 'UNKNOWN_FACT',
           actionableQuestion:
             'Để Nhà trường chuẩn bị bản cứng có chữ ký sống và mộc đỏ của Phòng CTSV, bạn vui lòng chọn 1 trong 2 cơ sở sau để nhận giấy nhé:\n' +
-            '1. 🏢 Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)\n' +
-            '2. 🏢 Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)',
+            '1. 🏢 Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01) [Nhận sau 1 ngày làm việc]\n' +
+            '2. 🏢 Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05) [Nhận sau 2 ngày làm việc]',
           message: 'Dạ, hệ thống đã tiếp nhận yêu cầu xin cấp Giấy xác nhận sinh viên của bạn. Vui lòng chọn cơ sở nhận giấy bản cứng.',
         };
       }
 
       const normalizedCampus = isThuDuc
-        ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
+        ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)'
         : 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
 
       // 1.3. SINGLE SOURCE OF TRUTH: Chỉ lấy thông tin định danh tĩnh (MSSV, Họ tên, Ngày sinh, Khoa, Ngành)
@@ -245,7 +255,7 @@ class AcademicWorkflowService {
                 `⚠️ **CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ (BCH QUÂN SỰ ĐỊA PHƯƠNG):**\n` +
                 `Giấy chứng nhận Tạm hoãn NVQS sẽ được nộp trực tiếp về Ban Chỉ huy Quân sự địa phương nơi bạn đăng ký hộ khẩu thường trú. Sinh viên phải **hoàn toàn chịu trách nhiệm trước pháp luật** về tính chính xác của địa chỉ khai báo (đặc biệt lưu ý tên xã/phường/thị trấn sau các đợt sáp nhập, sắp xếp đơn vị hành chính để tránh bị địa phương từ chối hồ sơ).\n\n` +
                 `Bạn vui lòng đối chiếu kỹ với CCCD/Sổ hộ khẩu và xác nhận lại giúp mình:\n` +
-                `👉 Nếu địa chỉ trên đã chính xác: Bạn chỉ cần nhắn **"Xác nhận đúng"** (kèm theo cơ sở nhận giấy bản cứng: A-01.01 Sài Gòn hoặc E1-01.08 Thủ Đức nếu chưa chọn) để mình hoàn tất duyệt và cấp mã hồ sơ ngay nhé!\n` +
+                `👉 Nếu địa chỉ trên đã chính xác: Bạn chỉ cần nhắn **"Xác nhận đúng"** (kèm theo cơ sở nhận giấy bản cứng: A-01.01 Sài Gòn hoặc E1-01.05 Thủ Đức nếu chưa chọn) để mình hoàn tất duyệt và cấp mã hồ sơ ngay nhé!\n` +
                 `👉 Nếu cần điều chỉnh: Bạn nhắn lại địa chỉ chính xác để mình cập nhật nhé!`,
               message: 'Địa chỉ thường trú phục vụ Giấy tạm hoãn Nghĩa vụ Quân sự bắt buộc phải được sinh viên xác nhận và cam kết chịu trách nhiệm pháp lý trước khi phê duyệt.',
               formCode: activeFormCode,
@@ -371,8 +381,8 @@ class AcademicWorkflowService {
           studentCode: student.studentCode,
           fullName: student.fullName,
           email: student.email,
-          department: student.department.name,
-          departmentCode: student.department.code,
+          department: student.department?.name || 'Khoa Công Nghệ Thông Tin',
+          departmentCode: student.department?.code || 'CNTT',
           status: student.status, // ACTIVE, DROPPED, SUSPENDED, GRADUATED
           tuitionDebt: Number(student.tuitionDebt),
           gpa: Number(student.gpa),
@@ -584,7 +594,7 @@ class AcademicWorkflowService {
           student: {
             studentCode: request.student.studentCode,
             fullName: request.student.fullName,
-            department: request.student.department.name,
+            department: request.student?.department?.name || 'Khoa Công Nghệ Thông Tin',
             status: request.student.status,
             tuitionDebt: Number(request.student.tuitionDebt),
             gpa: Number(request.student.gpa),

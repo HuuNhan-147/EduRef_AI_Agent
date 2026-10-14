@@ -120,7 +120,7 @@ test('MASTER E2E: Kiểm chứng tất cả 8 luồng từ Điểm Bắt Đầu 
   // --------------------------------------------------------------------------
   console.log('▶ [LUỒNG 7] Có TKB & Check có trùng biểu mẫu không (Reissue Guard):');
   const dupNoReason = evaluateStudentConfirmation({
-    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true, fullName: 'Cao Hữu Nhân' },
+    student: { studentCode: '2380600001', status: 'ACTIVE', hasSchedule: true, fullName: 'Nguyễn Văn An', admissionYear: 2023 },
     inputData: { formCode: 'GENERAL_CONFIRMATION', purpose: 'Làm vé xe buýt', existingApprovedCount: 1, reissueReason: '' },
   });
   assert.equal(dupNoReason.decision, 'ASK_CLARIFICATION');
@@ -128,7 +128,7 @@ test('MASTER E2E: Kiểm chứng tất cả 8 luồng từ Điểm Bắt Đầu 
   console.log('  ✅ Nhánh 7a: [báo yêu cầu bị trùng cần trình bày lý do hoặc chọn biểu mẫu khác] [OK]');
 
   const dupWithReason = evaluateStudentConfirmation({
-    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true, fullName: 'Cao Hữu Nhân' },
+    student: { studentCode: '2380600001', status: 'ACTIVE', hasSchedule: true, fullName: 'Nguyễn Văn An', admissionYear: 2023 },
     inputData: { formCode: 'GENERAL_CONFIRMATION', purpose: 'Làm vé xe buýt', existingApprovedCount: 1, reissueReason: 'Bị mất bản cứng do dầm mưa ướt sách vở' },
   });
   assert.equal(dupWithReason.decision, 'ESCALATE_TO_STAFF');
@@ -136,15 +136,12 @@ test('MASTER E2E: Kiểm chứng tất cả 8 luồng từ Điểm Bắt Đầu 
   console.log('  ✅ Nhánh 7b: [Có lý do đóng gói chuyển tiếp cho cán bộ] (ESCALATE_TO_STAFF) -> Điểm đích cuối [OK]\n');
 
   // --------------------------------------------------------------------------
-  // LUỒNG 8: Có TKB, Đủ thông tin, Không trùng -> AUTO CẤP -> ĐÍCH CUỐI CÙNG
-  // --------------------------------------------------------------------------
-  // --------------------------------------------------------------------------
   // LUỒNG 8: Có TKB, Đủ thông tin, Không trùng -> Chốt chặn Xác nhận địa chỉ NVQS -> AUTO CẤP
   // --------------------------------------------------------------------------
   console.log('▶ [LUỒNG 8] Sinh viên xin Giấy tạm hoãn NVQS (MILITARY_DEFERMENT):');
   // 8a: Mới gửi địa chỉ lần đầu (Chưa xác nhận trách nhiệm pháp lý NVQS)
   const unconfirmedMilitaryRes = evaluateStudentConfirmation({
-    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true, fullName: 'Cao Hữu Nhân' },
+    student: { studentCode: '2380600001', status: 'ACTIVE', hasSchedule: true, fullName: 'Nguyễn Văn An', admissionYear: 2023 },
     inputData: {
       formCode: 'MILITARY_DEFERMENT',
       purpose: 'Tạm hoãn nghĩa vụ quân sự',
@@ -161,7 +158,7 @@ test('MASTER E2E: Kiểm chứng tất cả 8 luồng từ Điểm Bắt Đầu 
 
   // 8b: Đã xác nhận địa chỉ (isAddressConfirmed = true) -> Phê duyệt tự động
   const confirmedMilitaryRes = evaluateStudentConfirmation({
-    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true, fullName: 'Cao Hữu Nhân' },
+    student: { studentCode: '2380600001', status: 'ACTIVE', hasSchedule: true, fullName: 'Nguyễn Văn An', admissionYear: 2023 },
     inputData: {
       formCode: 'MILITARY_DEFERMENT',
       purpose: 'Tạm hoãn nghĩa vụ quân sự',

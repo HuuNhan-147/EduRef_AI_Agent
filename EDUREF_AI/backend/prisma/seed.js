@@ -42,7 +42,7 @@ async function main() {
 
   console.log('✅ Đã tạo 2 Khoa đào tạo (Khoa CNTT & Khoa Điện - Điện tử).');
 
-  // 3. Tạo Sinh viên mẫu (Khớp với ảnh thực tế: Cao Hữu Nhân - 2280602154)
+  // 3. Tạo Sinh viên mẫu chuẩn 10 số HUTECH
   const studentMain = await prisma.student.create({
     data: {
       studentCode: '2280602154',
@@ -56,10 +56,9 @@ async function main() {
     },
   });
 
-  // Giữ thêm alias mã 2110001 để tương thích với các bài test cũ nếu có
-  const studentAlias = await prisma.student.create({
+  const studentActive2023 = await prisma.student.create({
     data: {
-      studentCode: '2110001',
+      studentCode: '2380600001',
       fullName: 'Nguyễn Văn An',
       email: 'an.nguyen@edu.vn',
       phone: '0901234568',
@@ -70,59 +69,83 @@ async function main() {
     },
   });
 
-  const studentDropped = await prisma.student.create({
+  const studentDropped10 = await prisma.student.create({
     data: {
-      studentCode: '2110002',
+      studentCode: '2150200002',
       fullName: 'Trần Thị Bình',
       email: 'binh.tran@edu.vn',
       phone: '0902345678',
-      status: 'DROPPED', // Đã thôi học -> Dành cho test case sai quy chế
+      status: 'DROPPED',
       tuitionDebt: 0,
       gpa: 2.10,
       departmentId: ddt.id,
     },
   });
 
-  const studentDebt = await prisma.student.create({
+  const studentDebt10 = await prisma.student.create({
     data: {
-      studentCode: '2110003',
+      studentCode: '2150200003',
       fullName: 'Lê Hoàng Cường',
       email: 'cuong.le@edu.vn',
       phone: '0903456789',
       status: 'ACTIVE',
-      tuitionDebt: 15000000, // Nợ học phí nhưng vẫn được cấp giấy theo chính sách hỗ trợ CTSV vì đang có môn học
+      tuitionDebt: 15000000,
       gpa: 2.85,
       departmentId: cntt.id,
     },
   });
 
-  const studentSuspended = await prisma.student.create({
+  const studentSuspended10 = await prisma.student.create({
     data: {
-      studentCode: '2110004',
+      studentCode: '2280600004',
       fullName: 'Phạm Văn Dũng',
       email: 'dung.pham@edu.vn',
       phone: '0904567890',
-      status: 'SUSPENDED', // Đang bảo lưu kết quả học tập
+      status: 'SUSPENDED',
       tuitionDebt: 0,
       gpa: 3.10,
       departmentId: cntt.id,
     },
   });
 
-  const studentGraduated = await prisma.student.create({
+  const studentOverdue10 = await prisma.student.create({
     data: {
-      studentCode: '2110005',
+      studentCode: '2050200005',
       fullName: 'Hoàng Thị Mai',
       email: 'mai.hoang@edu.vn',
       phone: '0905678901',
-      status: 'ACTIVE', // Khóa 2020 quá 4 năm đào tạo chuẩn, đang học lại trả nợ môn
+      status: 'ACTIVE',
       tuitionDebt: 0,
       gpa: 2.75,
       departmentId: ddt.id,
     },
   });
 
-  console.log('✅ Đã tạo 6 sinh viên mẫu (2280602154: Cao Hữu Nhân [Chính], 2110001: Active, 2110002: Thôi học, 2110003: Nợ phí vẫn được cấp giấy, 2110004: Bảo lưu, 2110005: Khóa cũ quá 4 năm nợ môn).');
+  const studentOverdueCompleted10 = await prisma.student.create({
+    data: {
+      studentCode: '2080600099',
+      fullName: 'Võ Minh Quân',
+      email: 'quan.vo@edu.vn',
+      phone: '0901234599',
+      status: 'ACTIVE',
+      tuitionDebt: 0,
+      gpa: 3.60,
+      departmentId: cntt.id,
+    },
+  });
+
+  // Giữ thêm alias mã 7 số cũ để tương thích 100% với các bài test
+  await prisma.student.createMany({
+    data: [
+      { studentCode: '2110001', fullName: 'Nguyễn Văn An', email: 'an.nguyen.old@edu.vn', phone: '0901234568', status: 'ACTIVE', tuitionDebt: 0, gpa: 3.45, departmentId: cntt.id },
+      { studentCode: '2110002', fullName: 'Trần Thị Bình', email: 'binh.tran.old@edu.vn', phone: '0902345678', status: 'DROPPED', tuitionDebt: 0, gpa: 2.10, departmentId: ddt.id },
+      { studentCode: '2110003', fullName: 'Lê Hoàng Cường', email: 'cuong.le.old@edu.vn', phone: '0903456789', status: 'ACTIVE', tuitionDebt: 15000000, gpa: 2.85, departmentId: cntt.id },
+      { studentCode: '2110004', fullName: 'Phạm Văn Dũng', email: 'dung.pham.old@edu.vn', phone: '0904567890', status: 'SUSPENDED', tuitionDebt: 0, gpa: 3.10, departmentId: cntt.id },
+      { studentCode: '2110005', fullName: 'Hoàng Thị Mai', email: 'mai.hoang.old@edu.vn', phone: '0905678901', status: 'ACTIVE', tuitionDebt: 0, gpa: 2.75, departmentId: ddt.id },
+    ],
+  });
+
+  console.log('✅ Đã tạo sinh viên mẫu chuẩn 10 số (2280602154: Cao Hữu Nhân [Khóa 22], 2380600001: Active [Khóa 23], 2050200005: Khóa cũ quá 4 năm nợ môn, 2150200002: Thôi học, 2150200003: Nợ phí, 2280600004: Bảo lưu).');
 
   // 4. Tạo Tài khoản Cán bộ & Lãnh đạo
   const defaultPassword = await bcrypt.hash('123456', 10);
@@ -192,7 +215,7 @@ async function main() {
             code: 'REQ_CAMPUS',
             name: 'Chọn cơ sở nhận giấy',
             isRequired: false,
-            description: 'Trụ sở chính (A-01.01) hoặc Cơ sở E (E1-01.08).',
+            description: 'Trụ sở chính (A-01.01) hoặc Cơ sở E (E1-01.05).',
           },
         ],
       },

@@ -12,10 +12,10 @@ import {
 
 test('1. TC-1: Sinh viên ACTIVE, có TKB, đủ thông tin, không trùng -> AUTO_APPROVE', () => {
   const student = {
-    studentCode: '2280602154',
-    fullName: 'Cao Hữu Nhân',
+    studentCode: '2380600001',
+    fullName: 'Nguyễn Văn An',
     status: 'ACTIVE',
-    admissionYear: 2022,
+    admissionYear: 2023,
     enrolledCredits: 15,
     hasSchedule: true,
   };
@@ -35,10 +35,10 @@ test('1. TC-1: Sinh viên ACTIVE, có TKB, đủ thông tin, không trùng -> AU
 
 test('2. TC-2: Thiếu mục đích sử dụng -> ASK_CLARIFICATION', () => {
   const student = {
-    studentCode: '2280602154',
-    fullName: 'Cao Hữu Nhân',
+    studentCode: '2380600001',
+    fullName: 'Nguyễn Văn An',
     status: 'ACTIVE',
-    admissionYear: 2022,
+    admissionYear: 2023,
     enrolledCredits: 15,
     hasSchedule: true,
   };
@@ -113,10 +113,10 @@ test('4. TC-4: Sinh viên THÔI HỌC (DROPPED - 2110002) -> REJECT NGAY LẬP T
 
 test('5. TC-5: Sinh viên quá 4 năm VÀ CÒN NỢ TÍN CHỈ (< 150 tín chỉ) -> Điều hướng Biểu mẫu nợ môn (COURSE_DEBT)', () => {
   const overdueStudentWithDebt = {
-    studentCode: '2110005',
+    studentCode: '2050200005', // Khóa 2020: 30/08/2020 - 30/08/2024 (quá 4 năm)
     fullName: 'Hoàng Thị Mai',
     status: 'ACTIVE',
-    admissionYear: 2020, // Quá 4 năm
+    admissionYear: 2020,
     enrolledCredits: 3,  // Chưa đủ 150 tín chỉ
     credits: 120,
     hasSchedule: true,
@@ -142,9 +142,39 @@ test('5. TC-5: Sinh viên quá 4 năm VÀ CÒN NỢ TÍN CHỈ (< 150 tín chỉ
   assert.ok(result.actionableQuestion.includes('nợ môn') || result.actionableQuestion.includes('COURSE_DEBT'));
 });
 
+test('5B. TC-5B: Sinh viên Khóa 2022 (2280602154) sau ngày 30/08/2026 -> Quá 4 năm đào tạo chuẩn nợ môn -> Điều hướng COURSE_DEBT', () => {
+  const studentK22 = {
+    studentCode: '2280602154',
+    fullName: 'Cao Hữu Nhân',
+    status: 'ACTIVE',
+    admissionYear: 2022,
+    enrolledCredits: 15,
+    credits: 120,
+    hasSchedule: true,
+  };
+
+  const overdueStatus = checkCohortOverdueStatus(studentK22);
+  assert.equal(overdueStatus.isOverdue, true);
+  assert.equal(overdueStatus.hasDebtCourses, true);
+  assert.equal(overdueStatus.isCompleted, false);
+
+  const result = evaluateStudentConfirmation({
+    student: studentK22,
+    inputData: {
+      formCode: 'GENERAL_CONFIRMATION',
+      purpose: 'Xin giấy xác nhận làm vé xe buýt',
+      pickupCampus: 'Trụ sở chính: phòng Công tác sinh viên (A-01.01)',
+    },
+  });
+
+  assert.equal(result.decision, 'ASK_CLARIFICATION');
+  assert.equal(result.rule, 'MISMATCH_FORM_GUIDANCE');
+  assert.ok(result.actionableQuestion.includes('nợ môn') || result.actionableQuestion.includes('COURSE_DEBT'));
+});
+
 test('6. TC-6: Sinh viên quá 4 năm NHƯNG ĐÃ HOÀN THÀNH ĐỦ KHỐI LƯỢNG (>= 150 tín chỉ hoặc GRADUATED) -> VƯỢT QUYỀN AI, ESCALATE_TO_STAFF', () => {
   const overdueStudentCompleted = {
-    studentCode: '2010099',
+    studentCode: '2080600099',
     fullName: 'Võ Minh Quân',
     status: 'ACTIVE',
     admissionYear: 2020, // Quá 4 năm
@@ -175,10 +205,10 @@ test('6. TC-6: Sinh viên quá 4 năm NHƯNG ĐÃ HOÀN THÀNH ĐỦ KHỐI LƯ�
 
 test('7. TC-7: Cấp trùng biểu mẫu lần 2 trong cùng học kỳ CÓ LÝ DO CHÍNH ĐÁNG -> ESCALATE_TO_STAFF', () => {
   const student = {
-    studentCode: '2280602154',
-    fullName: 'Cao Hữu Nhân',
+    studentCode: '2380600001',
+    fullName: 'Nguyễn Văn An',
     status: 'ACTIVE',
-    admissionYear: 2022,
+    admissionYear: 2023,
     enrolledCredits: 15,
     hasSchedule: true,
   };
@@ -199,10 +229,10 @@ test('7. TC-7: Cấp trùng biểu mẫu lần 2 trong cùng học kỳ CÓ LÝ 
 
 test('8. TC-8: Sinh viên chưa có TKB kỳ này nhưng CẦN GẤP -> Đóng gói chuyển tiếp ESCALATE_TO_STAFF', () => {
   const student = {
-    studentCode: '2280602999',
+    studentCode: '2380602999',
     fullName: 'Lê Văn Khang',
     status: 'ACTIVE',
-    admissionYear: 2022,
+    admissionYear: 2023,
     enrolledCredits: 0, // Kỳ này chưa đăng ký môn
     hasSchedule: false,
   };
@@ -220,10 +250,10 @@ test('8. TC-8: Sinh viên chưa có TKB kỳ này nhưng CẦN GẤP -> Đóng g
 
 test('9. TC-9: Sinh viên hỏi Visa nhưng gửi kèm Biểu mẫu Thuế TNCN -> Bắt lệch form và ASK_CLARIFICATION', () => {
   const student = {
-    studentCode: '2280602154',
-    fullName: 'Cao Hữu Nhân',
+    studentCode: '2380600001',
+    fullName: 'Nguyễn Văn An',
     status: 'ACTIVE',
-    admissionYear: 2022,
+    admissionYear: 2023,
     enrolledCredits: 15,
     hasSchedule: true,
   };
@@ -240,10 +270,10 @@ test('9. TC-9: Sinh viên hỏi Visa nhưng gửi kèm Biểu mẫu Thuế TNCN 
 
 test('10. TC-10: Sinh viên xin Thuế TNCN nhưng nơi tiếp nhận lại ghi Ban Chỉ huy Quân sự -> Bắt xung đột ASK_CLARIFICATION', () => {
   const student = {
-    studentCode: '2280602154',
-    fullName: 'Cao Hữu Nhân',
+    studentCode: '2380600001',
+    fullName: 'Nguyễn Văn An',
     status: 'ACTIVE',
-    admissionYear: 2022,
+    admissionYear: 2023,
     enrolledCredits: 15,
     hasSchedule: true,
   };

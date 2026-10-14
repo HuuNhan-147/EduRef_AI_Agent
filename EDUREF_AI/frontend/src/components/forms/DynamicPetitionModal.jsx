@@ -61,7 +61,7 @@ export default function DynamicPetitionModal({
   const FORM_AGENCY_DEFAULTS = {
     TAX_DEDUCTION: 'Chi cục Thuế Quận Bình Thạnh',
     BANK_LOAN: 'Phòng giao dịch NHCSXH Quận Bình Thạnh',
-    MILITARY_DEFERMENT: 'Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh',
+    MILITARY_DEFERMENT: 'Ban Chỉ huy Quân sự Phường Thạnh Mỹ Tây',
     COURSE_DEBT: 'Giải trình Ban Chỉ huy Quân sự & Tiếp tục hoàn thành học phần',
     GENERAL_CONFIRMATION: '',
   };
@@ -78,8 +78,13 @@ export default function DynamicPetitionModal({
     }
   }, [petitionType]);
 
-  const initialFaculty = currentAccount.department || currentAccount.faculty || currentAccount.departmentName || 'Khoa Công nghệ thông tin';
-  const initialMajor = currentAccount.major || (initialFaculty.startsWith('Khoa ') ? initialFaculty.replace('Khoa ', '') : initialFaculty);
+  const getFacultyString = (val) => {
+    if (typeof val === 'string') return val;
+    return val?.name || 'Khoa Công nghệ thông tin';
+  };
+
+  const initialFaculty = getFacultyString(currentAccount.department || currentAccount.faculty || currentAccount.departmentName);
+  const initialMajor = currentAccount.major || (initialFaculty && typeof initialFaculty === 'string' && initialFaculty.startsWith('Khoa ') ? initialFaculty.replace('Khoa ', '') : initialFaculty);
 
   // State cho Form: Giấy Xác Nhận Sinh Viên (5 Biểu mẫu HUTECH)
   const [confirmData, setConfirmData] = useState({
@@ -106,8 +111,8 @@ export default function DynamicPetitionModal({
   useEffect(() => {
     if (isOpen) {
       const acc = getEffectiveAccount();
-      const activeFaculty = acc?.department || acc?.faculty || acc?.departmentName || '';
-      const activeMajor = acc?.major || (activeFaculty.startsWith('Khoa ') ? activeFaculty.replace('Khoa ', '') : activeFaculty);
+      const activeFaculty = getFacultyString(acc?.department || acc?.faculty || acc?.departmentName);
+      const activeMajor = acc?.major || (activeFaculty && typeof activeFaculty === 'string' && activeFaculty.startsWith('Khoa ') ? activeFaculty.replace('Khoa ', '') : activeFaculty);
 
       setConfirmData((prev) => ({
         ...prev,
@@ -739,7 +744,7 @@ export default function DynamicPetitionModal({
                       type="text"
                       value={confirmData.permanentAddress}
                       onChange={(e) => setConfirmData({ ...confirmData, permanentAddress: e.target.value })}
-                      placeholder="VD: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh"
+                      placeholder="VD: 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh"
                       className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-emerald-600 focus:outline-hidden bg-white text-slate-800"
                     />
                   </div>
@@ -757,7 +762,7 @@ export default function DynamicPetitionModal({
                       type="text"
                       value={confirmData.recipientAgency}
                       onChange={(e) => setConfirmData({ ...confirmData, recipientAgency: e.target.value })}
-                      placeholder="VD: Ban Chỉ huy Quân sự Phường 25, Quận Bình Thạnh"
+                      placeholder="VD: Ban Chỉ huy Quân sự Phường Thạnh Mỹ Tây"
                       className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-rose-600 focus:outline-hidden bg-white text-slate-800"
                     />
                   </div>
@@ -769,7 +774,7 @@ export default function DynamicPetitionModal({
                       type="text"
                       value={confirmData.permanentAddress}
                       onChange={(e) => setConfirmData({ ...confirmData, permanentAddress: e.target.value })}
-                      placeholder="VD: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh"
+                      placeholder="VD: 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh"
                       className="w-full px-2.5 py-1.5 rounded border border-slate-300 focus:border-rose-600 focus:outline-hidden bg-white text-slate-800"
                     />
                   </div>
@@ -833,18 +838,18 @@ export default function DynamicPetitionModal({
                   onChange={(e) => setConfirmData({ ...confirmData, pickupCampus: e.target.value })}
                   className="w-full px-2.5 py-2 rounded border border-blue-300 bg-blue-50/40 text-blue-900 font-medium focus:border-blue-600 focus:outline-hidden"
                 >
-                  <option value="Trụ sở chính: phòng Công tác sinh viên (A-01,01)">
-                    Trụ sở chính: phòng Công tác sinh viên (A-01,01)
+                  <option value="Trụ sở chính: phòng Công tác sinh viên (A-01.01)">
+                    Trụ sở chính: Phòng Công tác Sinh viên (A-01.01) [Nhận sau 1 ngày làm việc]
                   </option>
-                  <option value="Cơ sở E: Phòng Công tác Sinh viên (E1-01.08)">
-                    Cơ sở E: Phòng Công tác Sinh viên (E1-01.08)
+                  <option value="Cơ sở E: Phòng Công tác Sinh viên (E1-01.05)">
+                    Cơ sở E: Phòng Công tác Sinh viên (E1-01.05) [Nhận sau 2 ngày làm việc]
                   </option>
                 </select>
               </div>
 
               {/* Banner lưu ý chân trang */}
               <div className="p-2.5 bg-slate-100 rounded-lg text-[11px] text-slate-600 border border-slate-200">
-                Mọi thắc mắc vui lòng liên hệ Phòng Công tác Sinh viên. Số điện thoại: 028.38647256 - 028.38647257.
+                Mọi thắc mắc vui lòng liên hệ Phòng Công tác Sinh viên: Trụ sở A-01.01: (028) 3512 0785 | Cơ sở E1-01.05: (028) 6686 8876.
               </div>
             </div>
           )}

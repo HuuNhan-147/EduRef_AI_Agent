@@ -4,13 +4,13 @@ import { evaluateStudentConfirmation, inferStudentConfirmationInput } from '../s
 import { TRACK_A_VERIFY_CASES, TRACK_A_15_CASE_DATASET } from '../fixtures/trackAVerifyCases.js';
 
 const defaultStudent = {
-  studentCode: 'TEST001',
+  studentCode: '2380600001',
   fullName: 'Sinh viên kiểm thử',
   status: 'ACTIVE',
   tuitionDebt: 0,
   hasSchedule: true,
   enrolledCredits: 15,
-  admissionYear: 2022,
+  admissionYear: 2023,
   department: 'CNTT',
 };
 

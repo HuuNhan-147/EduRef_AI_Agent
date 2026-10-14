@@ -8,8 +8,9 @@ Tài liệu được ưu tiên theo mã nguồn hiện tại. Với Track A, đ�
 4. `15_MEASUREMENT_PLAN.md` — cách đo Sprint 2 không dùng số liệu giả.
 5. `11_SECURITY.md` — kiểm soát đã có và rủi ro còn lại.
 6. `16_SUPABASE_DEPLOYMENT.md` — cấu hình Supabase, migration và biến môi trường deploy.
-7. `17_ROADMAP.md` — lộ trình phát triển và hành trình tiến hóa nghiệp vụ thực tế (HUTECH CTSV & Đào tạo).
-8. `../../docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md` — bộ dữ liệu kiểm thử 100 ca thực tế bao phủ toàn diện.
+7. `17_ROADMAP.md` — Lộ trình phát triển & Tiến hóa kiến trúc chuẩn Barem BGK (Tiêu chí 5 & Feedback Doanh nghiệp Kaiser).
+8. `18_DEFENSE_QA_PLAYBOOK.md` — Cẩm nang 12 kịch bản phản biện hóc búa với Hội đồng Ban Giám khảo Vòng Chung kết.
+9. `../../docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md` — Bộ dữ liệu kiểm thử 100 ca thực tế bao phủ toàn diện.
 
 Các tài liệu kiến trúc bổ trợ:
 
@@ -23,8 +24,9 @@ Các tài liệu kiến trúc bổ trợ:
 - `09_API.md`
 - `10_DATABASE.md`
 - `12_TECHNICAL_DEBT.md`
-- `13_ZERO_TRUST_SECURITY.md` — nguyên lý Zero-Trust Client Boundary và bảo vệ toàn vẹn quyết định học vụ.
-- `17_ROADMAP.md` — Lộ trình phát triển 2026 - 2027 và câu chuyện tiến hóa kiến trúc.
+- `13_ZERO_TRUST_SECURITY.md` — Nguyên lý Zero-Trust Client Boundary và bảo vệ toàn vẹn quyết định học vụ.
+- `17_ROADMAP.md` — Lộ trình phát triển & Tiến hóa kiến trúc chuẩn Barem BGK.
+- `18_DEFENSE_QA_PLAYBOOK.md` — Cẩm nang phản biện bảo vệ dự án.
 
 Đặc tả thiết kế & Kế hoạch kỹ thuật nội bộ (`specs/`):
 

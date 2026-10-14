@@ -92,8 +92,8 @@ function parseInlineFormatting(text, isUser = false) {
   if (!text) return null;
   const parts = [];
 
-  // Regex nhận diện các khối: link bọc bold, link chứa bold, bold link nối, link thường, bold, code, bare URL
-  const regex = /(\*\*\[.*?\]\(https?:\/\/[^\s)]+\)\*\*|\[\*\*.*?\*\*\]\(https?:\/\/[^\s)]+\)|\*\*\[.*?\]\*\*\s*\((?:https?:\/\/[^\s)]+)\)|\[.*?\]\(https?:\/\/[^\s)]+\)|\*\*.*?\*\*|`.*?`|https?:\/\/[^\s<)]+[^<.,:;"')\]\s])/g;
+  // Regex nhận diện các khối: link bọc bold, link chứa bold, bold link nối, link thường, bold, single asterisk bold/italic, code, bare URL
+  const regex = /(\*\*\[.*?\]\(https?:\/\/[^\s)]+\)\*\*|\[\*\*.*?\*\*\]\(https?:\/\/[^\s)]+\)|\*\*\[.*?\]\*\*\s*\((?:https?:\/\/[^\s)]+)\)|\[.*?\]\(https?:\/\/[^\s)]+\)|\*\*.*?\*\*|\*[^*\n]+?\*|`.*?`|https?:\/\/[^\s<)]+[^<.,:;"')\]\s])/g;
   let lastIndex = 0;
   let match;
 
@@ -212,6 +212,18 @@ function parseInlineFormatting(text, isUser = false) {
         <strong
           key={match.index}
           className={`font-bold ${isUser ? 'text-white' : 'text-slate-900'}`}
+        >
+          {parseInlineFormatting(innerContent, isUser)}
+        </strong>
+      );
+    }
+    // 6.1. In đậm / nhấn mạnh với 1 dấu sao: *bold/italic* (loại bỏ hoàn toàn dấu * bị dính)
+    else if (token.startsWith('*') && token.endsWith('*') && !token.startsWith('**')) {
+      const innerContent = token.slice(1, -1);
+      parts.push(
+        <strong
+          key={match.index}
+          className={`font-semibold ${isUser ? 'text-white' : 'text-slate-900'}`}
         >
           {parseInlineFormatting(innerContent, isUser)}
         </strong>

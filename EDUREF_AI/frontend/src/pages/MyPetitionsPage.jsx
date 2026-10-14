@@ -223,7 +223,7 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE', 
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Mã công văn này dùng để đối soát hồ sơ gốc tại Phòng Công tác Sinh viên (A-01.01 hoặc E1-01.08) khi nhận bản cứng có mộc đỏ và chữ ký sống.
+              Mã công văn này dùng để đối soát hồ sơ gốc tại Phòng Công tác Sinh viên (A-01.01 hoặc E1-01.05) khi nhận bản cứng có mộc đỏ và chữ ký sống.
             </p>
 
             <button

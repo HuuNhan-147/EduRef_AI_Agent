@@ -4,6 +4,7 @@
 import prisma from '../../config/prisma.js';
 import AuditLogService from '../../services/AuditLogService.js';
 import { studentConfirmationHandler } from './handlers/StudentConfirmationHandler.js';
+import { calculatePickupAppointment } from '../../services/StudentConfirmationDecisionService.js';
 
 export class PetitionWorkflowCore {
   constructor() {
@@ -357,6 +358,18 @@ export class PetitionWorkflowCore {
     const totalDuration = Date.now() - startTime;
     console.log(`  🎉 [Core] Hoàn tất tự động duyệt đơn [${request.requestCode}] trong ${totalDuration}ms!\n`);
 
+      const pickupCampus = inputData?.pickupCampus || 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
+      const appointment = calculatePickupAppointment({
+        pickupCampus,
+        submissionDate: request.createdAt || new Date(),
+      });
+      const appointmentMsg =
+        `\n\n📅 **Lịch hẹn nhận bản cứng:**\n` +
+        `- **Địa điểm:** ${appointment.room} (${appointment.location})\n` +
+        `- **Thời gian dự kiến nhận:** ${appointment.fullAppointmentText}\n` +
+        `- **Hotline hỗ trợ:** ${appointment.phone}` +
+        (appointment.earlyPickupTip ? `\n\n${appointment.earlyPickupTip}` : '');
+
       return {
         success: true,
         decision: 'AUTO_APPROVED',
@@ -368,14 +381,16 @@ export class PetitionWorkflowCore {
         qrCodeUrl: null,
         sha256Proof: auditLog?.sha256Hash,
         totalDuration,
-        message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công trong ${totalDuration}ms. Bạn vui lòng mang thẻ sinh viên đến ${inputData?.pickupCampus || 'Phòng CTSV'} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường trong giờ hành chính nhé!`,
+        appointment,
+        message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công trong ${totalDuration}ms. Bạn vui lòng mang thẻ sinh viên đến ${pickupCampus} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường.${appointmentMsg}`,
         confirmationDetails: {
           studentName: student.fullName,
           studentCode: student.studentCode,
           department: student.department?.name,
           formCode: inputData?.formCode || 'GENERAL_CONFIRMATION',
           purpose: inputData?.purpose || inputData?.reason,
-          pickupCampus: inputData?.pickupCampus,
+          pickupCampus,
+          appointment,
           issuedDate: new Date().toLocaleDateString('vi-VN'),
         },
       };

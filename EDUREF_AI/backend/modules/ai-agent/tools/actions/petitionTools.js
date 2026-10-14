@@ -27,7 +27,7 @@ export const petitionTools = {
           studentCode: student.studentCode,
           fullName: student.fullName,
           email: student.email,
-          department: student.department.name,
+          department: student.department?.name || 'Chưa cập nhật',
           status: student.status,
           tuitionDebt: Number(student.tuitionDebt),
           gpa: Number(student.gpa),
@@ -42,7 +42,7 @@ export const petitionTools = {
    * Tạo đơn phiếu sinh viên và chạy qua Động cơ Quy chế để ra quyết định
    */
   async create_student_request({
-    studentCode = '2110001',
+    studentCode = '2380600001',
     requestTypeCode = 'STUDENT_CONFIRMATION',
     purpose = null,
     courseCode = null,

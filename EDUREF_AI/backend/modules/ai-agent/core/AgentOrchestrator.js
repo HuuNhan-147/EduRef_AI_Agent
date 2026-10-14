@@ -291,16 +291,22 @@ export class AgentOrchestrator {
         // Điều phối thực thi qua ToolResolver
         const toolStart = Date.now();
 
+        // Tổng hợp toàn bộ nội dung người dùng từ lịch sử hội thoại + tin nhắn hiện tại để giữ ngữ cảnh đa lượt
+        const allUserTexts = [
+          ...(history || []).filter((h) => h.role === 'user').map((h) => (h.parts || []).map((p) => p.text).join(' ')),
+          resolvedMessage,
+        ].join(' ');
+
         // 1. Kiểm tra xác nhận địa chỉ NVQS từ tin nhắn hiện tại hoặc lịch sử hội thoại
         const isExplicitlyConfirmed =
           toolArgs.isAddressConfirmed === true ||
           inputData?.isAddressConfirmed === true ||
-          /(?:xác nhận|xac nhan|đúng rồi|dung roi|chính xác|chinh xac|chuẩn rồi|chuan roi|đồng ý|dong y|đúng địa chỉ)/i.test(resolvedMessage);
+          /(?:xác nhận|xac nhan|đúng rồi|dung roi|chính xác|chinh xac|chuẩn rồi|chuan roi|đồng ý|dong y|đúng địa chỉ)/i.test(allUserTexts);
 
-        // 2. Zero-Trust Campus Guard: Chỉ công nhận pickupCampus nếu sinh viên thực sự nhắc đến trong tin nhắn hoặc payload
-        const campusInMessage = /(?:sài gòn|sai gon|ung văn khiêm|a-01|thủ đức|thu duc|e1-01|khu công nghệ cao)/i.test(resolvedMessage);
+        // 2. Zero-Trust Campus Guard: Chỉ công nhận pickupCampus nếu sinh viên thực sự nhắc đến trong tin nhắn, lịch sử hoặc payload
+        const campusInHistoryOrMessage = /(?:sài gòn|sai gon|ung văn khiêm|điện biên phủ|a-01|trụ sở|khu ab|cơ sở a|thủ đức|thu duc|e1|khu e|cơ sở e|khu công nghệ cao)/i.test(allUserTexts);
         const hasExplicitCampusInput = Boolean(inputData?.pickupCampus);
-        const effectivePickupCampus = (campusInMessage || hasExplicitCampusInput)
+        const effectivePickupCampus = (campusInHistoryOrMessage || hasExplicitCampusInput)
           ? (toolArgs.pickupCampus || inputData?.pickupCampus || null)
           : null;
 
@@ -428,17 +434,23 @@ export class AgentOrchestrator {
       // 🛡️ OUTPUT GUARDRAIL: Ngăn chặn triệt để hiện tượng Gemini ảo giác (Hallucination)
       // Chỉ can thiệp ghi đè khi LLM nói dối là "đã duyệt" trong khi Tool trả về ASK_CLARIFICATION / AUTO_REJECT,
       // hoặc khi LLM không sinh được nội dung nào. Nếu LLM đang chào hỏi và giải thích tự nhiên thì GIỮ NGUYÊN 100%!
-      if (lastToolResult?.decision === 'ASK_CLARIFICATION') {
+      if (lastToolResult?.decision === 'ASK_CLARIFICATION' || lastToolResult?.status === 'WAITING_STUDENT') {
         const actionableQ = lastToolResult.actionableQuestion || lastToolResult.message;
         const saysApproved = /(?:đã được duyệt|được phê duyệt|duyệt thành công|đã cấp giấy|hoàn tất xét duyệt)/i.test(finalReplyText);
         if (saysApproved || !finalReplyText) {
           finalReplyText = actionableQ || finalReplyText;
         }
-      } else if (lastToolResult?.decision === 'AUTO_REJECT') {
+      } else if (lastToolResult?.decision === 'AUTO_REJECT' || lastToolResult?.decision === 'REJECTED_POLICY' || lastToolResult?.status === 'REJECTED') {
         const rejectMsg = lastToolResult.userMessage || lastToolResult.message || lastToolResult.reason;
         const saysApproved = /(?:đã được duyệt|được phê duyệt|duyệt thành công|đã cấp giấy)/i.test(finalReplyText);
         if (saysApproved || !finalReplyText) {
           finalReplyText = rejectMsg || finalReplyText;
+        }
+      } else if (lastToolResult?.decision === 'ESCALATE_TO_STAFF' || lastToolResult?.status === 'ESCALATED') {
+        const escalateMsg = lastToolResult.userMessage || lastToolResult.message || lastToolResult.actionableQuestion;
+        const saysApproved = /(?:đã được duyệt|được phê duyệt|duyệt thành công|đã cấp giấy)/i.test(finalReplyText);
+        if (saysApproved || !finalReplyText) {
+          finalReplyText = escalateMsg || finalReplyText;
         }
       }
 

@@ -26,7 +26,7 @@ test('TC-01: Chào hỏi / Tư vấn thủ tục không tạo đơn', () => {
 
 // 2. TC-02: Zero-Tolerance: Thiếu SĐT
 test('TC-02: Thiếu số điện thoại (Zero-Tolerance) bắt buộc hỏi lại', () => {
-  const student = { studentCode: '2280602154', fullName: 'Cao Hữu Nhân', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15 };
+  const student = { studentCode: '2380600001', fullName: 'Nguyễn Văn An', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15, admissionYear: 2023 };
   const res = evaluateStudentConfirmation({
     student,
     inputData: {
@@ -43,7 +43,7 @@ test('TC-02: Thiếu số điện thoại (Zero-Tolerance) bắt buộc hỏi l�
 
 // 3. TC-03: Zero-Tolerance: Thiếu Cơ sở nhận
 test('TC-03: Thiếu cơ sở nhận (Zero-Tolerance) không được tự default', () => {
-  const student = { studentCode: '2280602154', fullName: 'Cao Hữu Nhân', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15 };
+  const student = { studentCode: '2380600001', fullName: 'Nguyễn Văn An', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15, admissionYear: 2023 };
   const res = evaluateStudentConfirmation({
     student,
     inputData: {
@@ -60,7 +60,7 @@ test('TC-03: Thiếu cơ sở nhận (Zero-Tolerance) không được tự defau
 
 // 4. TC-04: NVQS: Chuẩn hóa 4 cấp & Cảnh báo trách nhiệm pháp lý
 test('TC-04: NVQS gửi địa chỉ lần đầu -> Cảnh báo trách nhiệm pháp lý trước BCH Quân sự', () => {
-  const student = { studentCode: '2280602154', fullName: 'Cao Hữu Nhân', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15 };
+  const student = { studentCode: '2380600001', fullName: 'Nguyễn Văn An', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15, admissionYear: 2023 };
   const res = evaluateStudentConfirmation({
     student,
     inputData: {
@@ -80,7 +80,7 @@ test('TC-04: NVQS gửi địa chỉ lần đầu -> Cảnh báo trách nhiệm 
 
 // 5. TC-05: NVQS: Xác nhận địa chỉ hợp lệ -> AUTO_APPROVED (Không QR, Không validDays)
 test('TC-05: NVQS đã xác nhận địa chỉ -> Duyệt tự động, không QR, không validDays', () => {
-  const student = { studentCode: '2280602154', fullName: 'Cao Hữu Nhân', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15 };
+  const student = { studentCode: '2380600001', fullName: 'Nguyễn Văn An', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15, admissionYear: 2023 };
   const res = evaluateStudentConfirmation({
     student,
     inputData: {
@@ -102,8 +102,8 @@ test('TC-05: NVQS đã xác nhận địa chỉ -> Duyệt tự động, không 
 
 // 6. TC-06: Bảo lưu (SUSPENDED) & Thôi học (DROPPED)
 test('TC-06: Sinh viên SUSPENDED hoặc DROPPED -> AUTO_REJECT ngay lập tức, không bypass', () => {
-  const suspendedStudent = { studentCode: '2110004', fullName: 'Trần Văn Tạm Dừng', status: 'SUSPENDED' };
-  const droppedStudent = { studentCode: '2110002', fullName: 'Lê Thôi Học', status: 'DROPPED' };
+  const suspendedStudent = { studentCode: '2280600004', fullName: 'Phạm Văn Dũng', status: 'SUSPENDED' };
+  const droppedStudent = { studentCode: '2150200002', fullName: 'Trần Thị Bình', status: 'DROPPED' };
 
   const res1 = evaluateStudentConfirmation({ student: suspendedStudent, inputData: { purpose: 'Xin giấy' } });
   assert.equal(res1.decision, TRACK_A_DECISION.AUTO_REJECT);
@@ -118,9 +118,10 @@ test('TC-06: Sinh viên SUSPENDED hoặc DROPPED -> AUTO_REJECT ngay lập tức
 // 7. TC-07: Sinh viên bị kỷ luật nhưng vẫn học hợp lệ
 test('TC-07: Sinh viên có kỷ luật nhưng status = ACTIVE và có TKB -> Cấp đơn bình thường', () => {
   const disciplinedStudent = {
-    studentCode: '2280609999',
+    studentCode: '2380609999',
     fullName: 'Nguyễn Văn Kỷ Luật',
     status: 'ACTIVE',
+    admissionYear: 2023,
     disciplineStatus: 'ACADEMIC_WARNING',
     hasSchedule: true,
     enrolledCredits: 12,
@@ -166,19 +167,19 @@ test('TC-08: Thiếu dữ liệu TKB/tín chỉ -> Không tự gán 15 tín ch�
   console.log('  ✅ TC-08: Thiếu TKB không tự suy diễn: thường -> Reject, gấp -> Escalate [PASS]');
 });
 
-// 9. TC-09: Khóa <= 4 năm (2022) chờ tốt nghiệp
-test('TC-09: Khóa <= 4 năm (2022) đã hoàn thành CTĐT -> Xét cấp theo luồng thông thường', () => {
-  const student2022 = {
-    studentCode: '2280602154',
-    fullName: 'Cao Hữu Nhân',
+// 9. TC-09: Khóa <= 4 năm (2023) chờ tốt nghiệp
+test('TC-09: Khóa <= 4 năm (2023) đã hoàn thành CTĐT -> Xét cấp theo luồng thông thường', () => {
+  const student2023 = {
+    studentCode: '2380600001',
+    fullName: 'Nguyễn Văn An',
     status: 'ACTIVE',
-    admissionYear: 2022,
+    admissionYear: 2023,
     completedCredits: 152,
     hasSchedule: true,
     enrolledCredits: 3,
   };
   const res = evaluateStudentConfirmation({
-    student: student2022,
+    student: student2023,
     inputData: {
       formCode: 'GENERAL_CONFIRMATION',
       purpose: 'Làm vé xe buýt',
@@ -194,8 +195,8 @@ test('TC-09: Khóa <= 4 năm (2022) đã hoàn thành CTĐT -> Xét cấp theo l
 // 10. TC-10: Quá 4 năm còn nợ môn
 test('TC-10: Khóa > 4 năm còn nợ môn -> Điều hướng sang Biểu mẫu nợ môn (COURSE_DEBT)', () => {
   const studentOverdueDebt = {
-    studentCode: '2110005',
-    fullName: 'Phạm Nợ Môn',
+    studentCode: '2050200005',
+    fullName: 'Hoàng Thị Mai',
     status: 'ACTIVE',
     admissionYear: 2020,
     completedCredits: 130,
@@ -217,11 +218,36 @@ test('TC-10: Khóa > 4 năm còn nợ môn -> Điều hướng sang Biểu mẫu
   console.log('  ✅ TC-10: Quá 4 năm nợ môn điều hướng chuẩn xác sang Mẫu nợ môn [PASS]');
 });
 
+// 10B. TC-10B: Sinh viên Khóa 2022 (2280602154) quá 4 năm sau 30/08/2026 nợ môn
+test('TC-10B: Sinh viên Khóa 2022 (2280602154) quá 4 năm sau 30/08/2026 nợ môn -> Điều hướng Biểu mẫu nợ môn (COURSE_DEBT)', () => {
+  const student2022Debt = {
+    studentCode: '2280602154',
+    fullName: 'Cao Hữu Nhân',
+    status: 'ACTIVE',
+    admissionYear: 2022,
+    completedCredits: 135,
+    hasSchedule: true,
+    enrolledCredits: 6,
+  };
+  const res = evaluateStudentConfirmation({
+    student: student2022Debt,
+    inputData: { formCode: 'GENERAL_CONFIRMATION', purpose: 'Làm vé xe buýt', phone: '0901234567' },
+  });
+  assert.ok([TRACK_A_DECISION.ASK_CLARIFICATION, TRACK_A_DECISION.AUTO_REJECT].includes(res.decision));
+  assert.ok(
+    res.actionableQuestion?.includes('Biểu mẫu nợ môn') ||
+    res.userMessage?.includes('Biểu mẫu nợ môn') ||
+    res.rule?.includes('COURSE_DEBT') ||
+    res.rule === 'MISMATCH_FORM_GUIDANCE'
+  );
+  console.log('  ✅ TC-10B: Khóa 2022 sau 30/08/2026 tự động điều hướng sang Biểu mẫu nợ môn [PASS]');
+});
+
 // 11. TC-11: Quá 4 năm đã hoàn thành CTĐT
 test('TC-11: Khóa > 4 năm đã hoàn thành CTĐT (>= 150 tín chỉ) -> ESCALATE_TO_STAFF', () => {
   const studentOverdueCompleted = {
-    studentCode: '2110005',
-    fullName: 'Phạm Đủ Môn Khóa Cũ',
+    studentCode: '2080600099',
+    fullName: 'Võ Minh Quân',
     status: 'ACTIVE',
     admissionYear: 2020,
     completedCredits: 155,
@@ -239,7 +265,7 @@ test('TC-11: Khóa > 4 năm đã hoàn thành CTĐT (>= 150 tín chỉ) -> ESCAL
 
 // 12. TC-12: Cấp lại lần 2 trong cùng học kỳ
 test('TC-12: Cấp lại lần 2 trong cùng học kỳ -> Chưa có lý do: hỏi lại; có lý do: chuyển Cán bộ', () => {
-  const student = { studentCode: '2280602154', fullName: 'Cao Hữu Nhân', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15 };
+  const student = { studentCode: '2380600001', fullName: 'Nguyễn Văn An', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15, admissionYear: 2023 };
   const historySameSemester = [
     { status: 'APPROVED', inputData: { formCode: 'GENERAL_CONFIRMATION' }, createdAt: new Date().toISOString() },
   ];
@@ -277,7 +303,7 @@ test('TC-12: Cấp lại lần 2 trong cùng học kỳ -> Chưa có lý do: h�
 
 // 13. TC-13: Cùng biểu mẫu nhưng ở học kỳ mới
 test('TC-13: Cùng biểu mẫu nhưng đơn cũ ở học kỳ trước (> 180 ngày) -> Reset hạn ngạch, cấp tự động', () => {
-  const student = { studentCode: '2280602154', fullName: 'Cao Hữu Nhân', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15 };
+  const student = { studentCode: '2380600001', fullName: 'Nguyễn Văn An', status: 'ACTIVE', hasSchedule: true, enrolledCredits: 15, admissionYear: 2023 };
   const oldDate = new Date(Date.now() - 200 * 24 * 60 * 60 * 1000).toISOString(); // 200 ngày trước
   const historyOldSemester = [
     { status: 'APPROVED', inputData: { formCode: 'GENERAL_CONFIRMATION' }, createdAt: oldDate },

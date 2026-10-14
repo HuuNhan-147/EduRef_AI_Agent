@@ -14,10 +14,11 @@ function getJwtSecret() {
 }
 
 export const DEMO_ACCOUNT_TARGETS = Object.freeze({
-  STUDENT_ACTIVE: { type: 'STUDENT', code: '2280602154' },
-  STUDENT_DROPPED: { type: 'STUDENT', code: '2110002' },
-  STUDENT_SUSPENDED: { type: 'STUDENT', code: '2110004' },
-  STUDENT_GRADUATED: { type: 'STUDENT', code: '2110005' },
+  STUDENT_ACTIVE: { type: 'STUDENT', code: '2380600001' },
+  STUDENT_OVERDUE_2022: { type: 'STUDENT', code: '2280602154' },
+  STUDENT_DROPPED: { type: 'STUDENT', code: '2150200002' },
+  STUDENT_SUSPENDED: { type: 'STUDENT', code: '2280600004' },
+  STUDENT_GRADUATED: { type: 'STUDENT', code: '2050200005' },
   STAFF_DAOTAO: { type: 'STAFF', code: 'staff_daotao' },
   DEAN_DAOTAO: { type: 'STAFF', code: 'dean_daotao' },
 });
@@ -244,15 +245,40 @@ export const getMe = async (req, res) => {
  * POST /api/auth/custom-student
  * Cho phép sinh viên tạo hồ sơ tùy biến để thử nghiệm hệ thống (lưu database và trả về JWT session)
  */
+export const RESERVED_BENCHMARK_STUDENT_CODES = Object.freeze([
+  '2280602154', // Cao Hữu Nhân (Khóa 2022 nợ môn sau 30/8/2026)
+  '2380600001', // Nguyễn Văn An (Khóa 2023 chính quy)
+  '2050200005', // Hoàng Thị Mai (Khóa 2020 cũ nợ môn)
+  '2080600099', // Võ Minh Quân (Khóa 2020 tốt nghiệp)
+  '2150200002', // Trần Thị Bình (DROPPED)
+  '2150200003', // Lê Hoàng Cường (Nợ học phí 15.000.000đ)
+  '2280600004', // Phạm Văn Dũng (SUSPENDED)
+  // Legacy aliases
+  '2110001',
+  '2110002',
+  '2110003',
+  '2110004',
+  '2110005',
+]);
+
 export const registerCustomStudent = async (req, res) => {
   try {
-    const { fullName, studentCode, departmentName, status = 'ACTIVE', tuitionDebt = 0, phone = '0901234567' } = req.body;
+    const { fullName, studentCode, departmentName, status = 'ACTIVE', tuitionDebt = 0, phone = '0901234567', birthDate, gender, studentClass } = req.body;
     if (!fullName || !studentCode) {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập Họ tên và MSSV.' });
     }
     const cleanCode = String(studentCode).trim();
+    if (RESERVED_BENCHMARK_STUDENT_CODES.includes(cleanCode)) {
+      return res.status(403).json({
+        success: false,
+        message: `Mã sinh viên [${cleanCode}] là hồ sơ kiểm thử quy chế chuẩn của Nhà trường. Bạn không được phép ghi đè hay chỉnh sửa học phí/trạng thái của hồ sơ này! Vui lòng nhập MSSV khác để tạo hồ sơ riêng.`,
+      });
+    }
     const cleanName = String(fullName).trim();
     const cleanPhone = String(phone || '0901234567').trim();
+    const cleanBirthDate = birthDate ? String(birthDate).trim() : '26/07/2003';
+    const cleanGender = gender ? String(gender).trim() : 'Nam';
+    const cleanClass = studentClass ? String(studentClass).trim() : '22DTHE4';
     const debtNum = Math.max(0, Number(tuitionDebt) || 0);
 
     const targetDeptName = String(departmentName || 'Khoa Công nghệ thông tin').trim();
@@ -279,6 +305,9 @@ export const registerCustomStudent = async (req, res) => {
       update: {
         fullName: cleanName,
         phone: cleanPhone,
+        birthDate: cleanBirthDate,
+        gender: cleanGender,
+        studentClass: cleanClass,
         status: status || 'ACTIVE',
         tuitionDebt: debtNum,
         departmentId: dept.id,
@@ -288,6 +317,9 @@ export const registerCustomStudent = async (req, res) => {
         fullName: cleanName,
         email: `${cleanCode}@hutech.edu.vn`,
         phone: cleanPhone,
+        birthDate: cleanBirthDate,
+        gender: cleanGender,
+        studentClass: cleanClass,
         status: status || 'ACTIVE',
         tuitionDebt: debtNum,
         gpa: 3.2,

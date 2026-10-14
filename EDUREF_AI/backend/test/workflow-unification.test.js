@@ -3,10 +3,15 @@ import assert from 'node:assert/strict';
 import prisma from '../config/prisma.js';
 import { petitionWorkflowCore } from '../modules/petition-core/PetitionWorkflowCore.js';
 import AcademicWorkflowService from '../services/AcademicWorkflowService.js';
-import { validatePermanentAddress } from '../services/StudentConfirmationDecisionService.js';
+import {
+  validatePermanentAddress,
+  formatVietnameseAddress,
+  calculatePickupAppointment,
+  evaluateStudentConfirmation,
+} from '../services/StudentConfirmationDecisionService.js';
 
 test('1. Zero-Tolerance Guard: Thiếu số điện thoại (phone) BẮT BUỘC trả về ASK_CLARIFICATION', async () => {
-  const studentCode = '2280602154';
+  const studentCode = '2380600001';
   const agentResult = await AcademicWorkflowService.processStudentConfirmation({
     studentCode,
     purpose: 'Đăng ký vé tháng xe buýt',
@@ -19,7 +24,7 @@ test('1. Zero-Tolerance Guard: Thiếu số điện thoại (phone) BẮT BUỘC
 });
 
 test('2. Zero-Tolerance Guard: Thiếu cơ sở nhận (pickupCampus) BẮT BUỘC trả về ASK_CLARIFICATION', async () => {
-  const studentCode = '2280602154';
+  const studentCode = '2380600001';
   const agentResult = await AcademicWorkflowService.processStudentConfirmation({
     studentCode,
     purpose: 'Đăng ký vé tháng xe buýt',
@@ -38,7 +43,7 @@ test('3. Trọng tâm Thầy CTSV: Địa chỉ viết thường cẩu thả kh�
   assert.equal(check.isValid, false, 'Địa chỉ viết thường cẩu thả không được hợp lệ');
   assert.ok(check.reason.includes('viết hoa') || check.reason.includes('cấp hành chính'));
 
-  const studentCode = '2280602154';
+  const studentCode = '2380600001';
   const agentResult = await AcademicWorkflowService.processStudentConfirmation({
     studentCode,
     formCode: 'MILITARY_DEFERMENT',
@@ -62,7 +67,7 @@ test('4. Trọng tâm Thầy CTSV: Phát hiện nhầm địa chỉ tạm trú/K
 });
 
 test('5. Đầy đủ dữ liệu chuẩn xác 100%: Tự động phê duyệt (AUTO_APPROVED)', async () => {
-  const studentCode = '2280602154';
+  const studentCode = '2380600001';
   const inputData = {
     formCode: 'MILITARY_DEFERMENT',
     purpose: 'Tạm hoãn nghĩa vụ quân sự',
@@ -84,7 +89,7 @@ test('5. Đầy đủ dữ liệu chuẩn xác 100%: Tự động phê duyệt (
 });
 
 test('6. Sơ đồ .mdj: Sinh viên thôi học (DROPPED) BẮT BUỘC Reject ngay lập tức không bypass', async () => {
-  const studentCode = '2110002'; // Sinh viên đã thôi học
+  const studentCode = '2150200002'; // Sinh viên đã thôi học (10 số chuẩn)
   const agentResult = await AcademicWorkflowService.processStudentConfirmation({
     studentCode,
     purpose: 'Tạm hoãn nghĩa vụ quân sự',
@@ -98,7 +103,7 @@ test('6. Sơ đồ .mdj: Sinh viên thôi học (DROPPED) BẮT BUỘC Reject ng
 });
 
 test('7. Thống nhất logic xin lại lần 2 (Reissue Guard): Không có lý do -> Bắt buộc hỏi lại', async () => {
-  const studentCode = '2280602154';
+  const studentCode = '2380600001';
   const agentResult = await AcademicWorkflowService.processStudentConfirmation({
     studentCode,
     formCode: 'GENERAL_CONFIRMATION',
@@ -114,7 +119,7 @@ test('7. Thống nhất logic xin lại lần 2 (Reissue Guard): Không có lý 
 });
 
 test('8. Thống nhất logic xin lại lần 2 (Reissue Guard): CÓ lý do chính đáng -> Chuyển tiếp Cán bộ (ESCALATE_TO_STAFF)', async () => {
-  const studentCode = '2280602154';
+  const studentCode = '2380600001';
   const agentResult = await AcademicWorkflowService.processStudentConfirmation({
     studentCode,
     formCode: 'GENERAL_CONFIRMATION',
@@ -130,7 +135,7 @@ test('8. Thống nhất logic xin lại lần 2 (Reissue Guard): CÓ lý do chí
 });
 
 test('9. Context Guard: Lệch biểu mẫu giữa các lượt hội thoại (Multi-turn mismatch) -> Hỏi lại làm rõ', async () => {
-  const studentCode = '2280602154';
+  const studentCode = '2380600001';
   const agentResult = await AcademicWorkflowService.processStudentConfirmation({
     studentCode,
     formCode: 'TAX_DEDUCTION', // Nộp đơn Thuế
@@ -146,4 +151,70 @@ test('9. Context Guard: Lệch biểu mẫu giữa các lượt hội thoại (M
 
   assert.equal(agentResult.decision, 'ASK_CLARIFICATION');
   assert.ok(agentResult.actionableQuestion.includes('nghĩa vụ quân sự') || agentResult.actionableQuestion.includes('nhầm'));
+});
+
+test('10. Address Engine: Tự động format Title Case cho địa chỉ nông thôn không cần số nhà', async () => {
+  const rawAddr = 'ấp bình an , xã vĩnh hưng , huyện vĩnh lợi , tỉnh bạc liêu';
+  const formatted = formatVietnameseAddress(rawAddr);
+  assert.equal(formatted, 'Ấp Bình An, Xã Vĩnh Hưng, Huyện Vĩnh Lợi, Tỉnh Bạc Liêu');
+
+  const check = validatePermanentAddress(formatted);
+  assert.equal(check.isValid, true);
+  assert.equal(check.autoFormatted, formatted);
+});
+
+test('11. Anti-Ask Loop Guard: Escalate Cán bộ CTSV khi sinh viên tái xác nhận địa chỉ sáp nhập', async () => {
+  const student = { studentCode: '2380600001', status: 'ACTIVE', hasSchedule: true, fullName: 'Nguyễn Văn An' };
+  
+  // Trường hợp địa chỉ sáp nhập rút gọn 2 cấp mà sinh viên tái xác nhận (isAddressReconfirmed = true)
+  const result = evaluateStudentConfirmation({
+    student,
+    inputData: {
+      formCode: 'MILITARY_DEFERMENT',
+      purpose: 'Tạm hoãn NVQS',
+      phone: '0901234567',
+      permanentAddress: 'Phường An Phú, TP. Thủ Đức', // Sau sáp nhập không còn cấp Quận
+      isAddressReconfirmed: true,
+      pickupCampus: 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+    },
+  });
+
+  assert.equal(result.decision, 'ESCALATE_TO_STAFF');
+  assert.equal(result.rule, 'ESCALATE_ADDRESS_MERGER_VERIFICATION');
+  assert.ok(result.reason.includes('sáp nhập') || result.reason.includes('nông thôn'));
+});
+
+test('12. Smart Scheduler: Tính lịch hẹn nhận bản cứng chuẩn xác Khu AB (1 ngày) và Khu E (2 ngày)', async () => {
+  // 1. Khu AB - Nộp sáng thứ Hai -> Chiều thứ Ba (1 ngày làm việc)
+  const mondayMorning = new Date('2026-10-19T09:00:00'); // Thứ Hai 09h00
+  const apptAB = calculatePickupAppointment({
+    pickupCampus: 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+    submissionDate: mondayMorning,
+  });
+  assert.equal(apptAB.processingDays, 1);
+  assert.equal(apptAB.room, 'Phòng Công tác Sinh viên (A-01.01)');
+  assert.equal(apptAB.earlyPickupTip, null);
+
+  // 2. Khu E - Nộp sáng thứ Hai -> 2 ngày làm việc (chờ luân chuyển mộc)
+  const apptE = calculatePickupAppointment({
+    pickupCampus: 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)',
+    submissionDate: mondayMorning,
+  });
+  assert.equal(apptE.processingDays, 2);
+  assert.equal(apptE.room, 'Phòng Công tác Sinh viên (E1-01.05)');
+  assert.ok(apptE.earlyPickupTip.includes('Khu AB'));
+});
+
+test('13. Sinh viên Khóa 2022 (2280602154) quá 4 năm sau 30/08/2026 nợ môn -> Tự động điều hướng Biểu mẫu nợ môn (COURSE_DEBT)', async () => {
+  const studentCode = '2280602154';
+  const agentResult = await AcademicWorkflowService.processStudentConfirmation({
+    studentCode,
+    formCode: 'GENERAL_CONFIRMATION',
+    purpose: 'Làm vé tháng xe buýt',
+    phone: '0901234567',
+    pickupCampus: 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+  });
+
+  assert.equal(agentResult.decision, 'ASK_CLARIFICATION');
+  assert.ok(agentResult.actionableQuestion.includes('nợ môn') || agentResult.actionableQuestion.includes('COURSE_DEBT'));
 });

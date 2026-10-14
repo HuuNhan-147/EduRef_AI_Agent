@@ -78,10 +78,138 @@ function normalizeText(value = '') {
 }
 
 /**
- * Kiểm tra tính đầy đủ và quy chuẩn hành chính 4 cấp của Địa chỉ hộ khẩu thường trú:
- * 1. Số nhà, tên đường
+ * Chuẩn hóa địa chỉ thường trú sang Title Case văn thư và làm sạch dấu câu:
+ * Tự động viết hoa chữ cái đầu, giữ nguyên các viết tắt (TP., Q., P., X., TX., H., TT., KTX, CCCD...)
+ * Hỗ trợ các địa chỉ không có số nhà (thôn/ấp/khóm/xóm/bản/buôn) hoặc địa phương sáp nhập.
+ */
+export function formatVietnameseAddress(address = '') {
+  const raw = String(address || '').trim();
+  if (!raw) return '';
+  const segments = raw.split(/[,;\-]+/).map((s) => s.trim()).filter(Boolean);
+  const formatted = segments.map((seg) => {
+    return seg
+      .split(/\s+/)
+      .map((word) => {
+        if (!word) return '';
+        if (/^(tp\.|q\.|p\.|x\.|tx\.|h\.|tt\.|ktx|cccd|cmnd)$/i.test(word)) return word.toUpperCase();
+        return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
+      })
+      .join(' ');
+  });
+  return formatted.join(', ');
+}
+
+/**
+ * Thuật toán tính Lịch hẹn nhận bản cứng thông minh (Smart Appointment Scheduler)
+ * Dựa trên thông tin thực tế từ Phòng CTSV HUTECH:
+ * - Khu AB (Saigon Campus - Phòng A-01.01): Xử lý 1 ngày làm việc (hoặc cách 1 buổi).
+ * - Khu E (Thu Duc Campus - Phòng E1-01.05): Xử lý 2 ngày làm việc (chờ luân chuyển công văn đóng mộc từ Khu AB).
+ * - Giờ hành chính: Sáng 07h30 - 11h30, Chiều 13h30 - 16h30. Thứ Bảy chỉ làm sáng. Chiều T7 & CN nghỉ.
+ */
+export function calculatePickupAppointment({ pickupCampus = '', submissionDate = new Date() } = {}) {
+  const isThuDuc = /thủ đức|thu duc|e1|Khu E/i.test(String(pickupCampus || ''));
+  const campusKey = isThuDuc ? 'THU_DUC' : 'SAI_GON';
+
+  const campusConfig = {
+    SAI_GON: {
+      campusName: 'Sai Gon Campus (Khu AB — Trụ sở chính)',
+      room: 'Phòng Công tác Sinh viên (A-01.01)',
+      location: 'Tầng trệt sảnh A, số 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh',
+      phone: '(028) 3512 0785',
+      processingDays: 1,
+      earlyPickupTip: null,
+    },
+    THU_DUC: {
+      campusName: 'Thu Duc Campus (Khu E — Viện Công nghệ cao)',
+      room: 'Phòng Công tác Sinh viên (E1-01.05)',
+      location: 'Tầng trệt tòa nhà E1, Khu Công nghệ cao, Phường Hiệp Phú, TP. Thủ Đức, TP.HCM',
+      phone: '(028) 6686 8876',
+      processingDays: 2,
+      earlyPickupTip: '💡 Mẹo nhận sớm: Do bản in cần luân chuyển về Trụ sở chính Khu AB đóng dấu mộc đỏ rồi chuyển về Khu E mất 2 ngày làm việc. Nếu bạn cần lấy gấp trong ngày, bạn có thể chọn nhận tại Phòng A-01.01 (Khu AB - Saigon Campus) để được cán bộ đóng mộc lấy ngay nhé!',
+    },
+  };
+
+  const selectedCampus = campusConfig[campusKey];
+  const date = new Date(submissionDate);
+  const now = isNaN(date.getTime()) ? new Date() : date;
+
+  const currentHour = now.getHours() + now.getMinutes() / 60;
+  let curr = new Date(now);
+  let session = 'MORNING';
+
+  if (currentHour < 11.5) {
+    session = 'MORNING';
+  } else if (currentHour < 16.5) {
+    session = 'AFTERNOON';
+  } else {
+    curr.setDate(curr.getDate() + 1);
+    session = 'MORNING';
+  }
+
+  // Số buổi làm việc xử lý: Khu E cần 3 buổi chuyển phát; Khu AB cần 1 buổi
+  let processingSessions = isThuDuc ? 3 : 1;
+
+  while (processingSessions > 0) {
+    const dow = curr.getDay();
+    if (dow === 0) {
+      curr.setDate(curr.getDate() + 1);
+      session = 'MORNING';
+      continue;
+    }
+    if (dow === 6 && session === 'AFTERNOON') {
+      curr.setDate(curr.getDate() + 2);
+      session = 'MORNING';
+      continue;
+    }
+    processingSessions--;
+    if (session === 'MORNING') {
+      if (dow === 6) {
+        curr.setDate(curr.getDate() + 2);
+        session = 'MORNING';
+      } else {
+        session = 'AFTERNOON';
+      }
+    } else {
+      curr.setDate(curr.getDate() + 1);
+      session = 'MORNING';
+    }
+  }
+
+  while (curr.getDay() === 0 || (curr.getDay() === 6 && session === 'AFTERNOON')) {
+    if (curr.getDay() === 0) {
+      curr.setDate(curr.getDate() + 1);
+      session = 'MORNING';
+    } else {
+      curr.setDate(curr.getDate() + 2);
+      session = 'MORNING';
+    }
+  }
+
+  const daysOfWeekVi = ['Chủ Nhật', 'Thứ Hai', 'Thứ Ba', 'Thứ Tư', 'Thứ Năm', 'Thứ Sáu', 'Thứ Bảy'];
+  const dayName = daysOfWeekVi[curr.getDay()];
+  const dateFormatted = `${String(curr.getDate()).padStart(2, '0')}/${String(curr.getMonth() + 1).padStart(2, '0')}/${curr.getFullYear()}`;
+  const sessionText = session === 'MORNING' ? 'Buổi sáng (07h30 – 11h30)' : 'Buổi chiều (13h30 – 16h30)';
+
+  return {
+    campusKey,
+    campusName: selectedCampus.campusName,
+    room: selectedCampus.room,
+    location: selectedCampus.location,
+    phone: selectedCampus.phone,
+    processingDays: selectedCampus.processingDays,
+    appointmentSession: sessionText,
+    appointmentDate: dateFormatted,
+    appointmentDayOfWeek: dayName,
+    fullAppointmentText: `${sessionText}, ${dayName} ngày ${dateFormatted}`,
+    earlyPickupTip: selectedCampus.earlyPickupTip,
+  };
+}
+
+/**
+ * Kiểm tra tính đầy đủ và quy chuẩn hành chính của Địa chỉ hộ khẩu thường trú:
+ * 1. Định danh cơ sở: Tên đường/số nhà HOẶC Thôn/Ấp/Khóm/Xóm/Bản/Buôn (ở nông thôn)
  * 2. Phường / Xã / Thị trấn
- * 3. Quận / Huyện / Thị xã / Thành phố thuộc tỉnh
+ * 3. Quận / Huyện / Thị xã / Thành phố thuộc tỉnh (nếu có sau sáp nhập)
  * 4. Tỉnh / Thành phố trực thuộc Trung ương
  * Kèm quy định viết hoa chữ cái đầu (Title Case) theo chỉ đạo của Thầy CTSV
  */
@@ -90,7 +218,7 @@ export function validatePermanentAddress(address = '') {
   if (!raw) {
     return {
       isValid: false,
-      missingLevels: ['Số nhà/đường/ấp', 'Phường/Xã/Thị trấn', 'Quận/Huyện/Thị xã/TP', 'Tỉnh/Thành phố'],
+      missingLevels: ['Thôn/Ấp/Số nhà/Đường', 'Phường/Xã/Thị trấn', 'Quận/Huyện/Thị xã/TP', 'Tỉnh/Thành phố'],
       reason: 'Thiếu hoàn toàn địa chỉ hộ khẩu thường trú.',
     };
   }
@@ -118,21 +246,24 @@ export function validatePermanentAddress(address = '') {
   const isAllLowerCase = raw === raw.toLowerCase() && raw.length > 5;
   const hasBadCasing = isAllLowerCase || lowercaseParts.length >= 2;
 
-  // 3. KIỂM TRA ĐỦ 4 CẤP HÀNH CHÍNH
+  // 3. KIỂM TRA ĐỦ CẤP HÀNH CHÍNH (TƯƠNG THÍCH ĐỊA GIỚI SÁP NHẬP & NÔNG THÔN KHÔNG CÓ SỐ NHÀ)
   const hasWard = /(?:phường|phuong|xã|xa|thị trấn|thi tran|p\.|x\.)\s+/i.test(raw);
   const hasDistrict = /(?:quận|quan|huyện|huyen|thị xã|thi xa|thành phố|thanh pho|tp\.|tx\.|q\.|h\.)\s+/i.test(raw);
-  const hasProvince = /(?:tỉnh|tinh|thành phố|thanh pho|tp\.|bình dương|hồ chí minh|hà nội|đồng nai|long an|tiền giang|bến tre|cần thơ|vũng tàu|đà nẵng|bình định|quảng nam|khánh hòa|lâm đồng|tây ninh|bình phước|bạc liêu|an giang|cà mau|kiên giang|sóc trăng|trà vinh|vĩnh long|hậu gian)/i.test(raw);
+  const hasProvince = /(?:tỉnh|tinh|thành phố|thanh pho|tp\.|bình dương|hồ chí minh|hà nội|đồng nai|long an|tiền giang|bến tre|cần thơ|vũng tàu|đà nẵng|bình định|quảng nam|khánh hòa|lâm đồng|tây ninh|bình phước|bạc liêu|an giang|cà mau|kiên giang|sóc trăng|trà vinh|vĩnh long|hậu gian|đắk lắk|dak lak|gia lai|kon tum|bình thuận|ninh thuận|quảng ngãi|quảng bình|quảng trị|thừa thiên huế|hà tĩnh|nghệ an|thanh hóa|ninh bình|nam định|hà nam|thái bình|hưng yên|hải dương|hải phòng|quảng ninh|bắc ninh|bắc giang|lạng sơn|cao bằng|bắc kạn|thái nguyên|tuyên quang|hà giang|yên bái|lào cai|phú thọ|vĩnh phúc|hòa bình|sơn la|điện biên|lai châu)/i.test(raw);
 
   const missingLevels = [];
-  if (parts.length < 2) missingLevels.push('Số nhà/tên đường/ấp');
-  if (!hasWard) missingLevels.push('Phường/Xã/Thị trấn');
-  if (!hasDistrict && parts.length < 3) missingLevels.push('Quận/Huyện/Thị xã/Thành phố thuộc tỉnh');
-  if (!hasProvince && parts.length < 4) missingLevels.push('Tỉnh/Thành phố');
+  // Cho phép nông thôn (ấp/thôn/khóm/bản/tổ...) không cần số nhà
+  if (parts.length < 2) missingLevels.push('Tên ấp/thôn/đường/khu phố');
+  if (!hasWard && parts.length < 2) missingLevels.push('Phường/Xã/Thị trấn');
+  if (!hasDistrict && parts.length < 3) missingLevels.push('Quận/Huyện/Thị xã/Thành phố thuộc tỉnh (nếu có)');
+  if (!hasProvince && parts.length < 3) missingLevels.push('Tỉnh/Thành phố');
+
+  const formattedAddress = formatVietnameseAddress(raw);
 
   if (missingLevels.length > 0 || hasBadCasing) {
     let failureReason = '';
     if (hasBadCasing) {
-      failureReason = 'Địa chỉ thường trú viết chữ thường, chưa viết hoa chữ cái đầu theo chuẩn văn thư hành chính (Ví dụ đúng: "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu").';
+      failureReason = `Địa chỉ thường trú viết chữ thường, chưa viết hoa chữ cái đầu theo chuẩn văn thư hành chính. Hệ thống gợi ý định dạng lại là: "${formattedAddress}".`;
     } else {
       failureReason = `Địa chỉ hộ khẩu chưa đủ cấp hành chính (thiếu hoặc chưa ghi rõ: ${missingLevels.join(', ')}).`;
     }
@@ -142,56 +273,85 @@ export function validatePermanentAddress(address = '') {
       missingLevels,
       isAllLowerCase: hasBadCasing,
       reason: failureReason,
+      autoFormatted: formattedAddress,
     };
   }
 
-  return { isValid: true, normalized: raw };
+  return { isValid: true, normalized: formattedAddress, autoFormatted: formattedAddress };
 }
 
 /**
- * Kiểm tra trạng thái niên khóa và tiến độ đào tạo của sinh viên
- * Theo sơ đồ .mdj:
- * - Sinh viên bảo lưu (SUSPENDED) hoặc thôi học (DROPPED): Không xếp vào nợ môn
- * - Quá 4 năm và còn nợ môn: hasDebtCourses = true
- * - Quá 4 năm và đã tốt nghiệp / hoàn thành >= 150 tín chỉ: isCompleted = true (Vượt quá quyền AI)
+ * Bóc tách năm nhập học từ 2 số đầu MSSV HUTECH (chuẩn hóa 10 số: YY + ngành + STT)
+ * Ví dụ: 2280602154 -> Khóa 22 (Năm 2022), 2050200005 -> Khóa 20 (Năm 2020)
  */
-export function checkCohortOverdueStatus(student = {}) {
-  if (['SUSPENDED', 'DROPPED'].includes(student.status)) {
-    return { isOverdue: false, isCompleted: false, hasDebtCourses: false };
-  }
-
-  let isOverdue = false;
-  let admissionYear = Number(student.admissionYear || 0);
-  if (!admissionYear && student.studentCode) {
-    const sCode = String(student.studentCode).trim();
-    if (sCode === '2110005' || sCode.startsWith('20') || sCode.startsWith('19') || sCode.startsWith('18')) {
-      admissionYear = 2020;
-    } else if (sCode.startsWith('22')) {
-      admissionYear = 2022;
-    } else if (sCode.startsWith('21')) {
-      admissionYear = 2021;
+export function parseHutechAdmissionYear(studentCode, fallbackYear = null) {
+  const codeStr = String(studentCode || '').trim();
+  if (codeStr.length >= 2) {
+    const prefix = parseInt(codeStr.slice(0, 2), 10);
+    if (!isNaN(prefix) && prefix >= 15 && prefix <= 35) {
+      return 2000 + prefix;
     }
   }
+  const fYear = Number(fallbackYear || 0);
+  return (fYear >= 2000 && fYear <= 2050) ? fYear : null;
+}
 
-  if (student.studentCode === '2110005' || student.isOverdueCohort === true) {
-    isOverdue = true;
-  } else if (admissionYear > 0) {
-    isOverdue = admissionYear <= 2020 || (new Date().getFullYear() - admissionYear) > 5;
+/**
+ * Kiểm tra trạng thái niên khóa và tiến độ đào tạo của sinh viên theo quy định Phòng Đào tạo HUTECH:
+ * - Bóc tách 2 số đầu MSSV để xác định năm nhập học (admissionYear)
+ * - Mốc thời gian đào tạo chuẩn 4 năm: 30/08/<admissionYear> đến 30/08/<admissionYear + 4> (23:59:59)
+ * - Ngày 30/08 được cố định là thời điểm chốt khóa/năm học
+ * - Quá 4 năm VÀ còn nợ môn (tích lũy < 150 tín chỉ): hasDebtCourses = true -> Điều hướng sang Biểu mẫu nợ môn (COURSE_DEBT)
+ * - Quá 4 năm VÀ đã tốt nghiệp / hoàn thành >= 150 tín chỉ: isCompleted = true -> Vượt quá thẩm quyền AI -> ESCALATE_TO_STAFF
+ * - Sinh viên bảo lưu (SUSPENDED) hoặc thôi học (DROPPED): Không xếp vào nợ môn, từ chối theo quy chế
+ */
+export function checkCohortOverdueStatus(student = {}, referenceDate = null) {
+  if (['SUSPENDED', 'DROPPED'].includes(student.status)) {
+    return { isOverdue: false, isCompleted: false, hasDebtCourses: false, admissionYear: null, cutoffDate: null };
   }
 
-  // Tín chỉ tích lũy hoặc tình trạng tốt nghiệp
-  const credits = Number(student.completedCredits ?? student.accumulatedCredits ?? student.credits ?? student.enrolledCredits ?? 0);
+  // 1. Xác định năm nhập học từ 2 số đầu MSSV HUTECH (hoặc field admissionYear)
+  let admissionYear = parseHutechAdmissionYear(student.studentCode, student.admissionYear);
+  if (!admissionYear) {
+    admissionYear = 2022; // Fallback an toàn
+  }
+
+  // 2. Mốc thời gian 4 năm đào tạo chuẩn HUTECH: cố định ngày 30/08 của năm thứ 4 (23:59:59)
+  const cutoffDate = new Date(admissionYear + 4, 7, 30, 23, 59, 59, 999);
+
+  // 3. So sánh với thời điểm xét duyệt (referenceDate / submissionDate / ngày hiện tại)
+  const now = referenceDate ? new Date(referenceDate) : (student.submissionDate ? new Date(student.submissionDate) : (student.referenceDate ? new Date(student.referenceDate) : new Date()));
+
+  let isOverdue = false;
+  if (typeof student.isOverdueCohort === 'boolean') {
+    isOverdue = student.isOverdueCohort;
+  } else {
+    isOverdue = now.getTime() > cutoffDate.getTime();
+  }
+
+  // 4. Tín chỉ tích lũy hoặc tình trạng tốt nghiệp (kế thừa từ student object hoặc STUDENT_REGISTRY)
+  const registryProfile = student?.studentCode ? STUDENT_REGISTRY[student.studentCode] : null;
+  const credits = Number(
+    student.completedCredits ??
+    student.accumulatedCredits ??
+    student.credits ??
+    student.enrolledCredits ??
+    registryProfile?.completedCredits ??
+    registryProfile?.credits ??
+    registryProfile?.enrolledCredits ??
+    0
+  );
   const isCompleted = student.status === 'GRADUATED' || credits >= 150;
   const hasDebtCourses = isOverdue && !isCompleted;
 
-  return { isOverdue, isCompleted, hasDebtCourses };
+  return { isOverdue, isCompleted, hasDebtCourses, admissionYear, cutoffDate };
 }
 
 /**
  * Kiểm tra xem sinh viên đã học quá 4 năm đào tạo chuẩn hay chưa
  */
-export function isOverdueCohort(student = {}) {
-  const status = checkCohortOverdueStatus(student);
+export function isOverdueCohort(student = {}, referenceDate = null) {
+  const status = checkCohortOverdueStatus(student, referenceDate);
   return status.isOverdue;
 }
 
@@ -250,9 +410,9 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
     case 'MILITARY_DEFERMENT':
       return [
         '1. Họ và tên, MSSV, Ngày sinh, Khoa',
-        '2. Địa chỉ hộ khẩu thường trú (đủ 4 cấp hành chính: Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/TP và viết hoa chữ cái đầu: VD "180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh")',
+        '2. Địa chỉ hộ khẩu thường trú (đủ 4 cấp hành chính: Số nhà/đường hoặc Thôn/Ấp, Phường/Xã, Quận/Huyện, Tỉnh/TP và viết hoa chữ cái đầu: VD "475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh" hoặc "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu")',
         '3. Số điện thoại liên hệ',
-        '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+        '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.05',
       ].join('\n');
 
     case 'BANK_LOAN':
@@ -261,7 +421,7 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
         '2. Ngành học, Lớp, Số điện thoại',
         '3. Thuộc đối tượng mồ côi (Có hoặc Không)',
         '4. Số lần làm mẫu xác nhận, Số lần đã được vay vốn, Số tiền vay của học kỳ gần nhất',
-        '5. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+        '5. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.05',
       ].join('\n');
 
     case 'TAX_DEDUCTION':
@@ -269,7 +429,7 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
         '1. Họ tên, MSSV, Ngày sinh, Khoa',
         '2. Địa chỉ hộ khẩu thường trú (đủ 4 cấp hành chính)',
         '3. Số điện thoại liên hệ',
-        '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+        '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.05',
       ].join('\n');
 
     case 'COURSE_DEBT':
@@ -277,7 +437,7 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
         '1. Họ tên, MSSV, Ngày sinh, Lớp',
         '2. Danh sách các môn học còn nợ chưa đủ điều kiện tốt nghiệp',
         '3. Địa chỉ thường trú, Số điện thoại liên hệ',
-        '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+        '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.05',
       ].join('\n');
 
     case 'GENERAL_CONFIRMATION':
@@ -285,7 +445,7 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
       return [
         '1. Họ tên, MSSV, Ngày sinh, Số CMND/CCCD, Ngày/Nơi cấp, Ngành, Lớp, Khoa',
         '2. Lý do xác nhận cụ thể (vé tháng xe buýt, học bổng, xin visa, bổ sung hồ sơ học tập...)',
-        '3. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.08',
+        '3. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.05',
       ].join('\n');
   }
 }
@@ -307,7 +467,7 @@ export function detectCrossFormMismatch({
   }
 
   const normalizedText = normalizeText(`${text} ${inputData.purpose || ''} ${inputData.reason || ''} ${inputData.recipientAgency || ''}`);
-  const overdueStatus = checkCohortOverdueStatus(student);
+  const overdueStatus = checkCohortOverdueStatus(student, inputData.submissionDate || inputData.referenceDate || null);
 
   // Trường hợp 1: Sinh viên quá 4 năm VÀ CÒN NỢ MÔN nhưng lại nộp biểu mẫu khác ngoài COURSE_DEBT
   if (overdueStatus.hasDebtCourses && currentFormCode && currentFormCode !== 'COURSE_DEBT') {
@@ -528,7 +688,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
       decision: TRACK_A_DECISION.AUTO_REJECT,
       rule: 'POL_NO_ACTIVE_SCHEDULE_OR_CREDITS',
       reason: 'Sinh viên không có thời khóa biểu hoặc chưa đăng ký tín chỉ trong học kỳ hiện tại (tính cả học kỳ phụ).',
-      userMessage: 'Theo quy định của Nhà trường, Giấy xác nhận sinh viên chỉ cấp cho sinh viên đang có thời khóa biểu / có phát sinh hoạt động học tập (tính cả học kỳ phụ) trong học kỳ hiện tại. Hồ sơ của bạn hiện chưa có thời khóa biểu học kỳ này nên không đủ điều kiện giải quyết. Nếu bạn có việc đặc biệt cần gấp, vui lòng nêu rõ lý do để hệ thống đóng gói chuyển tiếp Cán bộ xem xét.',
+      userMessage: 'Theo quy chế của Nhà trường, các biểu mẫu in sẵn chuẩn chỉ cấp tự động cho sinh viên đang có thời khóa biểu / phát sinh học phần trong học kỳ hiện tại (tính cả học kỳ phụ). Trường hợp bạn chưa đăng ký TKB nhưng cần xác nhận: Nhà trường vẫn có thể hỗ trợ đóng mộc nếu bạn tự soạn biểu mẫu/đơn riêng của sinh viên (hoặc biểu mẫu riêng của cơ quan ngoài) mang trực tiếp lên Phòng Công tác Sinh viên (A-01.01 Sài Gòn hoặc E1-01.05 Thủ Đức) để Thầy cô xem xét hỗ trợ. Nếu bạn có việc đặc biệt cần gấp, vui lòng nêu rõ lý do để hệ thống đóng gói chuyển tiếp Cán bộ xem xét ngoại lệ nhé!',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
@@ -576,7 +736,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
   const targetForm = HUTECH_FORMS[formCode] || detectFormIntent(inputData.purpose || inputData.reason || '') || HUTECH_FORMS.GENERAL_CONFIRMATION;
 
   // 4. ĐIỀU KIỆN SỐ 2: KIỂM TRA THỜI GIAN ĐÀO TẠO 4 NĂM & TIẾN ĐỘ NỢ MÔN / TỐT NGHIỆP
-  const overdueStatus = checkCohortOverdueStatus(student);
+  const overdueStatus = checkCohortOverdueStatus(student, inputData.submissionDate || inputData.referenceDate || null);
   if (overdueStatus.isOverdue) {
     // Sơ đồ .mdj: Quá 4 năm NHƯNG KHÔNG nợ môn (đã hoàn thành đủ >= 150 tín chỉ hoặc đã tốt nghiệp)
     // -> Không dùng biểu mẫu nợ môn -> VƯỢT QUÁ QUYỀN AI -> Đóng gói chuyển tiếp Cán bộ
@@ -702,13 +862,31 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
         uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
         decision: TRACK_A_DECISION.ASK_CLARIFICATION,
         rule: 'REQ_PERMANENT_ADDRESS_REQUIRED',
-        reason: `Biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ hộ khẩu thường trú đầy đủ 4 cấp hành chính.`,
-        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ thường trú đầy đủ 4 cấp hành chính (Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố) và viết hoa đúng chuẩn (Ví dụ: "180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh" hoặc "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu"). Bạn vui lòng cung cấp địa chỉ hộ khẩu thường trú nhé!`,
+        reason: `Biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ hộ khẩu thường trú.`,
+        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ thường trú (Số nhà/đường hoặc Thôn/Ấp, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố) và viết hoa đúng chuẩn (Ví dụ: "475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh" hoặc "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu"). Bạn vui lòng cung cấp địa chỉ hộ khẩu thường trú nhé!`,
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
       };
     }
 
     const addressCheck = validatePermanentAddress(address);
+    const isReconfirmedMultiple = inputData.isAddressReconfirmed === true || Number(inputData.addressAttempts || 0) >= 2;
+
+    // NẾU sinh viên đã xác nhận lại nhiều lần hoặc cờ isAddressReconfirmed / addressAttempts >= 2
+    // (ví dụ địa phương vừa sáp nhập đơn vị hành chính hoặc đặc thù nông thôn mà sinh viên đã khẳng định đúng):
+    if (isReconfirmedMultiple) {
+      return {
+        classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+        decision: TRACK_A_DECISION.ESCALATE_STAFF,
+        targetRole: 'STAFF',
+        rule: 'ESCALATE_ADDRESS_MERGER_VERIFICATION',
+        reason: `Sinh viên đã xác nhận lại địa chỉ thường trú ("${addressCheck.autoFormatted || address}") nhiều lần (có thể thuộc địa bàn sáp nhập đơn vị hành chính hoặc đặc thù nông thôn). Chuyển tiếp Cán bộ CTSV xác minh trực tiếp để tránh làm phiền sinh viên.`,
+        actionableQuestion: `Sinh viên ${student.fullName} (${student.studentCode}) xác nhận địa chỉ thường trú là "${addressCheck.autoFormatted || address}". Cán bộ CTSV vui lòng kiểm tra và duyệt xác nhận cho sinh viên.`,
+        userMessage: `Hệ thống ghi nhận địa chỉ thường trú bạn đã xác nhận là: "${addressCheck.autoFormatted || address}". Do bạn đã xác nhận lại thông tin địa chỉ (hoặc địa phương thuộc diện sắp xếp/sáp nhập), yêu cầu đã được chuyển tiếp đến Cán bộ Phòng CTSV để thẩm định nhanh cho bạn. Bạn vui lòng đợi thông báo nhé!`,
+        policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+      };
+    }
+
     if (!addressCheck.isValid) {
       return {
         classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
@@ -716,7 +894,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
         decision: TRACK_A_DECISION.ASK_CLARIFICATION,
         rule: 'REQ_PERMANENT_ADDRESS_STANDARD',
         reason: `Địa chỉ hộ khẩu chưa đạt chuẩn: ${addressCheck.reason}`,
-        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý: ${addressCheck.reason}\n\nBạn vui lòng điều chỉnh lại địa chỉ ghi rõ đủ 4 cấp hành chính và viết hoa chữ cái đầu (Ví dụ: "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu") để được cấp giấy hợp lệ nhé!`,
+        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý: ${addressCheck.reason}\n\nBạn vui lòng điều chỉnh lại địa chỉ ghi rõ các cấp hành chính (Ví dụ: "${addressCheck.autoFormatted || 'Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu'}") để được cấp giấy hợp lệ nhé!`,
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
       };
     }
@@ -734,11 +912,11 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
           reason: 'Địa chỉ thường trú phục vụ Giấy tạm hoãn Nghĩa vụ Quân sự bắt buộc phải được sinh viên xác nhận và cam kết chịu trách nhiệm pháp lý trước khi phê duyệt.',
           actionableQuestion:
             `Dạ hệ thống đã ghi nhận địa chỉ hộ khẩu thường trú của bạn theo chuẩn văn thư hành chính là:\n` +
-            `🏠 **${address}**\n\n` +
+            `🏠 **${addressCheck.autoFormatted || address}**\n\n` +
             `⚠️ **CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ (BCH QUÂN SỰ ĐỊA PHƯƠNG):**\n` +
             `Giấy chứng nhận Tạm hoãn NVQS sẽ được nộp trực tiếp về Ban Chỉ huy Quân sự địa phương nơi bạn đăng ký hộ khẩu thường trú. Sinh viên phải **hoàn toàn chịu trách nhiệm trước pháp luật** về tính chính xác của địa chỉ khai báo (đặc biệt lưu ý tên xã/phường/thị trấn sau các đợt sáp nhập, sắp xếp đơn vị hành chính để tránh bị địa phương từ chối hồ sơ).\n\n` +
             `Bạn vui lòng đối chiếu kỹ với CCCD/Sổ hộ khẩu và xác nhận lại giúp mình:\n` +
-            `👉 Nếu địa chỉ trên đã chính xác: Bạn chỉ cần nhắn **"Xác nhận đúng"** (kèm theo cơ sở nhận giấy bản cứng: A-01.01 Sài Gòn hoặc E1-01.08 Thủ Đức nếu chưa chọn) để mình hoàn tất duyệt và cấp mã hồ sơ ngay nhé!\n` +
+            `👉 Nếu địa chỉ trên đã chính xác: Bạn chỉ cần nhắn **"Xác nhận đúng"** (kèm theo cơ sở nhận giấy bản cứng: A-01.01 Sài Gòn hoặc E1-01.05 Thủ Đức nếu chưa chọn) để mình hoàn tất duyệt và cấp mã hồ sơ ngay nhé!\n` +
             `👉 Nếu cần điều chỉnh: Bạn nhắn lại địa chỉ chính xác để mình cập nhật nhé!`,
           policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
         };
@@ -760,14 +938,14 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
       reason: 'Chưa chọn cơ sở nhận giấy bản cứng hợp lệ có mộc đỏ và chữ ký sống.',
       actionableQuestion:
         'Để Nhà trường chuẩn bị bản cứng có chữ ký sống và mộc đỏ của Phòng CTSV, bạn vui lòng chọn 1 trong 2 cơ sở sau để nhận giấy nhé:\n' +
-        '1. 🏢 Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)\n' +
-        '2. 🏢 Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)',
+        '1. 🏢 Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01) [Nhận sau 1 ngày làm việc]\n' +
+        '2. 🏢 Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05) [Nhận sau 2 ngày làm việc]',
       policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     };
   }
 
   const campus = isThuDuc
-    ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
+    ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)'
     : 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
 
   // 7. KIỂM TRA NGOẠI LỆ / ÉP QUYỀN DUYỆT MIỆNG
@@ -805,6 +983,17 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
 
 
   // 9. ĐỦ ĐIỀU KIỆN PHÊ DUYỆT TỰ ĐỘNG (ROUTINE AUTO APPROVE)
+  const appointment = calculatePickupAppointment({
+    pickupCampus: campus,
+    submissionDate: inputData.submissionDate || new Date(),
+  });
+  const appointmentMsg =
+    `\n\n📅 **Lịch hẹn nhận bản cứng:**\n` +
+    `- **Địa điểm:** ${appointment.room} (${appointment.location})\n` +
+    `- **Thời gian dự kiến nhận:** ${appointment.fullAppointmentText}\n` +
+    `- **Hotline hỗ trợ:** ${appointment.phone}` +
+    (appointment.earlyPickupTip ? `\n\n${appointment.earlyPickupTip}` : '');
+
   return {
     classification: TRACK_A_CLASSIFICATION.ROUTINE,
     uncertaintyType: null,
@@ -812,8 +1001,9 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     rule: `APPROVED_${targetForm.code}`,
     formCode: targetForm.code,
     formName: targetForm.name,
+    appointment,
     reason: `Sinh viên có thời khóa biểu hợp lệ trong học kỳ, hồ sơ đầy đủ dữ kiện biểu mẫu [${targetForm.code}] và nằm trong thẩm quyền tự động.`,
-    userMessage: `Hồ sơ ${targetForm.name} của bạn đã được EduRef AI tự động thẩm định thành công. Bạn vui lòng mang thẻ sinh viên đến ${campus} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường trong giờ hành chính nhé!`,
+    userMessage: `Hồ sơ ${targetForm.name} của bạn đã được EduRef AI tự động thẩm định thành công. Bạn vui lòng mang thẻ sinh viên đến ${campus} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường.${appointmentMsg}`,
     policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
   };
 }
@@ -868,7 +1058,7 @@ export function inferStudentConfirmationInput(prompt = '') {
   const isThuDuc = /thủ đức|thu duc|e1/i.test(prompt);
   const isSaiGon = /sài gòn|sai gon|a-01|trụ sở/i.test(prompt);
   const pickupCampus = isThuDuc
-    ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)'
+    ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)'
     : isSaiGon
     ? 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)'
     : null;
@@ -888,6 +1078,8 @@ export function inferStudentConfirmationInput(prompt = '') {
 
 export default {
   HUTECH_FORMS,
+  formatVietnameseAddress,
+  calculatePickupAppointment,
   validatePermanentAddress,
   isOverdueCohort,
   detectFormIntent,

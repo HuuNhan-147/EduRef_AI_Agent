@@ -33,10 +33,10 @@ export class ToolRegistry {
               type: 'STRING',
               enum: [
                 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
-                'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)',
+                'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)',
               ],
               description:
-                'Cơ sở nhận giấy bản cứng do sinh viên trực tiếp chọn ("Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)" hoặc "Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.08)"). NẾU SINH VIÊN CHƯA NÊU RÕ TRONG TIN NHẮN THÌ ĐỂ null, TUYỆT ĐỐI KHÔNG ĐƯỢC tự ý chọn thay sinh viên!',
+                'Cơ sở nhận giấy bản cứng do sinh viên trực tiếp chọn ("Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)" hoặc "Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)"). NẾU SINH VIÊN CHƯA NÊU RÕ TRONG TIN NHẮN THÌ ĐỂ null, TUYỆT ĐỐI KHÔNG ĐƯỢC tự ý chọn thay sinh viên!',
             },
             permanentAddress: {
               type: 'STRING',
@@ -76,7 +76,7 @@ export class ToolRegistry {
           properties: {
             studentCode: {
               type: 'STRING',
-              description: 'Mã số sinh viên, ví dụ: 2110001',
+              description: 'Mã số sinh viên, ví dụ: 2380600001',
             },
           },
           required: ['studentCode'],

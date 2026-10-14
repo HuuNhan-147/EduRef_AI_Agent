@@ -2,6 +2,8 @@
 // Danh bạ Hồ sơ Học vụ Chuẩn hóa Sinh viên HUTECH (Single Source of Truth)
 
 export const STUDENT_REGISTRY = Object.freeze({
+  // 1. Sinh viên Cao Hữu Nhân (Khóa 2022 - Chuẩn 10 số: 22 806 02154)
+  // Thời gian chuẩn 4 năm: 30/08/2022 - 30/08/2026. Quá 4 năm sau 30/08/2026 -> Điều hướng sang Biểu mẫu nợ môn (COURSE_DEBT)
   '2280602154': {
     studentCode: '2280602154',
     fullName: 'Cao Hữu Nhân',
@@ -19,12 +21,14 @@ export const STUDENT_REGISTRY = Object.freeze({
     admissionYear: 2022,
     enrolledCredits: 15,
   },
-  '2110001': {
-    studentCode: '2110001',
+
+  // 2. Sinh viên chính quy trong hạn 4 năm đào tạo chuẩn (Khóa 2023: 30/08/2023 - 30/08/2027)
+  '2380600001': {
+    studentCode: '2380600001',
     fullName: 'Nguyễn Văn An',
-    birthDate: '15/03/2003',
+    birthDate: '15/03/2004',
     gender: 'Nam',
-    studentClass: '21DTHE1',
+    studentClass: '23DTHE1',
     faculty: 'Khoa Công Nghệ Thông Tin',
     major: 'Công nghệ thông tin',
     phone: '0901234568',
@@ -33,7 +37,124 @@ export const STUDENT_REGISTRY = Object.freeze({
     idCardPlace: 'Cục Cảnh sát QLHC về TTXH',
     permanentAddress: '180 Điện Biên Phủ, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
     status: 'ACTIVE',
+    admissionYear: 2023,
+    enrolledCredits: 18,
+  },
+
+  // 3. Sinh viên khóa cũ quá 4 năm nợ môn (Khóa 2020: 30/08/2020 - 30/08/2024, Khoa Điện 502)
+  '2050200005': {
+    studentCode: '2050200005',
+    fullName: 'Hoàng Thị Mai',
+    birthDate: '05/09/2002',
+    gender: 'Nữ',
+    studentClass: '20DDTE1',
+    faculty: 'Khoa Điện - Điện tử',
+    major: 'Kỹ thuật điện tử',
+    phone: '0901234570',
+    idCard: '079200005678',
+    idCardDate: '10/08/2020',
+    idCardPlace: 'Cục Cảnh sát QLHC về TTXH',
+    permanentAddress: '10/80C Song Hành, Phường Tân Hưng Thuận, Quận 12, TP. Hồ Chí Minh',
+    status: 'ACTIVE',
+    admissionYear: 2020,
+    enrolledCredits: 3,
+  },
+
+  // 4. Sinh viên khóa cũ quá 4 năm ĐÃ TỐT NGHIỆP / HOÀN THÀNH ĐỦ KHỐI LƯỢNG (>= 150 tín chỉ)
+  '2080600099': {
+    studentCode: '2080600099',
+    fullName: 'Võ Minh Quân',
+    birthDate: '18/02/2002',
+    gender: 'Nam',
+    studentClass: '20DTHE1',
+    faculty: 'Khoa Công Nghệ Thông Tin',
+    major: 'Công nghệ thông tin',
+    phone: '0901234599',
+    idCard: '079200009999',
+    idCardDate: '15/09/2020',
+    idCardPlace: 'Cục Cảnh sát QLHC về TTXH',
+    permanentAddress: '475A Điện Biên Phủ, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
+    status: 'ACTIVE',
+    admissionYear: 2020,
+    enrolledCredits: 150,
+    credits: 150,
+    completedCredits: 150,
+  },
+
+  // 5. Sinh viên thôi học (Khóa 2021: 21 502 00002)
+  '2150200002': {
+    studentCode: '2150200002',
+    fullName: 'Trần Thị Bình',
+    birthDate: '10/08/2003',
+    gender: 'Nữ',
+    studentClass: '21DDTE2',
+    faculty: 'Khoa Điện - Điện tử',
+    major: 'Kỹ thuật điện tử',
+    phone: '0901234571',
+    idCard: '079201002345',
+    idCardDate: '20/05/2021',
+    idCardPlace: 'Cục Cảnh sát QLHC về TTXH',
+    permanentAddress: '475 Điện Biên Phủ, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
+    status: 'DROPPED',
     admissionYear: 2021,
+    enrolledCredits: 0,
+  },
+
+  // 6. Sinh viên nợ học phí (Khóa 2021: 21 502 00003)
+  '2150200003': {
+    studentCode: '2150200003',
+    fullName: 'Lê Hoàng Cường',
+    birthDate: '20/11/2003',
+    gender: 'Nam',
+    studentClass: '21DDTE1',
+    faculty: 'Khoa Điện - Điện tử',
+    major: 'Kỹ thuật điện tử',
+    phone: '0901234569',
+    idCard: '079201003456',
+    idCardDate: '15/06/2021',
+    idCardPlace: 'Cục Cảnh sát QLHC về TTXH',
+    permanentAddress: '475A Điện Biên Phủ, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
+    status: 'ACTIVE',
+    admissionYear: 2021,
+    enrolledCredits: 16,
+    tuitionDebt: 15000000,
+  },
+
+  // 7. Sinh viên bảo lưu (Khóa 2022: 22 806 00004)
+  '2280600004': {
+    studentCode: '2280600004',
+    fullName: 'Phạm Văn Dũng',
+    birthDate: '01/01/2004',
+    gender: 'Nam',
+    studentClass: '22DTHE2',
+    faculty: 'Khoa Công Nghệ Thông Tin',
+    major: 'Công nghệ thông tin',
+    phone: '0901234572',
+    idCard: '079201004567',
+    idCardDate: '18/07/2021',
+    idCardPlace: 'Cục Cảnh sát QLHC về TTXH',
+    permanentAddress: '31/36 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
+    status: 'SUSPENDED',
+    admissionYear: 2022,
+    enrolledCredits: 0,
+  },
+
+  // === ALIASES TƯƠNG THÍCH NGƯỢC (BACKWARD COMPATIBILITY CHO MÃ 7 SỐ CŨ) ===
+  '2110001': {
+    studentCode: '2110001',
+    fullName: 'Nguyễn Văn An',
+    birthDate: '15/03/2004',
+    gender: 'Nam',
+    studentClass: '23DTHE1',
+    faculty: 'Khoa Công Nghệ Thông Tin',
+    major: 'Công nghệ thông tin',
+    phone: '0901234568',
+    idCard: '079201001234',
+    idCardDate: '12/04/2021',
+    idCardPlace: 'Cục Cảnh sát QLHC về TTXH',
+    permanentAddress: '180 Điện Biên Phủ, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
+    status: 'ACTIVE',
+    admissionYear: 2023,
     enrolledCredits: 18,
   },
   '2110002': {
@@ -69,11 +190,12 @@ export const STUDENT_REGISTRY = Object.freeze({
     status: 'ACTIVE',
     admissionYear: 2021,
     enrolledCredits: 16,
+    tuitionDebt: 15000000,
   },
   '2110004': {
     studentCode: '2110004',
     fullName: 'Phạm Văn Dũng',
-    birthDate: '01/01/2003',
+    birthDate: '01/01/2004',
     gender: 'Nam',
     studentClass: '22DTHE2',
     faculty: 'Khoa Công Nghệ Thông Tin',

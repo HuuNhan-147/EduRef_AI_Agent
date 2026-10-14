@@ -710,7 +710,7 @@ export default function StudentWorkspacePage({
           </div>
           <div className="space-y-1.5">
             <button
-              onClick={() => handleSendMessage('Em xin cấp Giấy chứng nhận tạm hoãn NVQS. Địa chỉ: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh; SĐT: 0901234567; nhận tại Trụ sở chính (A-01.01)')}
+              onClick={() => handleSendMessage('Em xin cấp Giấy chứng nhận tạm hoãn NVQS. Địa chỉ: 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh; SĐT: 0901234567; nhận tại Trụ sở chính (A-01.01)')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-emerald-50/70 border border-emerald-200 hover:bg-emerald-100/70 text-emerald-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
               <span className="w-2 h-2 rounded-full bg-emerald-500 shrink-0"></span>
@@ -731,14 +731,14 @@ export default function StudentWorkspacePage({
               <span className="truncate">SV Nợ môn: Hướng dẫn Mẫu Nợ Môn (COURSE_DEBT)</span>
             </button>
             <button
-              onClick={() => handleSendMessage('Em xin cấp Giấy xác nhận vay vốn ngân hàng chính sách Mẫu 01; CCCD: 079203001234; Lớp: 22DTHE4; nhận tại Cơ sở E1-01.08')}
+              onClick={() => handleSendMessage('Em xin cấp Giấy xác nhận vay vốn ngân hàng chính sách Mẫu 01; CCCD: 079203001234; Lớp: 22DTHE4; nhận tại Cơ sở E1-01.05')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-blue-50/70 border border-blue-200 hover:bg-blue-100/70 text-blue-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
               <span className="w-2 h-2 rounded-full bg-blue-500 shrink-0"></span>
               <span className="truncate">Vay vốn NHCSXH: Mẫu 01 (AUTO)</span>
             </button>
             <button
-              onClick={() => handleSendMessage('Em xin giấy NVQS, địa chỉ: 180 ung văn khiêm phường 25 bình thạnh hcm')}
+              onClick={() => handleSendMessage('Em xin giấy NVQS, địa chỉ: 475a điện biên phủ phường thạnh mỹ tây hcm')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-orange-50/70 border border-orange-200 hover:bg-orange-100/70 text-orange-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
               <span className="w-2 h-2 rounded-full bg-orange-500 shrink-0"></span>
@@ -882,7 +882,7 @@ export default function StudentWorkspacePage({
                               Đã cấp mã công văn & ghi nhận hồ sơ CTSV
                             </div>
                             <div className="text-[10px] text-emerald-700/90 mt-0.5">
-                              📍 Nhận bản cứng có mộc đỏ & chữ ký sống tại Phòng CTSV (A-01.01 hoặc E1-01.08)
+                              📍 Nhận bản cứng có mộc đỏ & chữ ký sống tại Phòng CTSV (A-01.01 hoặc E1-01.05)
                             </div>
                             {msg.toolResult.sha256Proof && (
                               <div className="text-[9px] font-mono text-emerald-800/60 truncate mt-1">
@@ -1132,7 +1132,7 @@ export default function StudentWorkspacePage({
                       MSSV: {currentAccount.code}
                     </div>
                     <div className="text-[10px] text-slate-500 truncate mt-0.5">
-                      {currentAccount.faculty || 'Khoa Công Nghệ Thông Tin'}
+                      {(typeof currentAccount.faculty === 'string' ? currentAccount.faculty : currentAccount.faculty?.name) || (typeof currentAccount.department === 'string' ? currentAccount.department : currentAccount.department?.name) || 'Khoa Công Nghệ Thông Tin'}
                     </div>
                   </div>
                 </div>

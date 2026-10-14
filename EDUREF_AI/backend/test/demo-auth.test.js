@@ -11,6 +11,7 @@ test('demo role switch is disabled by default in production', () => {
 test('demo role switch exposes only fixed allowlisted account keys', () => {
   assert.deepEqual(Object.keys(DEMO_ACCOUNT_TARGETS), [
     'STUDENT_ACTIVE',
+    'STUDENT_OVERDUE_2022',
     'STUDENT_DROPPED',
     'STUDENT_SUSPENDED',
     'STUDENT_GRADUATED',

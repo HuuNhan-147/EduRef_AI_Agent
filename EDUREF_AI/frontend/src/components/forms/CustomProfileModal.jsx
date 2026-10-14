@@ -74,8 +74,13 @@ export default function CustomProfileModal({
   const [fullName, setFullName] = useState(source?.name || source?.fullName || '');
   const [studentCode, setStudentCode] = useState(source?.code || source?.studentCode || '');
   const [studentClass, setStudentClass] = useState(source?.studentClass || source?.class || '22DTHE4');
+  const getDeptStr = (val) => {
+    if (typeof val === 'string') return val;
+    return val?.name || 'Khoa Công nghệ thông tin';
+  };
+
   const [phone, setPhone] = useState(source?.phone || '0901234567');
-  const [departmentName, setDepartmentName] = useState(source?.department || source?.faculty || source?.departmentName || 'Khoa Công nghệ thông tin');
+  const [departmentName, setDepartmentName] = useState(getDeptStr(source?.department || source?.faculty || source?.departmentName));
   const [birthDate, setBirthDate] = useState(source?.birthDate || '26/07/2003');
   const [gender, setGender] = useState(source?.gender || 'Nam');
   const [selectedScenario, setSelectedScenario] = useState('ACTIVE_ZERO_DEBT');
@@ -91,7 +96,9 @@ export default function CustomProfileModal({
         if (src.code || src.studentCode) setStudentCode(src.code || src.studentCode);
         if (src.studentClass || src.class) setStudentClass(src.studentClass || src.class);
         if (src.phone) setPhone(src.phone);
-        if (src.department || src.faculty || src.departmentName) setDepartmentName(src.department || src.faculty || src.departmentName);
+        if (src.department || src.faculty || src.departmentName) {
+          setDepartmentName(getDeptStr(src.department || src.faculty || src.departmentName));
+        }
         if (src.birthDate) setBirthDate(src.birthDate);
         if (src.gender) setGender(src.gender);
       }
@@ -104,6 +111,16 @@ export default function CustomProfileModal({
     e.preventDefault();
     if (!fullName.trim() || !studentCode.trim()) {
       setError('Vui lòng nhập đầy đủ Họ tên và Mã số sinh viên.');
+      return;
+    }
+
+    const cleanCode = studentCode.trim();
+    const RESERVED_CODES = [
+      '2280602154', '2380600001', '2050200005', '2080600099', '2150200002', '2150200003', '2280600004',
+      '2110001', '2110002', '2110003', '2110004', '2110005',
+    ];
+    if (RESERVED_CODES.includes(cleanCode)) {
+      setError(`MSSV [${cleanCode}] là tài khoản kiểm thử mặc định của Nhà trường. Bạn không thể ghi đè hay sửa học phí/trạng thái tài khoản này. Vui lòng nhập MSSV khác.`);
       return;
     }
 
@@ -121,6 +138,8 @@ export default function CustomProfileModal({
         tuitionDebt: scenario.debt,
         phone: phone.trim() || '0901234567',
         studentClass: studentClass.trim() || '22DTHE4',
+        birthDate: birthDate.trim() || '26/07/2003',
+        gender: gender || 'Nam',
       });
 
       if (response.data?.success && response.data?.user) {

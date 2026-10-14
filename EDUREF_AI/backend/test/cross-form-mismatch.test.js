@@ -35,7 +35,7 @@ test('2. detectCrossFormMismatch phát hiện khi sinh viên mở form A nhưng 
   const mismatchNvqs = detectCrossFormMismatch({
     currentFormCode: 'GENERAL_CONFIRMATION',
     text: 'Em cần giấy để nộp tạm hoãn nghĩa vụ quân sự ở địa phương',
-    student: { studentCode: '2280602154', status: 'ACTIVE' },
+    student: { studentCode: '2380600001', status: 'ACTIVE', admissionYear: 2023 },
   });
   assert.equal(mismatchNvqs.isMismatch, true);
   assert.equal(mismatchNvqs.targetForm.code, 'MILITARY_DEFERMENT');
@@ -46,18 +46,18 @@ test('2. detectCrossFormMismatch phát hiện khi sinh viên mở form A nhưng 
   const mismatchBank = detectCrossFormMismatch({
     currentFormCode: 'MILITARY_DEFERMENT',
     text: 'Em muốn xin giấy vay vốn ngân hàng chính sách xã hội học kỳ này',
-    student: { studentCode: '2280602154', status: 'ACTIVE' },
+    student: { studentCode: '2380600001', status: 'ACTIVE', admissionYear: 2023 },
   });
   assert.equal(mismatchBank.isMismatch, true);
   assert.equal(mismatchBank.targetForm.code, 'BANK_LOAN');
 });
 
 test('3. Sinh viên quá 4 năm đào tạo chuẩn bị bắt buộc chuyển sang Biểu mẫu nợ môn (COURSE_DEBT)', () => {
-  // Sinh viên khóa 20 (mã 2010001 - năm 2026 là quá 4 năm) xin giấy thường quy
+  // Sinh viên khóa 20 (mã 2050200005 - năm 2026 là quá 4 năm) xin giấy thường quy
   const overdueMismatch = detectCrossFormMismatch({
     currentFormCode: 'GENERAL_CONFIRMATION',
     text: 'Em xin giấy xác nhận sinh viên để bổ sung hồ sơ xin việc',
-    student: { studentCode: '2010001', admissionYear: 2020, status: 'ACTIVE' },
+    student: { studentCode: '2050200005', admissionYear: 2020, status: 'ACTIVE' },
   });
   assert.equal(overdueMismatch.isMismatch, true);
   assert.equal(overdueMismatch.targetForm.code, 'COURSE_DEBT');
@@ -66,7 +66,7 @@ test('3. Sinh viên quá 4 năm đào tạo chuẩn bị bắt buộc chuyển s
 });
 
 test('4. evaluateStudentConfirmation trả về ASK_CLARIFICATION kèm hướng dẫn 2 cách khi phát hiện lệch biểu mẫu', () => {
-  const student = { studentCode: '2280602154', status: 'ACTIVE', tuitionDebt: 0, hasSchedule: true };
+  const student = { studentCode: '2380600001', status: 'ACTIVE', tuitionDebt: 0, hasSchedule: true, admissionYear: 2023 };
   const evalResult = evaluateStudentConfirmation({
     student,
     inputData: {
@@ -96,13 +96,13 @@ test('6. Sinh viên hỏi về Visa nhưng gửi kèm Biểu mẫu Thuế TNCN b
   const mismatch = detectCrossFormMismatch({
     currentFormCode: 'TAX_DEDUCTION',
     text: 'Em cần giấy xác nhận sinh viên để làm thủ tục xin visa du lịch hè',
-    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true },
+    student: { studentCode: '2380600001', status: 'ACTIVE', hasSchedule: true, admissionYear: 2023 },
   });
   assert.equal(mismatch.isMismatch, true);
   assert.equal(mismatch.targetForm.code, 'GENERAL_CONFIRMATION');
 
   const evalResult = evaluateStudentConfirmation({
-    student: { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true },
+    student: { studentCode: '2380600001', status: 'ACTIVE', hasSchedule: true, admissionYear: 2023 },
     inputData: {
       formCode: 'TAX_DEDUCTION',
       purpose: 'Em cần làm visa du lịch',
@@ -113,7 +113,7 @@ test('6. Sinh viên hỏi về Visa nhưng gửi kèm Biểu mẫu Thuế TNCN b
 });
 
 test('7. Cấp lần 2 cùng biểu mẫu: chưa có lý do thì ASK_CLARIFICATION, có lý do thì ESCALATE_TO_STAFF', () => {
-  const student = { studentCode: '2280602154', status: 'ACTIVE', hasSchedule: true, fullName: 'Cao Hữu Nhân' };
+  const student = { studentCode: '2380600001', status: 'ACTIVE', hasSchedule: true, fullName: 'Nguyễn Văn An', admissionYear: 2023 };
 
   // Chưa có lý do giải trình -> Hỏi làm rõ
   const resNoReason = evaluateStudentConfirmation({
@@ -145,8 +145,8 @@ test('7. Cấp lần 2 cùng biểu mẫu: chưa có lý do thì ASK_CLARIFICATI
 test('8. Multi-turn Mismatch: Lượt trước hỏi Tạm hoãn NVQS, lượt sau nộp Giảm thuế TNCN -> Bắt lệch và hỏi lại', () => {
   const mismatchResult = detectCrossFormMismatch({
     currentFormCode: 'TAX_DEDUCTION',
-    text: 'Em là Cao Hữu Nhân (MSSV: 2280602154), xin cấp Đơn xác nhận giảm trừ gia cảnh thuế TNCN nộp Chi cục Thuế Quận Bình Thạnh. Địa chỉ: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh.',
-    student: { studentCode: '2280602154', status: 'ACTIVE' },
+    text: 'Em là Nguyễn Văn An (MSSV: 2380600001), xin cấp Đơn xác nhận giảm trừ gia cảnh thuế TNCN nộp Chi cục Thuế Quận Bình Thạnh. Địa chỉ: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh.',
+    student: { studentCode: '2380600001', status: 'ACTIVE', admissionYear: 2023 },
     conversationHistory: [
       { role: 'user', parts: [{ text: 'Em muốn hỏi về đơn xin tạm hoãn nghĩa vụ quân sự cần những gì?' }] },
       { role: 'model', parts: [{ text: 'Chào bạn, để xin tạm hoãn NVQS bạn cần địa chỉ 4 cấp...' }] },
@@ -163,7 +163,7 @@ test('9. Multi-turn Mismatch: Lượt trước hỏi Vay vốn NHCSXH, lượt s
   const mismatchResult = detectCrossFormMismatch({
     currentFormCode: 'GENERAL_CONFIRMATION',
     text: 'Em xin cấp giấy xác nhận sinh viên. Mục đích: Bổ sung hồ sơ sinh viên.',
-    student: { studentCode: '2280602154', status: 'ACTIVE' },
+    student: { studentCode: '2380600001', status: 'ACTIVE', admissionYear: 2023 },
     conversationHistory: [
       { role: 'user', parts: [{ text: 'Thủ tục xin vay vốn ngân hàng chính sách xã hội Mẫu 01 thế nào bạn?' }] },
     ],
@@ -178,7 +178,7 @@ test('10. Multi-turn Deliberate Switch: Sinh viên chủ động nói đổi san
   const switchResult = detectCrossFormMismatch({
     currentFormCode: 'TAX_DEDUCTION',
     text: 'Thôi em đổi sang làm đơn giảm trừ gia cảnh thuế TNCN nộp Chi cục Thuế Quận Bình Thạnh nhé.',
-    student: { studentCode: '2280602154', status: 'ACTIVE' },
+    student: { studentCode: '2380600001', status: 'ACTIVE', admissionYear: 2023 },
     conversationHistory: [
       { role: 'user', parts: [{ text: 'Em muốn hỏi về tạm hoãn nghĩa vụ quân sự' }] },
     ],
