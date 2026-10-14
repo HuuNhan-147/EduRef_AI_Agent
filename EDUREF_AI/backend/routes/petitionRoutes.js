@@ -3,8 +3,12 @@ import prisma from '../config/prisma.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
 import { stripServerAuthoritativeFields } from '../services/ClientInputGuard.js';
 import { isDemoRoleSwitchEnabled } from '../controllers/authController.js';
+import { rateLimit } from '../middlewares/rateLimit.js';
 
 const router = express.Router();
+
+// Mỗi lần OCR gọi Gemini Vision với ảnh lớn nên giới hạn theo người dùng
+const ocrLimiter = rateLimit({ name: 'ocr', max: 10, windowMs: 60_000 });
 
 // Giới hạn số bản ghi trả về để tránh quét toàn bộ bảng / giá trị NaN làm Prisma lỗi
 const clampLimit = (value, fallback = 50, max = 200) => {
@@ -377,7 +381,7 @@ router.post('/:id/documents', authenticateToken, async (req, res) => {
 /**
  * POST /api/petitions/ocr-certificate (Giám định và bóc tách chứng chỉ tốt nghiệp bằng Gemini Vision)
  */
-router.post('/ocr-certificate', authenticateToken, async (req, res) => {
+router.post('/ocr-certificate', authenticateToken, ocrLimiter, async (req, res) => {
   try {
     const { imageBase64, expectedType = 'B1', studentName = 'Cao Hữu Nhân' } = req.body;
     const { default: certificateVisionService } = await import('../services/CertificateVisionService.js');

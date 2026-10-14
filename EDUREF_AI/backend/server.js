@@ -14,18 +14,22 @@ import { runAgent } from './modules/ai-agent/index.js';
 import { agentTerminalLogger } from './modules/ai-agent/core/AgentTerminalLogger.js';
 import { scopeSessionId } from './modules/ai-agent/memory/sessionScope.js';
 import { warnIfInsecureJwtSecret } from './config/jwtSecret.js';
+import { checkRateLimit } from './middlewares/rateLimit.js';
 
 // Global error handlers để tránh crash tiến trình
 process.on('uncaughtException', (err) => {
   console.error('💥 [Uncaught Exception]:', err.message);
   process.exit(1);
 });
+// Một promise lỗi lẻ (vd: lỗi mạng gọi Gemini) không được phép hạ cả máy chủ đang phục vụ
+// nhiều người dùng; chỉ ghi log. uncaughtException ở trên mới là trạng thái không an toàn để tiếp tục.
 process.on('unhandledRejection', (reason) => {
   console.error('💥 [Unhandled Rejection]:', reason);
-  process.exit(1);
 });
 
 const app = express();
+// Render đứng sau 1 reverse proxy: cần để req.ip là IP thật (rate limit theo IP)
+app.set('trust proxy', 1);
 const server = http.createServer(app);
 
 const PORT = process.env.PORT || 5000;
@@ -127,6 +131,16 @@ io.on('connection', (socket) => {
 
     if (!message) {
       socket.emit('agent_error', { message: 'Tin nhắn không được để trống.' });
+      return;
+    }
+
+    // Mỗi tin nhắn kích hoạt tối đa 5 vòng gọi Gemini: giới hạn theo người dùng
+    const limit = checkRateLimit(`socket-chat:${socket.user?.id || socket.id}`, { max: 20, windowMs: 60_000 });
+    if (!limit.allowed) {
+      socket.emit('agent_error', {
+        sessionId,
+        error: `Bạn gửi tin nhắn quá nhanh. Vui lòng thử lại sau ${limit.retryAfterSec} giây.`,
+      });
       return;
     }
 

@@ -1,6 +1,7 @@
 import workflowTools from './actions/workflowTools.js';
 import verifyTools from './actions/verifyTools.js';
 import prisma from '../../../config/prisma.js';
+import { checkRateLimit } from '../../../middlewares/rateLimit.js';
 
 // Các công cụ thao tác trên một hồ sơ cụ thể qua requestId/requestCode do LLM sinh ra.
 const REQUEST_SCOPED_TOOLS = new Set([
@@ -97,8 +98,20 @@ export class ToolResolver {
       case 'get_execution_trace':
         return await workflowTools.get_execution_trace(args);
 
-      case 'run_verify_90s':
+      case 'run_verify_90s': {
+        // Bộ verify ghi 5 đơn thật vào DB dùng chung: LLM (có thể bị dẫn dắt bằng prompt) chỉ
+        // được kích hoạt tối đa 3 lần/10 phút cho mỗi người dùng.
+        const who = args.currentUser?.studentCode || args.currentUser?.username || 'anonymous';
+        const gate = checkRateLimit(`tool-verify90s:${who}`, { max: 3, windowMs: 10 * 60_000 });
+        if (!gate.allowed) {
+          return {
+            success: false,
+            error: 'RATE_LIMITED',
+            message: `Bộ kiểm thử 90s vừa được chạy nhiều lần, vui lòng thử lại sau ${gate.retryAfterSec} giây.`,
+          };
+        }
         return await verifyTools.run_verify_90s();
+      }
 
       default:
         throw new Error(`Công cụ không được hỗ trợ: ${toolName}`);

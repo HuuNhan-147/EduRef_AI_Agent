@@ -7,13 +7,19 @@ import petitionTools from '../modules/ai-agent/tools/actions/petitionTools.js';
 import { checkCohortOverdueStatus } from '../services/StudentConfirmationDecisionService.js';
 import { RESERVED_BENCHMARK_STUDENT_CODES } from '../controllers/authController.js';
 import { scopeSessionId } from '../modules/ai-agent/memory/sessionScope.js';
+import { rateLimit } from '../middlewares/rateLimit.js';
 
 const router = express.Router();
+
+// Mỗi lượt chat gọi Gemini (tốn tiền) nên giới hạn theo người dùng
+const chatLimiter = rateLimit({ name: 'agent-chat', max: 20, windowMs: 60_000 });
+// Các ca verify ghi đơn thật vào DB dùng chung
+const verifyLimiter = rateLimit({ name: 'agent-verify', max: 6, windowMs: 60_000 });
 
 /**
  * POST /api/agent/chat (HTTP Fallback khi không dùng Socket.IO)
  */
-router.post('/chat', authenticateToken, async (req, res) => {
+router.post('/chat', authenticateToken, chatLimiter, async (req, res) => {
   try {
     const { message, sessionId, attachments, inputData } = req.body;
 
@@ -106,7 +112,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
 /**
  * POST /api/agent/verify-90s (Kích hoạt bộ chạy kiểm thử 5 Test Cases 90s cho BGK)
  */
-router.post('/verify-90s', authenticateToken, async (req, res) => {
+router.post('/verify-90s', authenticateToken, verifyLimiter, async (req, res) => {
   try {
     const result = await verifyTools.run_verify_90s();
     res.json(result);
@@ -132,7 +138,7 @@ router.post('/verify-custom', authenticateToken, requireStaffOrDean, async (req,
 /**
  * POST /api/agent/verify-custom-prompt (Ca mới do giám khảo nhập bằng ngôn ngữ tự nhiên)
  */
-router.post('/verify-custom-prompt', authenticateToken, async (req, res) => {
+router.post('/verify-custom-prompt', authenticateToken, verifyLimiter, async (req, res) => {
   try {
     const { prompt } = req.body;
     let { studentCode } = req.body;
