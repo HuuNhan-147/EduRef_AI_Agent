@@ -1,32 +1,32 @@
 // src/pages/StudentWorkspacePage.jsx
-// Không gian làm việc Trợ lý Sinh viên: Bố cục 3 Cột (Catalog Thủ Tục | Hội Thoại ReAct | Bảng Thẩm Định & Quyết Định)
+// Không gian trợ lý sinh viên và công cụ quan sát dành cho bản demo.
 
 import React, { useState, useEffect, useRef } from 'react';
 import {
   Send,
-  Sparkles,
   FileText,
   CheckCircle,
   AlertTriangle,
-  Clock,
-  ShieldAlert,
-  QrCode,
   Upload,
   ArrowRight,
   RefreshCw,
-  Info,
-  Check,
-  Building2,
-  Paperclip,
   Terminal,
-  Zap,
-  Play,
-  ExternalLink,
+  PanelLeftClose,
+  PanelLeftOpen,
+  PanelRightClose,
+  PanelRightOpen,
+  Maximize2,
+  Minimize2,
+  MoreHorizontal,
   Square,
   Trash2,
 } from 'lucide-react';
 import MarkdownRenderer from '../components/common/MarkdownRenderer';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
+import LoadingSkeleton from '../components/common/LoadingSkeleton';
+import AgentTrace from '../components/common/AgentTrace';
+import VerifyEntry from '../components/common/VerifyEntry';
+import useAgentTrace from '../hooks/useAgentTrace';
 import api, { DEMO_ACCOUNTS } from '../services/api';
 import getSocket from '../services/socket';
 
@@ -36,7 +36,7 @@ export const CONFIRMATION_FORMS = [
     id: 'form_tax',
     formCode: 'TAX_DEDUCTION',
     badge: 'DV-01 · THUẾ',
-    badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+    badgeColor: 'bg-slate-50 text-slate-600 border-slate-200',
     title: 'Đơn Xác Nhận Giảm Trừ Gia Cảnh',
     name: 'Đơn xác nhận giảm trừ gia cảnh (Thuế TNCN)',
     description: 'Nộp Cơ quan Thuế để giảm trừ gia cảnh thuế TNCN cho phụ huynh. Thời hạn 1 học kỳ.',
@@ -46,7 +46,7 @@ export const CONFIRMATION_FORMS = [
     id: 'form_bank',
     formCode: 'BANK_LOAN',
     badge: 'DV-02 · VAY VỐN',
-    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    badgeColor: 'bg-slate-50 text-slate-600 border-slate-200',
     title: 'Giấy Xác Nhận Vay Vốn NHCSXH',
     name: 'Giấy xác nhận vay vốn Ngân hàng Chính sách Xã hội',
     description: 'Theo Mẫu 01/TDSV (TT 27/2019/TT-NHCS), nộp Ngân hàng CSXH địa phương. Hạn 1 học kỳ.',
@@ -56,7 +56,7 @@ export const CONFIRMATION_FORMS = [
     id: 'form_military',
     formCode: 'MILITARY_DEFERMENT',
     badge: 'DV-03 · NVQS',
-    badgeColor: 'bg-rose-50 text-rose-700 border-rose-200',
+    badgeColor: 'bg-slate-50 text-slate-600 border-slate-200',
     title: 'Đơn Xin Tạm Hoãn Nghĩa Vụ Quân Sự',
     name: 'Đơn xin tạm hoãn nghĩa vụ quân sự',
     description: 'Gửi Ban Chỉ huy Quân sự cấp Xã/Phường/Thị trấn để tạm hoãn gọi nhập ngũ. Hiệu lực 30 ngày.',
@@ -66,7 +66,7 @@ export const CONFIRMATION_FORMS = [
     id: 'form_debt',
     formCode: 'COURSE_DEBT',
     badge: 'DV-04 · NỢ MÔN',
-    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+    badgeColor: 'bg-slate-50 text-slate-600 border-slate-200',
     title: 'Đơn Xác Nhận Sinh Viên Nợ Môn',
     name: 'Đơn xác nhận sinh viên nợ môn / hoàn thành chương trình',
     description: 'Xác nhận sinh viên còn nợ học phần và đang trong thời gian trả nợ môn để hoàn thành chương trình đào tạo.',
@@ -76,7 +76,7 @@ export const CONFIRMATION_FORMS = [
     id: 'form_general',
     formCode: 'GENERAL_CONFIRMATION',
     badge: 'DV-05 · CHUNG',
-    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+    badgeColor: 'bg-slate-50 text-slate-600 border-slate-200',
     title: 'Giấy Xác Nhận Sinh Viên (Mục Đích Chung)',
     name: 'Giấy xác nhận sinh viên (Mục đích chung)',
     description: 'Xác nhận làm vé tháng xe buýt, xin visa du lịch, việc làm, bổ sung hồ sơ. Hạn 1 học kỳ.',
@@ -99,31 +99,9 @@ export default function StudentWorkspacePage({
   // Tab điều hướng phụ trên Mobile (khi màn hình < 1280px): 'CHAT' | 'PROCEDURES' | 'DECISION'
   const [mobileTab, setMobileTab] = useState('CHAT');
 
-  // Tab điều hướng Cột 3: Mặc định là 'TERMINAL' (Live Console) hiện trước 'DECISION' (Thẩm định 4 chốt)
-  const [column3Tab, setColumn3Tab] = useState('TERMINAL');
-
-  // State chạy Benchmark Verify 90s nhanh
-  const [isVerifying90s, setIsVerifying90s] = useState(false);
-  const [verifyFeedback, setVerifyFeedback] = useState(null);
-
-  const handleRunVerify90s = async () => {
-    setIsVerifying90s(true);
-    setVerifyFeedback('Đang gửi request chạy 5 ca kiểm thử thực tế tới Backend...');
-    setColumn3Tab('TERMINAL'); // Tự động mở Live Terminal để quan sát log chạy
-    try {
-      const res = await api.post('/agent/verify-90s');
-      if (res.data?.success) {
-        const status = res.data.allPassed ? 'ĐẠT' : 'CHƯA ĐẠT';
-        setVerifyFeedback(`Đã hoàn thành ${res.data.totalCases} ca: ${res.data.passedCases}/${res.data.totalCases} ${status}; AUTO=${res.data.autoCount}, ESCALATE=${res.data.escalationCount}.`);
-      } else {
-        setVerifyFeedback(`Hoàn tất chạy test: ${res.data?.message || 'Xem chi tiết trong terminal'}`);
-      }
-    } catch (err) {
-      setVerifyFeedback('Lỗi chạy verify: ' + (err.response?.data?.message || err.message));
-    } finally {
-      setIsVerifying90s(false);
-    }
-  };
+  const [leftCollapsed, setLeftCollapsed] = useState(false);
+  const [rightCollapsed, setRightCollapsed] = useState(false);
+  const [terminalExpanded, setTerminalExpanded] = useState(false);
 
   // State và hàm xử lý Xóa dữ liệu thử nghiệm (Reset Test Data) 1-click
   const [isResetting, setIsResetting] = useState(false);
@@ -152,7 +130,7 @@ export default function StudentWorkspacePage({
           },
         ]);
 
-        // Đặt lại Cột 3 (Bảng Thẩm định)
+        // Giữ trạng thái đơn đồng bộ khi xóa dữ liệu demo.
         setActiveDecision({
           status: 'IDLE',
           requirementsCheck: 'PENDING',
@@ -244,8 +222,8 @@ export default function StudentWorkspacePage({
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionId, setSessionId] = useState(() => `sess_${currentAccount.code || 'student'}_${Date.now()}`);
   const [types, setTypes] = useState([]);
-  
-  // Trạng thái đơn hiện tại đang xử lý hiển thị ở Cột 3 (Cũng được lưu vào sessionStorage)
+
+  // Trạng thái đơn dùng cho kết quả và bước bổ sung hồ sơ.
   const [activeDecision, setActiveDecision] = useState(() => {
     try {
       const cached = sessionStorage.getItem(`eduref_decision_${currentAccount.code}`);
@@ -275,14 +253,27 @@ export default function StudentWorkspacePage({
 
   // State cho việc nộp file bổ sung (Mẫu 01/NHCS hoặc Lệnh NVQS)
   const [supplementFile, setSupplementFile] = useState(null);
-  const [isUploading, setIsUploading] = useState(false);
+  const [, setIsUploading] = useState(false);
 
   const chatEndRef = useRef(null);
+  const chatScrollRef = useRef(null);
+  const followLatestRef = useRef(true);
+  const [hasNewActivity, setHasNewActivity] = useState(false);
   const socket = getSocket();
+  const { traces, startTrace, requestTraceStop } = useAgentTrace(socket, sessionId, messages, isProcessing);
 
   // Cuộn xuống tin nhắn mới nhất
   const scrollToBottom = () => {
-    chatEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    const container = chatScrollRef.current;
+    if (!container) return;
+    if (!followLatestRef.current || !container.clientHeight) {
+      setHasNewActivity(true);
+      return;
+    }
+    container.scrollTo({
+      top: container.scrollHeight,
+      behavior: 'instant',
+    });
   };
 
   useEffect(() => {
@@ -350,7 +341,7 @@ export default function StudentWorkspacePage({
         return prev;
       });
 
-      // Cập nhật Decision Summary ở Cột 3
+      // Đồng bộ trạng thái đơn từ kết quả công cụ.
       if (data.toolResult) {
         const tr = data.toolResult;
         setActiveDecision({
@@ -387,6 +378,7 @@ export default function StudentWorkspacePage({
   // Dừng tiến trình tạo phản hồi của AI Agent (Stop Generation / Cancel)
   const handleStopGeneration = () => {
     if (!isProcessing) return;
+    requestTraceStop();
 
     if (socket && socket.connected) {
       socket.emit('client_stop_generation', { sessionId });
@@ -437,12 +429,12 @@ export default function StudentWorkspacePage({
       timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
     };
 
+    startTrace(userMsg.id);
     setMessages((prev) => [...prev, userMsg]);
     setInputMessage('');
     setIsProcessing(true);
     setMobileTab('CHAT');
 
-    // Bắt đầu cập nhật cột Decision
     setActiveDecision((prev) => ({
       ...prev,
       status: 'PROCESSING',
@@ -588,13 +580,9 @@ export default function StudentWorkspacePage({
   };
 
   return (
-    <div className="flex-1 flex flex-col xl:flex-row overflow-hidden bg-[#F0F4F9]">
-      
-      {/* ========================================================================= */}
-      {/* THANH ĐIỀU HƯỚNG PHỤ TRÊN MOBILE (Chỉ hiển thị trên màn hình < 1280px / xl:hidden) */}
-      {/* ========================================================================= */}
-      <div className="xl:hidden bg-[#0B3B82] border-b border-[#082C64] px-3 py-2 shrink-0">
-        <div className="flex items-center gap-1 bg-[#082C64] p-1 rounded-xl">
+    <div className="student-workspace competition-workspace" data-processing={isProcessing} data-left-collapsed={leftCollapsed} data-right-collapsed={rightCollapsed} data-terminal-expanded={terminalExpanded}>
+      <div className="workspace-mobile-nav bg-eduref-primary border-b border-eduref-hover px-3 py-2 shrink-0">
+        <div className="flex items-center gap-1 bg-eduref-hover p-1 rounded-xl">
           <button
             onClick={() => setMobileTab('CHAT')}
             className={`flex-1 py-1.5 px-2 rounded-lg text-xs font-semibold flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
@@ -628,52 +616,37 @@ export default function StudentWorkspacePage({
             }`}
           >
             <Terminal className="w-3.5 h-3.5 text-emerald-300" />
-            <span>Vận hành & 4 Chốt</span>
+            <span>Live Terminal</span>
           </button>
         </div>
       </div>
-
-      {/* ========================================================================= */}
-      {/* CỘT 1: DANH MỤC THỦ TỤC HÀNH CHÍNH & NỘP BIỂU MẪU (Bên trái) */}
-      {/* ========================================================================= */}
-      <div className={`w-full xl:w-80 bg-white border-r border-slate-200/90 flex-col shrink-0 overflow-y-auto ${
-        mobileTab === 'PROCEDURES' ? 'flex flex-1' : 'hidden xl:flex'
-      }`}>
-        <div className="p-4 border-b border-slate-100 bg-slate-50/50">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xs font-bold uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
-              <FileText className="w-4 h-4 text-[#0B3B82]" />
-              Danh Mục Thủ Tục Học Vụ
-            </h2>
-            <span className="text-[10px] font-semibold text-[#0B3B82] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-              Chính quy
-            </span>
-          </div>
-          <p className="text-[11px] text-slate-500 mt-1">
-            Chọn thủ tục nộp biểu mẫu trực tuyến hoặc hỏi đáp AI
-          </p>
+      <aside className={'procedure-sidebar workspace-sidebar' + (mobileTab === 'PROCEDURES' ? ' is-mobile-active' : '')} aria-label="Thủ tục học vụ">
+        <div className="workspace-sidebar-header">
+          {!leftCollapsed && <div><h2>Thủ tục học vụ</h2><p>5 biểu mẫu · Chọn để bắt đầu</p></div>}
+          <button type="button" className="sidebar-control" aria-label={leftCollapsed ? 'Mở sidebar thủ tục' : 'Thu gọn sidebar thủ tục'} aria-expanded={!leftCollapsed} aria-controls="procedure-panel" onClick={() => setLeftCollapsed(!leftCollapsed)}>
+            {leftCollapsed ? <PanelLeftOpen size={20} /> : <PanelLeftClose size={20} />}
+          </button>
         </div>
-
-        {/* Danh sách 5 Biểu Mẫu Học Vụ Thực Tế HUTECH (Phòng Công tác Sinh viên) */}
+        {leftCollapsed && <div className="sidebar-rail" aria-hidden="true"><FileText size={20} /><span>5</span></div>}
+        <div id="procedure-panel" className="workspace-sidebar-body" hidden={leftCollapsed}>
         <div className="p-3 space-y-2.5 flex-1">
           {CONFIRMATION_FORMS.map((f) => (
             <div
               key={f.id}
-              className="p-3 rounded-xl border border-slate-200 bg-white hover:border-[#0B3B82] hover:shadow-xs transition-all text-left group"
+              data-form={f.formCode}
+              className="procedure-card p-3 rounded-xl border border-slate-200 bg-white hover:border-eduref-primary hover:shadow-xs transition-all text-left group"
             >
               <div className="flex items-start justify-between gap-1.5">
-                <span className="text-xs font-bold text-slate-900 group-hover:text-[#0B3B82] transition-colors leading-snug">
+                <span className="text-xs font-bold text-slate-900 group-hover:text-eduref-primary transition-colors leading-snug">
                   {f.title}
                 </span>
                 <span className={`px-2 py-0.5 rounded text-[10px] font-mono font-bold border shrink-0 ${f.badgeColor}`}>
                   {f.badge}
                 </span>
               </div>
-              <p className="text-[11px] text-slate-500 mt-1 leading-relaxed line-clamp-2">
+              <p className="procedure-description text-slate-500 mt-1 leading-relaxed line-clamp-2">
                 {f.description}
               </p>
-
-              {/* Nút hành động */}
               <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                 <button
                   type="button"
@@ -684,12 +657,13 @@ export default function StudentWorkspacePage({
                     title: f.title,
                     description: f.description,
                   })}
-                  className="font-semibold text-[#0B3B82] hover:text-[#082C64] flex items-center gap-1 transition-colors cursor-pointer"
+                  className="font-semibold text-eduref-primary hover:text-eduref-hover flex items-center gap-1 transition-colors cursor-pointer"
                 >
                   Điền đơn <ArrowRight className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
+                  disabled={isProcessing}
                   onClick={() => handleSendMessage(f.quickPrompt)}
                   className="text-slate-500 hover:text-slate-800 font-medium text-[11px] cursor-pointer"
                 >
@@ -699,17 +673,12 @@ export default function StudentWorkspacePage({
             </div>
           ))}
         </div>
-
-        {/* Khối Kịch bản kiểm thử nhanh 1-Click theo 5 Biểu Mẫu Thực Tế HUTECH */}
-        <div className="p-3 bg-slate-50 border-t border-slate-200/90">
-          <div className="flex items-center justify-between mb-2">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-              Kịch Bản Kiểm Thử Thực Tế (5 Biểu Mẫu)
-            </span>
-            <span className="text-[9px] font-mono text-slate-400">1-CLICK</span>
-          </div>
+        <details className="workspace-test-presets">
+          <summary>Tình huống mẫu bổ sung</summary>
+          <div className="p-3">
           <div className="space-y-1.5">
             <button
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Em xin cấp Giấy chứng nhận tạm hoãn NVQS. Địa chỉ: 180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh; SĐT: 0901234567; nhận tại Trụ sở chính (A-01.01)')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-emerald-50/70 border border-emerald-200 hover:bg-emerald-100/70 text-emerald-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
@@ -717,6 +686,7 @@ export default function StudentWorkspacePage({
               <span className="truncate">NVQS: Đủ 4 cấp Title Case (AUTO)</span>
             </button>
             <button
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Em đang mở đơn Xác nhận sinh viên chung nhưng mục đích của em là xin vay vốn ngân hàng chính sách xã hội')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-amber-50/70 border border-amber-200 hover:bg-amber-100/70 text-amber-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
@@ -724,6 +694,7 @@ export default function StudentWorkspacePage({
               <span className="truncate">Lệch biểu mẫu: Vay vốn vs Chung (MISMATCH)</span>
             </button>
             <button
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Em là sinh viên khóa 20 (mã 2110005) muốn xin giấy chứng nhận tạm hoãn nghĩa vụ quân sự')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-purple-50/70 border border-purple-200 hover:bg-purple-100/70 text-purple-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
@@ -731,6 +702,7 @@ export default function StudentWorkspacePage({
               <span className="truncate">SV Nợ môn: Hướng dẫn Mẫu Nợ Môn (COURSE_DEBT)</span>
             </button>
             <button
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Em xin cấp Giấy xác nhận vay vốn ngân hàng chính sách Mẫu 01; CCCD: 079203001234; Lớp: 22DTHE4; nhận tại Cơ sở E1-01.08')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-blue-50/70 border border-blue-200 hover:bg-blue-100/70 text-blue-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
@@ -738,6 +710,7 @@ export default function StudentWorkspacePage({
               <span className="truncate">Vay vốn NHCSXH: Mẫu 01 (AUTO)</span>
             </button>
             <button
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Em xin giấy NVQS, địa chỉ: 180 ung văn khiêm phường 25 bình thạnh hcm')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-orange-50/70 border border-orange-200 hover:bg-orange-100/70 text-orange-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
@@ -745,6 +718,7 @@ export default function StudentWorkspacePage({
               <span className="truncate">Địa chỉ viết thường: Hỏi chuẩn hóa (ASK)</span>
             </button>
             <button
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Tôi là sinh viên 2110002 đã thôi học, muốn xin giấy xác nhận sinh viên')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-rose-50/70 border border-rose-200 hover:bg-rose-100/70 text-rose-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
@@ -752,6 +726,7 @@ export default function StudentWorkspacePage({
               <span className="truncate">Không có TKB kỳ này: Thôi học (REJECT)</span>
             </button>
             <button
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Em xin cấp lại Giấy chứng nhận tạm hoãn nghĩa vụ quân sự lần 2 do em làm thất lạc bản chính')}
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-amber-50/80 border border-amber-300 hover:bg-amber-100 text-amber-950 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
@@ -759,39 +734,33 @@ export default function StudentWorkspacePage({
               <span className="truncate">Cấp lại lần 2: Tự động kế thừa đơn cũ (REISSUE)</span>
             </button>
           </div>
+          </div>
+        </details>
         </div>
-      </div>
-
-      {/* ========================================================================= */}
-      {/* CỘT 2: KHUNG HỘI THOẠI REACT CHAT & STREAMING (Ở giữa) */}
-      {/* ========================================================================= */}
-      <div className={`flex-1 flex-col bg-white border-r border-slate-200/90 overflow-hidden ${
-        mobileTab === 'CHAT' ? 'flex' : 'hidden xl:flex'
-      }`}>
-        
-        {/* Chat Header Chuẩn Học Vụ HUTECH */}
-        <div className="px-5 py-3 border-b border-slate-200 bg-white flex items-center justify-between shrink-0 shadow-2xs">
+      </aside>
+      <div className={'student-chat' + (mobileTab === 'CHAT' ? ' is-mobile-active' : '')}>
+        <div className="student-chat-header px-5 py-3 border-b border-slate-200 bg-white flex items-center justify-between gap-3 shrink-0">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-[#0B3B82] text-white flex items-center justify-center font-bold text-xs shadow-xs">
+            <div className="chat-avatar w-9 h-9 rounded-xl bg-eduref-tint text-eduref-primary flex items-center justify-center font-bold text-xs">
               AI
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-slate-900">
-                  Trợ Lý Học Vụ Số HUTECH
-                </span>
-                <span className="inline-flex items-center gap-1 px-1.5 py-0.2 rounded text-[10px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                  <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Quy chế 2026
+                <span className="chat-title text-sm font-semibold text-slate-900">
+                  Trợ lý học vụ EduRef
                 </span>
               </div>
-              <p className="text-[10px] text-slate-400 font-mono">
-                ReAct Bounded Autonomy · Đảm bảo 4 chốt chặn
+              <p className="chat-caption text-xs text-eduref-muted">
+                Thử một yêu cầu · Theo dõi tiến trình · Kiểm tra kết quả
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-1.5">
+          <div className="chat-header-tools flex items-center gap-1.5">
+            <details className="chat-actions-menu">
+              <summary aria-label="Thao tác dữ liệu demo"><MoreHorizontal size={20} aria-hidden="true" /></summary>
+              <div className="chat-actions-popover">
+                <p>Chỉ dùng trên dữ liệu demo. Xóa đơn khác với làm mới hội thoại.</p>
             <button
               onClick={handleResetTestData}
               disabled={isResetting}
@@ -801,6 +770,8 @@ export default function StudentWorkspacePage({
               <Trash2 className="w-3.5 h-3.5" />
               <span className="text-[11px] font-medium">{isResetting ? 'Đang xóa...' : 'Xóa đơn test'}</span>
             </button>
+              </div>
+            </details>
             <button
               onClick={() => {
                 try {
@@ -817,56 +788,67 @@ export default function StudentWorkspacePage({
                 setSessionId(`sess_${Date.now()}`);
               }}
               className="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg hover:bg-slate-100 transition-colors cursor-pointer"
-              title="Làm mới cuộc trò chuyện"
+              title="Tạo hội thoại mới; không xóa các đơn đã gửi"
             >
               <RefreshCw className="w-3.5 h-3.5" />
-              <span className="text-[11px] font-medium">Làm mới</span>
+              <span className="text-[11px] font-medium">Hội thoại mới</span>
             </button>
           </div>
         </div>
-
-        {/* Khung tin nhắn cuộn */}
-        <div className="flex-1 p-5 sm:p-6 overflow-y-auto space-y-4 bg-[#F8FAFC]">
+        <div
+          ref={chatScrollRef}
+          className="chat-messages flex-1 p-5 sm:p-6 overflow-y-auto space-y-5 bg-white"
+          aria-label="Hội thoại với trợ lý"
+          onScroll={(event) => {
+            const container = event.currentTarget;
+            followLatestRef.current = container.scrollHeight - container.scrollTop - container.clientHeight < 80;
+            if (followLatestRef.current) setHasNewActivity(false);
+          }}
+        >
           {messages.map((msg) => {
             const isUser = msg.sender === 'user';
 
             return (
+              <React.Fragment key={msg.id}>
               <div
-                key={msg.id}
                 className={`flex gap-3 max-w-2xl ${isUser ? 'ml-auto flex-row-reverse' : 'mr-auto'}`}
               >
-                {/* Avatar */}
                 <div
                   className={`w-7 h-7 rounded-full flex items-center justify-center shrink-0 text-xs font-bold shadow-2xs ${
                     isUser
-                      ? 'bg-[#0B3B82] text-white'
-                      : 'bg-[#082C64] text-white border border-blue-400/30'
+                      ? 'bg-eduref-primary text-white'
+                      : 'bg-eduref-hover text-white border border-blue-400/30'
                   }`}
                 >
                   {isUser ? 'SV' : 'AI'}
                 </div>
-
-                {/* Bong bóng tin nhắn */}
                 <div
-                  className={`rounded-2xl px-4 py-3 text-sm shadow-2xs leading-relaxed ${
+                  className={`chat-message-content rounded-2xl px-4 py-3 text-sm leading-relaxed ${
                     isUser
-                      ? 'bg-[#0B3B82] text-white rounded-tr-xs'
+                      ? 'bg-eduref-primary text-white rounded-tr-xs'
                       : 'bg-white border border-slate-200/90 text-slate-800 rounded-tl-xs'
                   }`}
                 >
-                  {/* Nội dung markdown */}
-                  <MarkdownRenderer content={msg.text} isUser={isUser} />
-
-                  {/* Thẻ Tool Call Badge nếu có */}
+                  <MarkdownRenderer
+                    content={msg.id === 'welcome' || String(msg.id).startsWith('welcome_')
+                      ? `Xin chào **${currentAccount.name}**.\n\nBạn cần giấy xác nhận sinh viên cho việc gì? Hãy mô tả yêu cầu hoặc chọn một gợi ý bên dưới. Mình sẽ hỗ trợ làm rõ thông tin và hướng dẫn theo quy trình.`
+                      : msg.text}
+                    isUser={isUser}
+                  />
                   {msg.toolResult && (
-                    <div className="mt-3 pt-2.5 border-t border-slate-200/80">
+                    <div className="chat-outcome" data-outcome={msg.toolResult.decision || msg.toolResult.status}>
+                      <p className="chat-outcome-label">{outcomeLabel(msg.toolResult.decision || msg.toolResult.status)}</p>
+                      {(msg.toolResult.requestCode || msg.toolResult.actionableQuestion || msg.toolResult.reason || msg.toolResult.message) && <p>{msg.toolResult.requestCode && <strong>{msg.toolResult.requestCode} · </strong>}{msg.toolResult.actionableQuestion || msg.toolResult.reason || msg.toolResult.message}</p>}
+                    </div>
+                  )}
+                  {msg.toolResult && (
+                    <details className="chat-tool-detail mt-3 pt-2.5 border-t border-slate-200/80">
+                      <summary>Thông tin xử lý yêu cầu</summary>
                       <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-600 font-medium">
-                        <span className="w-2 h-2 rounded-full bg-[#0B3B82]"></span>
-                        Đã thực thi thẩm định quy chế học vụ
+                        <span className="w-2 h-2 rounded-full bg-eduref-primary"></span>
+                        Kết quả từ hệ thống
                       </div>
-                      
-                      {/* Thẻ kết quả chứng thực số nếu đơn được duyệt */}
-                      {(msg.toolResult.requestCode && (msg.toolResult.decision === 'APPROVED' || msg.toolResult.status === 'APPROVED' || !msg.toolResult.decision)) && (
+                      {(msg.toolResult.requestCode && ['APPROVED', 'AUTO_APPROVED', 'ROUTINE_AUTO_APPROVED'].includes(msg.toolResult.decision || msg.toolResult.status)) && (
                         <div className="mt-2.5 p-3 rounded-xl bg-emerald-50 border border-emerald-200 flex items-start gap-3 shadow-2xs">
                           <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 font-bold shadow-xs">
                             <CheckCircle className="w-6 h-6 text-white" />
@@ -892,42 +874,21 @@ export default function StudentWorkspacePage({
                           </div>
                         </div>
                       )}
-                    </div>
+                    </details>
                   )}
 
-                  <div className={`text-[10px] mt-1.5 ${isUser ? 'text-blue-100 text-right' : 'text-slate-400'}`}>
+                  <div className={`text-[10px] mt-1.5 ${isUser ? 'text-blue-100 text-right' : 'text-slate-500'}`}>
                     {msg.timestamp}
                   </div>
                 </div>
               </div>
+              {isUser && traces[msg.id] && <AgentTrace trace={traces[msg.id]} />}
+              </React.Fragment>
             );
           })}
-
-          {/* Indicator đang xử lý kèm nút Dừng lại khẩn cấp */}
-          {isProcessing && (
-            <div className="flex items-center justify-between max-w-lg mr-auto bg-white border border-slate-200/90 rounded-xl px-3.5 py-2.5 shadow-2xs">
-              <div className="flex items-center gap-2.5">
-                <div className="w-7 h-7 rounded-full bg-[#082C64] text-white flex items-center justify-center text-xs font-bold shrink-0">
-                  AI
-                </div>
-                <div className="flex items-center gap-2 text-xs text-slate-600">
-                  <span className="w-2 h-2 rounded-full bg-[#0B3B82] animate-ping"></span>
-                  <span className="font-medium text-slate-700">Tác tử đang thẩm định & suy luận quy chế...</span>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={handleStopGeneration}
-                className="ml-3 text-[11px] font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 border border-red-200 px-2.5 py-1 rounded-md flex items-center gap-1.5 transition-all cursor-pointer shadow-2xs"
-                title="Nhấn để dừng lại ngay (Esc)"
-              >
-                <Square className="w-3 h-3 fill-red-600" />
-                <span>Dừng lại</span>
-              </button>
-            </div>
+          {isProcessing && !Object.values(traces).some((trace) => trace.status === 'running') && !(messages[messages.length - 1]?.isStreaming && messages[messages.length - 1]?.text) && (
+            <div className="chat-progress"><LoadingSkeleton label="Đang xử lý yêu cầu của bạn…" rows={2} /></div>
           )}
-
-          {/* Ô Dropzone nộp bổ sung chứng từ khi bị thiếu (Luồng ASK) */}
           {activeDecision.status === 'WAITING_STUDENT' && activeDecision.requestId && (
             <div className="p-4 rounded-xl bg-amber-50/90 border border-amber-200 space-y-3 max-w-xl mx-auto my-2 shadow-xs">
               <div className="flex items-start gap-2.5">
@@ -941,8 +902,6 @@ export default function StudentWorkspacePage({
                   </p>
                 </div>
               </div>
-
-              {/* Dropzone Upload */}
               <div className="border-2 border-dashed border-amber-300 rounded-lg p-3 text-center bg-white">
                 <input
                   type="file"
@@ -955,8 +914,8 @@ export default function StudentWorkspacePage({
                   className="cursor-pointer flex flex-col items-center gap-1 text-xs text-slate-600"
                 >
                   <Upload className="w-5 h-5 text-amber-600" />
-                  <span className="font-medium text-[#0B3B82]">Bấm chọn tài liệu</span> hoặc kéo thả file vào đây
-                  <span className="text-[10px] text-slate-400">Hỗ trợ PDF, PNG, JPG (Tối đa 10MB)</span>
+                  <span className="font-medium text-eduref-primary">Chọn tệp để chuẩn bị bổ sung</span>
+                  <span className="text-xs text-slate-500">Tệp được chọn chưa được tải lên máy chủ.</span>
                 </label>
 
                 {supplementFile && (
@@ -965,51 +924,56 @@ export default function StudentWorkspacePage({
                   </div>
                 )}
               </div>
-
-              {/* Nút gửi bổ sung */}
               <button
                 onClick={handleResumeSubmission}
-                disabled={isUploading}
+                disabled
                 className="w-full py-2 px-4 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold shadow-xs flex items-center justify-center gap-1.5 transition-colors disabled:opacity-50 cursor-pointer"
               >
-                {isUploading ? 'Đang thẩm định lại...' : 'Nộp Bổ Sung & Tiếp Tục Xử Lý (Resume)'}
+                Gửi tài liệu — chưa khả dụng
               </button>
+              <p className="text-xs text-amber-900">Kết nối tải tài liệu thật đang chờ tích hợp. Hồ sơ chưa được cập nhật từ tệp đã chọn.</p>
             </div>
           )}
 
           <div ref={chatEndRef} />
         </div>
-
-        {/* Khung nhập tin nhắn */}
-        <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-white">
-          {/* Quick Action Suggestion Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Gợi ý:</span>
+        {hasNewActivity && (
+          <button type="button" className="chat-new-activity" onClick={() => { followLatestRef.current = true; setHasNewActivity(false); scrollToBottom(); }}>
+            Xem hoạt động mới <ArrowRight className="w-3.5 h-3.5" aria-hidden="true" />
+          </button>
+        )}
+        <div className="chat-composer p-3.5 sm:p-4 border-t border-slate-200 bg-white">
+          <div className="chat-suggestions flex items-center gap-1.5 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-wider shrink-0 mr-1">Gợi ý:</span>
             <button
               type="button"
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Em xin cấp giấy xác nhận sinh viên để làm vé tháng xe buýt')}
-              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-eduref-primary border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
             >
               Vé tháng xe buýt
             </button>
             <button
               type="button"
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Em muốn xin giấy xác nhận sinh viên để vay vốn ngân hàng chính sách xã hội')}
-              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-eduref-primary border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
             >
               Vay vốn NHCSXH
             </button>
             <button
               type="button"
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Em xin giấy xác nhận để làm thủ tục tạm hoãn nghĩa vụ quân sự')}
-              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-eduref-primary border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
             >
               Tạm hoãn NVQS
             </button>
             <button
               type="button"
+              disabled={isProcessing}
               onClick={() => handleSendMessage('Cho em hỏi làm giấy vay vốn sinh viên cần những giấy tờ gì vậy bot?')}
-              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
+              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-eduref-primary border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
             >
               Hỏi thủ tục cần gì
             </button>
@@ -1028,15 +992,16 @@ export default function StudentWorkspacePage({
           >
             <input
               type="text"
+              aria-label="Nội dung gửi cho trợ lý học vụ"
               value={inputMessage}
               onChange={(e) => setInputMessage(e.target.value)}
               placeholder={
                 isProcessing
                   ? 'Tác tử đang xử lý... Nhấn "Dừng lại" hoặc phím Esc để ngắt'
-                  : 'Nhập yêu cầu học vụ (ví dụ: xin xnsv vay vốn nhcs, hoãn thi, hoãn nvqs...)'
+                  : 'Bạn cần hỗ trợ việc gì?'
               }
               disabled={isProcessing}
-              className="flex-1 px-4 py-2.5 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-[#0B3B82]/20 focus:border-[#0B3B82] transition-all disabled:bg-slate-50 disabled:text-slate-400"
+              className="flex-1 px-4 py-2.5 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-eduref-primary/20 focus:border-eduref-primary transition-all disabled:bg-slate-50 disabled:text-slate-500"
             />
             {isProcessing ? (
               <button
@@ -1052,326 +1017,42 @@ export default function StudentWorkspacePage({
               <button
                 type="submit"
                 disabled={!inputMessage.trim()}
-                className="px-4 py-2.5 bg-[#0B3B82] hover:bg-[#082C64] active:bg-[#062047] disabled:opacity-40 text-white rounded-lg font-semibold text-sm flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
+                className="px-4 py-2.5 bg-eduref-primary hover:bg-eduref-hover active:bg-eduref-hover disabled:opacity-40 text-white rounded-lg font-semibold text-sm flex items-center gap-1.5 transition-all shadow-xs cursor-pointer"
               >
                 <span>Gửi</span>
                 <Send className="w-4 h-4" />
               </button>
             )}
           </form>
-          <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 px-1">
+          <div className="chat-composer-hint flex items-center justify-between gap-2 text-[11px] text-eduref-muted mt-2 px-1">
             <span>Tự động phân giải tiếng lóng: xnsv, nhcs, nvqs, đk, pdt</span>
             <span>{isProcessing ? 'Nhấn Esc hoặc nút Dừng lại để hủy' : 'Phím tắt: Enter để gửi'}</span>
           </div>
         </div>
 
       </div>
-
-      {/* ========================================================================= */}
-      {/* CỘT 3: BẢNG THẨM ĐỊNH 4 CHỐT CHẶN & LIVE TERMINAL CONSOLE (Bên phải) */}
-      {/* ========================================================================= */}
-      <div className={`w-full xl:w-[520px] bg-white flex-col shrink-0 border-l border-slate-200 overflow-hidden ${
-        mobileTab === 'DECISION' ? 'flex flex-1' : 'hidden xl:flex'
-      }`}>
-        
-        {/* Header Tab Switcher Cột 3: Live Terminal hiển thị TRƯỚC */}
-        <div className="px-3 py-2.5 border-b border-slate-200 bg-slate-50 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-1 bg-slate-200/80 p-0.5 rounded-lg text-xs w-full">
-            <button
-              onClick={() => setColumn3Tab('TERMINAL')}
-              className={`flex-1 py-1.5 px-2 rounded-md font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                column3Tab === 'TERMINAL'
-                  ? 'bg-slate-900 text-emerald-400 shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Live Terminal</span>
-              <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            </button>
-
-            <button
-              onClick={() => setColumn3Tab('DECISION')}
-              className={`flex-1 py-1.5 px-2 rounded-md font-semibold text-[11px] flex items-center justify-center gap-1.5 transition-all cursor-pointer ${
-                column3Tab === 'DECISION'
-                  ? 'bg-[#0B3B82] text-white shadow-xs'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              <CheckCircle className="w-3.5 h-3.5" />
-              <span>Thẩm Định 4 Chốt</span>
-            </button>
+      <aside className={'decision-sidebar workspace-sidebar' + (mobileTab === 'DECISION' ? ' is-mobile-active' : '')} aria-label="Live Terminal">
+        <div className="workspace-sidebar-header">
+          {!rightCollapsed && <div><h2><Terminal size={17} aria-hidden="true" /> Live Terminal</h2><p>Lọc hiển thị theo phiên chat</p></div>}
+          <div className="sidebar-controls">
+            {!rightCollapsed && <button type="button" className="sidebar-control terminal-expand" aria-label={terminalExpanded ? 'Thu lại terminal' : 'Mở rộng terminal'} aria-pressed={terminalExpanded} onClick={() => setTerminalExpanded(!terminalExpanded)}>{terminalExpanded ? <Minimize2 size={18} /> : <Maximize2 size={18} />}</button>}
+            <button type="button" className="sidebar-control" aria-label={rightCollapsed ? 'Mở sidebar terminal' : 'Thu gọn sidebar terminal'} aria-expanded={!rightCollapsed} aria-controls="terminal-panel" onClick={() => { setRightCollapsed(!rightCollapsed); setTerminalExpanded(false); }}>{rightCollapsed ? <PanelRightOpen size={20} /> : <PanelRightClose size={20} />}</button>
           </div>
         </div>
-
-        {/* Nội dung Cột 3 theo Tab */}
-        <div className="flex-1 overflow-y-auto p-4 space-y-4">
-          
-          {column3Tab === 'DECISION' ? (
-            <>
-              {/* Thẻ Hồ Sơ Sinh Viên HUTECH Chuẩn Chính Quy */}
-              <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs">
-                <div className="flex items-center justify-between pb-3 border-b border-slate-100">
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
-                    Hồ Sơ Sinh Viên HUTECH
-                  </span>
-                  <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold bg-blue-50 text-[#0B3B82] border border-blue-200">
-                    {currentAccount.class || currentAccount.studentClass || 'Chưa cập nhật'}
-                  </span>
-                </div>
-
-                <div className="mt-3 flex items-start gap-3">
-                  <div className="w-12 h-12 rounded-full bg-[#0B3B82] text-white flex items-center justify-center text-sm font-bold shadow-xs shrink-0">
-                    {currentAccount.name ? currentAccount.name.split(' ').slice(-2).map(n => n[0]).join('') : 'SV'}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="text-xs font-bold text-slate-900 truncate">
-                      {currentAccount.name}
-                    </h3>
-                    <div className="text-[11px] font-mono text-blue-700 font-semibold mt-0.5">
-                      MSSV: {currentAccount.code}
-                    </div>
-                    <div className="text-[10px] text-slate-500 truncate mt-0.5">
-                      {currentAccount.faculty || 'Khoa Công Nghệ Thông Tin'}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-2 gap-2 text-xs">
-                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                    <span className="text-[10px] text-slate-500 block">Trạng thái đào tạo:</span>
-                    <span className={`inline-block mt-0.5 px-1.5 py-0.2 rounded font-semibold text-[10px] ${
-                      currentAccount.code === '2110002' ? 'bg-rose-100 text-rose-700' : 'bg-emerald-100 text-emerald-700'
-                    }`}>
-                      {currentAccount.code === '2110002' ? 'DROPPED (Thôi học)' : 'ACTIVE (Đang học)'}
-                    </span>
-                  </div>
-                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
-                    <span className="text-[10px] text-slate-500 block">Thời khóa biểu kỳ này:</span>
-                    <span className={`inline-block mt-0.5 px-1.5 py-0.2 rounded font-semibold text-[10px] ${
-                      currentAccount.hasSchedule !== false && currentAccount.code !== '2110002' ? 'bg-emerald-100 text-emerald-700' : 'bg-amber-100 text-amber-700'
-                    }`}>
-                      {currentAccount.hasSchedule !== false && currentAccount.code !== '2110002' ? 'Có lịch học (Hợp lệ)' : 'Chưa có lịch học'}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Bảng Kiểm Định 4 Chốt Chặn (4 Gates Policy) */}
-              <div className="p-4 rounded-xl bg-white border border-slate-200 shadow-2xs space-y-3">
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-500 flex items-center justify-between pb-2 border-b border-slate-100">
-                  <span className="flex items-center gap-1.5 font-bold">
-                    <ShieldAlert className="w-3.5 h-3.5 text-[#0B3B82]" />
-                    4 Chốt Chặn Thẩm Định Tự Hành
-                  </span>
-                  <span className="font-mono text-[9px] text-[#0B3B82] bg-blue-50 px-1.5 py-0.2 rounded border border-blue-200 font-bold">
-                    BOUNDED
-                  </span>
-                </div>
-
-                <div className="space-y-2">
-                  {/* Chốt 1: Requirements */}
-                  <div className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-slate-700 font-medium">1. Điều kiện đầu vào:</span>
-                    <span className={`font-semibold text-[10px] px-2 py-0.5 rounded ${
-                      activeDecision.requirementsCheck === 'PASSED'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : activeDecision.requirementsCheck === 'FAILED'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      {activeDecision.requirementsCheck}
-                    </span>
-                  </div>
-
-                  {/* Chốt 2: Policies */}
-                  <div className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-slate-700 font-medium">2. Quy chế đào tạo:</span>
-                    <span className={`font-semibold text-[10px] px-2 py-0.5 rounded ${
-                      activeDecision.policiesCheck === 'PASSED'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : activeDecision.policiesCheck === 'FAILED'
-                        ? 'bg-rose-100 text-rose-800'
-                        : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      {activeDecision.policiesCheck}
-                    </span>
-                  </div>
-
-                  {/* Chốt 3: Authority */}
-                  <div className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-slate-700 font-medium">3. Phân cấp thẩm quyền:</span>
-                    <span className={`font-semibold text-[10px] px-2 py-0.5 rounded ${
-                      activeDecision.authorityCheck === 'PASSED'
-                        ? 'bg-emerald-100 text-emerald-800'
-                        : activeDecision.authorityCheck === 'ESCALATED'
-                        ? 'bg-amber-100 text-amber-800'
-                        : 'bg-slate-200 text-slate-600'
-                    }`}>
-                      {activeDecision.authorityCheck === 'ESCALATED' ? 'STAFF REVIEW' : activeDecision.authorityCheck}
-                    </span>
-                  </div>
-
-                  {/* Chốt 4: Blockchain/Audit Integrity */}
-                  <div className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-50 border border-slate-100">
-                    <span className="text-slate-700 font-medium">4. Toàn vẹn chuỗi SHA-256:</span>
-                    <span className="font-semibold text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                      GENESIS VERIFIED
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              {/* Thẻ Quyết Định Cuối Cùng (Final Decision Card) */}
-              <div className={`p-4 rounded-xl border text-left space-y-2 shadow-2xs ${
-                activeDecision.status === 'APPROVED' || activeDecision.status === 'AUTO_APPROVED' || activeDecision.status === 'ROUTINE_AUTO_APPROVED'
-                  ? 'bg-emerald-50/80 border-emerald-300 text-emerald-950'
-                  : activeDecision.status === 'WAITING_STUDENT'
-                  ? 'bg-amber-50/80 border-amber-300 text-amber-950'
-                  : activeDecision.status === 'ESCALATED' || activeDecision.status === 'ESCALATE_TO_STAFF'
-                  ? 'bg-indigo-50/80 border-indigo-300 text-indigo-950'
-                  : activeDecision.status === 'REJECTED' || activeDecision.status === 'REJECTED_POLICY'
-                  ? 'bg-rose-50/80 border-rose-300 text-rose-950'
-                  : 'bg-slate-50 border-slate-200 text-slate-700'
-              }`}>
-                <div className="flex items-center justify-between">
-                  <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">
-                    Quyết Định Cuối Cùng
-                  </span>
-                  <span className="font-bold text-xs">
-                    {activeDecision.finalDecision || 'CHƯA CÓ YÊU CẦU'}
-                  </span>
-                </div>
-
-                {activeDecision.requestCode && (
-                  <div className="text-xs font-mono font-bold pt-1">
-                    Mã hồ sơ: {activeDecision.requestCode}
-                  </div>
-                )}
-
-                {activeDecision.reason && (
-                  <p className="text-xs opacity-90 leading-relaxed pt-1">
-                    {activeDecision.reason}
-                  </p>
-                )}
-
-                {activeDecision.sha256Proof && (
-                  <div className="pt-2 border-t border-emerald-200 text-[9px] font-mono opacity-80 break-all">
-                    SHA256: {activeDecision.sha256Proof}
-                  </div>
-                )}
-              </div>
-
-              {/* KHỐI NÚT VERIFY 90S NGAY PHÍA TRÊN TERMINAL */}
-              <div className="pt-2">
-                <div className="bg-[#0B3B82] rounded-xl p-3.5 text-white shadow-xs border border-[#082C64] mb-2">
-                  <div className="flex items-center justify-between mb-2.5">
-                    <div className="flex items-center gap-1.5">
-                      <CheckCircle className="w-4 h-4 text-amber-300" />
-                      <span className="text-xs font-bold font-mono text-amber-200">Verify Harness 90s Benchmark</span>
-                    </div>
-                    {onSwitchTab && (
-                      <button
-                        onClick={() => onSwitchTab('VERIFY_HARNESS')}
-                        className="text-[10px] text-blue-200 hover:text-white flex items-center gap-1 underline underline-offset-2 cursor-pointer"
-                      >
-                        Báo cáo chi tiết <ExternalLink className="w-3 h-3" />
-                      </button>
-                    )}
-                  </div>
-
-                  <button
-                    onClick={handleRunVerify90s}
-                    disabled={isVerifying90s}
-                    className="w-full py-2.5 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs disabled:opacity-60 cursor-pointer"
-                  >
-                    {isVerifying90s ? (
-                      <>
-                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Đang chạy 5 ca kiểm thử...</span>
-                      </>
-                    ) : (
-                      <>
-                        <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>KÍCH HOẠT CHẠY 5 CA TEST BAN GIÁM KHẢO (90s)</span>
-                      </>
-                    )}
-                  </button>
-
-                  {verifyFeedback && (
-                    <div className="mt-2 text-[10px] font-mono text-emerald-200 bg-[#082C64] p-2 rounded-lg border border-blue-400/30">
-                      {verifyFeedback}
-                    </div>
-                  )}
-                </div>
-
-                <div className="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-1.5 flex items-center justify-between">
-                  <span>Log Thời Gian Thực (Preview)</span>
-                  <button
-                    onClick={() => setColumn3Tab('TERMINAL')}
-                    className="text-[#0B3B82] hover:underline text-[10px] font-semibold cursor-pointer"
-                  >
-                    Mở toàn màn hình &rarr;
-                  </button>
-                </div>
-                <LiveTerminalConsole maxHeight="max-h-[200px]" />
-              </div>
-            </>
-          ) : (
-            /* Hiển thị Live Terminal Console Toàn Chiều Cao */
-            <div className="h-full flex flex-col space-y-2">
-              
-              {/* NÚT VERIFY 90S PHÍA TRÊN TERMINAL FULL-HEIGHT */}
-              <div className="bg-[#0B3B82] rounded-xl p-3.5 text-white shadow-xs border border-[#082C64] shrink-0">
-                <div className="flex items-center justify-between mb-2.5">
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle className="w-4 h-4 text-amber-300" />
-                    <span className="text-xs font-bold font-mono text-amber-200">Verify Harness 90s Benchmark</span>
-                  </div>
-                  {onSwitchTab && (
-                    <button
-                      onClick={() => onSwitchTab('VERIFY_HARNESS')}
-                      className="text-[10px] text-blue-200 hover:text-white flex items-center gap-1 underline underline-offset-2 cursor-pointer"
-                    >
-                      Báo cáo chi tiết <ExternalLink className="w-3 h-3" />
-                    </button>
-                  )}
-                </div>
-
-                <button
-                  onClick={handleRunVerify90s}
-                  disabled={isVerifying90s}
-                  className="w-full py-2.5 px-3 rounded-lg bg-emerald-500 hover:bg-emerald-600 active:bg-emerald-700 text-slate-950 font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-xs disabled:opacity-60 cursor-pointer"
-                >
-                  {isVerifying90s ? (
-                    <>
-                      <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Đang thực thi 5 ca test qua Backend...</span>
-                    </>
-                  ) : (
-                    <>
-                      <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>KÍCH HOẠT CHẠY 5 CA TEST BAN GIÁM KHẢO (90s)</span>
-                    </>
-                  )}
-                </button>
-
-                {verifyFeedback && (
-                  <div className="mt-2 text-[10px] font-mono text-emerald-200 bg-[#082C64] p-2 rounded-lg border border-blue-400/30">
-                    {verifyFeedback}
-                  </div>
-                )}
-              </div>
-
-              {/* Hộp đen Terminal chiếm phần còn lại */}
-              <LiveTerminalConsole maxHeight="max-h-[calc(100vh-270px)]" className="flex-1" />
-            </div>
-          )}
-
+        {rightCollapsed && <div className="sidebar-rail" aria-hidden="true"><Terminal size={20} /></div>}
+        <div id="terminal-panel" className="workspace-sidebar-body terminal-panel-body" hidden={rightCollapsed}>
+          <VerifyEntry onNavigate={onSwitchTab} />
+          <LiveTerminalConsole sessionId={sessionId} allowClear={false} maxHeight="" className="workspace-terminal" />
         </div>
-
-      </div>
-
+      </aside>
     </div>
   );
+}
+
+function outcomeLabel(decision) {
+  if (['APPROVED', 'AUTO_APPROVED', 'ROUTINE_AUTO_APPROVED'].includes(decision)) return 'Hồ sơ đã được xử lý';
+  if (['ASK_CLARIFICATION', 'WAITING_STUDENT'].includes(decision)) return 'Cần bạn bổ sung hoặc xác nhận';
+  if (['ESCALATE_TO_STAFF', 'ESCALATED'].includes(decision)) return 'Cần cán bộ xem xét';
+  if (decision?.startsWith('REJECTED')) return 'Yêu cầu chưa được chấp nhận';
+  return 'Kết quả từ hệ thống';
 }

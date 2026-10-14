@@ -6,11 +6,12 @@ import { Terminal, RefreshCw, Trash2, ShieldCheck, Sparkles, Activity } from 'lu
 import api from '../../services/api';
 import getSocket from '../../services/socket';
 
-export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', className = '' }) {
+export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', className = '', sessionId = null, allowClear = true }) {
   const [terminalLogs, setTerminalLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const logContainerRef = useRef(null);
   const socket = getSocket();
+  const visibleLogs = sessionId ? terminalLogs.filter((entry) => entry.sessionId === sessionId) : terminalLogs;
 
   // Nạp lịch sử log từ API khi mount
   const fetchTerminalLogs = async () => {
@@ -54,7 +55,7 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
       setTerminalLogs((prev) => {
         // Tránh trùng ID
         if (prev.some((p) => p.id === entry.id)) return prev;
-        return [...prev, entry];
+        return [...prev, entry].slice(-300);
       });
     };
 
@@ -99,7 +100,7 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
   };
 
   return (
-    <div className={`flex flex-col bg-[#070b14] border border-slate-800 rounded-xl overflow-hidden shadow-2xl ${className}`}>
+    <div className={`live-terminal-console flex flex-col bg-[#070b14] border border-slate-800 rounded-xl overflow-hidden shadow-2xl ${className}`}>
       
       {/* Header phong cách macOS Terminal */}
       <div className="px-3 py-2 bg-slate-900/90 border-b border-slate-800 flex items-center justify-between shrink-0">
@@ -116,7 +117,7 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
 
           <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-200">
             <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Live Reasoning Terminal</span>
+            <span>Agent Terminal</span>
           </div>
 
           <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
@@ -130,32 +131,32 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
           <button
             onClick={fetchTerminalLogs}
             disabled={loading}
-            className="p-1 rounded text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors disabled:opacity-50"
+            className="p-1 rounded text-slate-500 hover:text-slate-200 hover:bg-slate-800 transition-colors disabled:opacity-50"
             title="Làm mới log"
           >
             <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin text-blue-400' : ''}`} />
           </button>
-          <button
+          {allowClear && <button
             onClick={clearTerminalLogs}
-            className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
+            className="p-1 rounded text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
             title="Xóa toàn bộ log"
           >
             <Trash2 className="w-3.5 h-3.5" />
-          </button>
+          </button>}
         </div>
       </div>
 
       {/* Vùng hiển thị log terminal */}
       <div ref={logContainerRef} className={`p-3 font-mono text-[11px] overflow-y-auto space-y-2 select-text ${maxHeight}`}>
-        {terminalLogs.length === 0 ? (
+        {visibleLogs.length === 0 ? (
           <div className="py-8 text-center space-y-1.5 text-slate-500 select-none">
-            <p className="text-slate-400 text-xs">$ node --agent-orchestrator.js</p>
+            <p className="text-slate-400 text-xs">Chưa có hoạt động{sessionId ? ' trong phiên chat này' : ''}.</p>
             <p className="text-slate-600 text-[10px]">
-              Sẵn sàng! Hãy chat câu hỏi hoặc nộp đơn để xem các nhịp suy luận ReAct và Tool Execution bắn thời gian thực...
+              Gửi một yêu cầu để theo dõi công cụ và kết quả xử lý từ hệ thống.
             </p>
           </div>
         ) : (
-          terminalLogs.map((log, idx) => {
+          visibleLogs.map((log, idx) => {
             const tag = log.step || log.type || 'INFO';
             const badgeClass = getBadgeStyle(log.type, log.step);
             const timeStr = log.timeFormatted || log.timestamp || '';
@@ -181,15 +182,16 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
 
                 {/* Chi tiết đính kèm (Tool args hoặc Tool Result) */}
                 {log.details && (
-                  <div className="ml-4 pl-2 border-l border-slate-800 text-[10px] text-slate-400 font-mono mt-1">
+                  <details className="terminal-log-details ml-4 pl-2 border-l border-slate-800 text-[10px] text-slate-500 font-mono mt-1">
+                    <summary>Dữ liệu kỹ thuật</summary>
                     {typeof log.details === 'string' ? (
                       <p className="line-clamp-3">{log.details}</p>
                     ) : (
-                      <pre className="text-[9px] text-slate-400 overflow-x-auto whitespace-pre-wrap max-h-28 bg-slate-950/60 p-1.5 rounded border border-slate-900">
+                      <pre className="text-[9px] text-slate-500 overflow-x-auto whitespace-pre-wrap max-h-28 bg-slate-950/60 p-1.5 rounded border border-slate-900">
                         {JSON.stringify(log.details, null, 2)}
                       </pre>
                     )}
-                  </div>
+                  </details>
                 )}
               </div>
             );

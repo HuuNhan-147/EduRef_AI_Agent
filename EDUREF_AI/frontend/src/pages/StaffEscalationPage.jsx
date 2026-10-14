@@ -173,7 +173,7 @@ export default function StaffEscalationPage() {
   const capsule = selectedPetition?.contextCapsule;
 
   return (
-    <div className="flex-1 flex overflow-hidden bg-[#F0F4F9] h-full">
+    <div className="flex-1 flex overflow-hidden bg-eduref-canvas h-full">
       
       {/* Toast Notification */}
       {toast && (
@@ -193,7 +193,7 @@ export default function StaffEscalationPage() {
         <div className="p-3 sm:p-3.5 border-b border-slate-100 flex items-center justify-between bg-slate-50/70">
           <div>
             <h2 className="text-xs font-bold uppercase tracking-wider text-slate-800 flex items-center gap-1.5">
-              <AlertOctagon className="w-4 h-4 text-[#0B3B82]" />
+              <AlertOctagon className="w-4 h-4 text-eduref-primary" />
               Hàng Đợi Chuyển Tiếp
             </h2>
             <p className="text-[11px] text-slate-500 mt-0.5">
@@ -212,7 +212,7 @@ export default function StaffEscalationPage() {
             <button
               onClick={fetchEscalations}
               disabled={loading}
-              className="text-xs text-[#0B3B82] hover:text-[#082C64] font-semibold cursor-pointer px-2 py-1 rounded hover:bg-blue-50 transition-colors"
+              className="text-xs text-eduref-primary hover:text-eduref-hover font-semibold cursor-pointer px-2 py-1 rounded hover:bg-blue-50 transition-colors"
             >
               {loading ? 'Đang tải...' : 'Làm mới'}
             </button>
@@ -222,18 +222,18 @@ export default function StaffEscalationPage() {
         {/* Ô Tìm Kiếm Nhanh */}
         <div className="p-2.5 border-b border-slate-100 bg-white">
           <div className="relative">
-            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-500" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Tìm mã đơn, MSSV, tên SV..."
-              className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1.5 focus:ring-[#0B3B82] focus:bg-white transition-all"
+              className="w-full pl-8 pr-7 py-1.5 text-xs bg-slate-50 border border-slate-200 rounded-lg text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-1.5 focus:ring-eduref-primary focus:bg-white transition-all"
             />
             {searchQuery && (
               <button
                 onClick={() => setSearchQuery('')}
-                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-0.5"
+                className="absolute right-2 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-600 p-0.5"
                 title="Xóa tìm kiếm"
               >
                 <X className="w-3.5 h-3.5" />
@@ -248,7 +248,7 @@ export default function StaffEscalationPage() {
             onClick={() => setStatusFilter('ESCALATED')}
             className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
               statusFilter === 'ESCALATED'
-                ? 'bg-[#0B3B82] text-white shadow-xs font-semibold'
+                ? 'bg-eduref-primary text-white shadow-xs font-semibold'
                 : 'text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -264,7 +264,7 @@ export default function StaffEscalationPage() {
             onClick={() => setStatusFilter('ALL')}
             className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
               statusFilter === 'ALL'
-                ? 'bg-[#0B3B82] text-white shadow-xs font-semibold'
+                ? 'bg-eduref-primary text-white shadow-xs font-semibold'
                 : 'text-slate-600 hover:bg-slate-200/70'
             }`}
           >
@@ -318,7 +318,7 @@ export default function StaffEscalationPage() {
                 setSearchQuery('');
                 setStatusFilter('ESCALATED');
               }}
-              className="text-[#0B3B82] hover:underline font-medium"
+              className="text-eduref-primary hover:underline font-medium"
             >
               Mặc định
             </button>
@@ -328,7 +328,7 @@ export default function StaffEscalationPage() {
         {/* Danh sách cuộn dạng Compact Item */}
         <div className="flex-1 overflow-y-auto divide-y divide-slate-100 p-2 space-y-1 custom-scrollbar">
           {filteredPetitions.length === 0 ? (
-            <div className="p-8 text-center text-xs text-slate-400 space-y-2">
+            <div className="p-8 text-center text-xs text-slate-500 space-y-2">
               <p>Không tìm thấy hồ sơ phù hợp.</p>
               {(searchQuery || statusFilter !== 'ALL') && (
                 <button
@@ -336,7 +336,7 @@ export default function StaffEscalationPage() {
                     setSearchQuery('');
                     setStatusFilter('ALL');
                   }}
-                  className="text-xs text-[#0B3B82] font-semibold hover:underline"
+                  className="text-xs text-eduref-primary font-semibold hover:underline"
                 >
                   Xem tất cả hồ sơ
                 </button>
@@ -356,7 +356,7 @@ export default function StaffEscalationPage() {
                   }}
                   className={`p-2.5 rounded-lg cursor-pointer transition-all text-left border ${
                     isSelected
-                      ? 'bg-blue-50/90 border-[#0B3B82] border-l-4 shadow-xs'
+                      ? 'bg-blue-50/90 border-eduref-primary border-l-4 shadow-xs'
                       : isEscalated
                       ? 'bg-amber-50/40 border-amber-200/60 hover:bg-amber-50/70'
                       : 'border-slate-100 hover:bg-slate-50'
@@ -414,7 +414,7 @@ export default function StaffEscalationPage() {
         <div className="md:hidden mb-3">
           <button
             onClick={() => setMobileShowDetail(false)}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-[#0B3B82] bg-white border border-slate-200 rounded-lg shadow-xs hover:bg-blue-50 transition-colors"
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-eduref-primary bg-white border border-slate-200 rounded-lg shadow-xs hover:bg-blue-50 transition-colors"
           >
             <ChevronLeft className="w-4 h-4" />
             Quay lại danh sách hồ sơ
@@ -500,15 +500,15 @@ export default function StaffEscalationPage() {
               {/* Thông tin sinh viên */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-3 bg-slate-50 p-3 rounded-lg border border-slate-100 text-xs">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Họ tên:</span>
+                  <span className="text-slate-500 block text-[10px]">Họ tên:</span>
                   <span className="font-semibold text-slate-800">{selectedPetition.student?.fullName || selectedPetition.inputData?.fullName || '—'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">MSSV:</span>
+                  <span className="text-slate-500 block text-[10px]">MSSV:</span>
                   <span className="font-mono font-bold text-blue-700">{selectedPetition.student?.studentCode || selectedPetition.inputData?.studentCode || selectedPetition.studentCode || '—'}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Khoa / Viện:</span>
+                  <span className="text-slate-500 block text-[10px]">Khoa / Viện:</span>
                   <span className="font-medium text-slate-800">
                     {selectedPetition.student?.department?.name ||
                       (typeof selectedPetition.inputData?.faculty === 'string'
@@ -518,7 +518,7 @@ export default function StaffEscalationPage() {
                   </span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Lớp sinh hoạt / Ngành:</span>
+                  <span className="text-slate-500 block text-[10px]">Lớp sinh hoạt / Ngành:</span>
                   <span className="font-medium text-slate-800 font-mono">
                     {selectedPetition.inputData?.studentClass || selectedPetition.student?.studentClass || '(Chưa cập nhật)'} • {selectedPetition.inputData?.major || selectedPetition.student?.major || 'CNTT'}
                   </span>
@@ -548,7 +548,7 @@ export default function StaffEscalationPage() {
                       Ý kiến / Ghi chú của Người duyệt ({capsule?.reviewedBy || (selectedPetition.status === 'APPROVED' ? 'Trưởng khoa / Cán bộ đã duyệt' : 'Cán bộ từ chối')}):
                     </span>
                     {capsule?.reviewedAt && (
-                      <span className="text-[10px] text-slate-400 font-mono">
+                      <span className="text-[10px] text-slate-500 font-mono">
                         {new Date(capsule.reviewedAt).toLocaleString('vi-VN')}
                       </span>
                     )}
@@ -808,49 +808,49 @@ export default function StaffEscalationPage() {
                           </span>
                           <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 bg-white p-3 rounded-lg border border-slate-200 shadow-2xs">
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Họ và tên:</span>
+                              <span className="text-slate-500 block text-[10px]">Họ và tên:</span>
                               <span className="font-bold text-slate-900">{fullName}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Mã số SV:</span>
+                              <span className="text-slate-500 block text-[10px]">Mã số SV:</span>
                               <span className="font-mono font-bold text-blue-700">{studentCode}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Ngày sinh:</span>
+                              <span className="text-slate-500 block text-[10px]">Ngày sinh:</span>
                               <span className="font-medium text-slate-800">{birthDate}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Giới tính:</span>
+                              <span className="text-slate-500 block text-[10px]">Giới tính:</span>
                               <span className="font-medium text-slate-800">{gender}</span>
                             </div>
 
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Lớp sinh hoạt:</span>
+                              <span className="text-slate-500 block text-[10px]">Lớp sinh hoạt:</span>
                               <span className="font-mono font-bold text-slate-800">{studentClass}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Khoa / Viện:</span>
+                              <span className="text-slate-500 block text-[10px]">Khoa / Viện:</span>
                               <span className="font-medium text-slate-800">{faculty}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Chuyên ngành:</span>
+                              <span className="text-slate-500 block text-[10px]">Chuyên ngành:</span>
                               <span className="font-medium text-slate-800">{major}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Điện thoại:</span>
+                              <span className="text-slate-500 block text-[10px]">Điện thoại:</span>
                               <span className="font-medium text-slate-800 font-mono">{phone}</span>
                             </div>
 
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Số CMND/CCCD:</span>
+                              <span className="text-slate-500 block text-[10px]">Số CMND/CCCD:</span>
                               <span className="font-mono font-bold text-slate-900">{idCard}</span>
                             </div>
                             <div>
-                              <span className="text-slate-400 block text-[10px]">Ngày cấp:</span>
+                              <span className="text-slate-500 block text-[10px]">Ngày cấp:</span>
                               <span className="font-medium text-slate-800">{idCardDate}</span>
                             </div>
                             <div className="col-span-2">
-                              <span className="text-slate-400 block text-[10px]">Nơi cấp:</span>
+                              <span className="text-slate-500 block text-[10px]">Nơi cấp:</span>
                               <span className="font-medium text-slate-800">{idCardPlace}</span>
                             </div>
                           </div>
@@ -868,13 +868,13 @@ export default function StaffEscalationPage() {
                             {activeFormCode === 'TAX_DEDUCTION' && (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                 <div className="sm:col-span-2">
-                                  <span className="text-slate-400 block text-[10px]">Cơ quan Thuế tiếp nhận:</span>
+                                  <span className="text-slate-500 block text-[10px]">Cơ quan Thuế tiếp nhận:</span>
                                   <span className="font-bold text-blue-900 bg-blue-50/80 px-2.5 py-1.5 rounded block border border-blue-200">
                                     🏛️ {recipientAgency}
                                   </span>
                                 </div>
                                 <div className="sm:col-span-2">
-                                  <span className="text-slate-400 block text-[10px]">Địa chỉ hộ khẩu thường trú (4 cấp hành chính):</span>
+                                  <span className="text-slate-500 block text-[10px]">Địa chỉ hộ khẩu thường trú (4 cấp hành chính):</span>
                                   <span className="font-medium text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
                                     📍 {permanentAddress}
                                   </span>
@@ -887,20 +887,20 @@ export default function StaffEscalationPage() {
                               <div className="space-y-2.5">
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                   <div>
-                                    <span className="text-slate-400 block text-[10px]">Ngân hàng Chính sách Xã hội tiếp nhận:</span>
+                                    <span className="text-slate-500 block text-[10px]">Ngân hàng Chính sách Xã hội tiếp nhận:</span>
                                     <span className="font-bold text-emerald-900 bg-emerald-50 px-2.5 py-1.5 rounded block border border-emerald-200">
                                       🏦 {recipientAgency}
                                     </span>
                                   </div>
                                   <div>
-                                    <span className="text-slate-400 block text-[10px]">Thuộc đối tượng mồ côi:</span>
+                                    <span className="text-slate-500 block text-[10px]">Thuộc đối tượng mồ côi:</span>
                                     <span className="font-semibold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
                                       {orphanStatus}
                                     </span>
                                   </div>
                                 </div>
                                 <div>
-                                  <span className="text-slate-400 block text-[10px]">Địa chỉ hộ khẩu thường trú (4 cấp hành chính):</span>
+                                  <span className="text-slate-500 block text-[10px]">Địa chỉ hộ khẩu thường trú (4 cấp hành chính):</span>
                                   <span className="font-medium text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
                                     📍 {permanentAddress}
                                   </span>
@@ -926,13 +926,13 @@ export default function StaffEscalationPage() {
                             {activeFormCode === 'MILITARY_DEFERMENT' && (
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                 <div className="sm:col-span-2">
-                                  <span className="text-slate-400 block text-[10px]">Ban Chỉ huy Quân sự cấp Xã/Phường/Thị trấn tiếp nhận:</span>
+                                  <span className="text-slate-500 block text-[10px]">Ban Chỉ huy Quân sự cấp Xã/Phường/Thị trấn tiếp nhận:</span>
                                   <span className="font-bold text-rose-900 bg-rose-50/80 px-2.5 py-1.5 rounded block border border-rose-200">
                                     🎖️ {recipientAgency}
                                   </span>
                                 </div>
                                 <div className="sm:col-span-2">
-                                  <span className="text-slate-400 block text-[10px]">Địa chỉ thường trú theo hộ khẩu (4 cấp):</span>
+                                  <span className="text-slate-500 block text-[10px]">Địa chỉ thường trú theo hộ khẩu (4 cấp):</span>
                                   <span className="font-medium text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
                                     📍 {permanentAddress}
                                   </span>
@@ -944,20 +944,20 @@ export default function StaffEscalationPage() {
                             {activeFormCode === 'COURSE_DEBT' && (
                               <div className="space-y-2.5">
                                 <div>
-                                  <span className="text-slate-400 block text-[10px]">Danh sách học phần / môn học còn nợ:</span>
+                                  <span className="text-slate-500 block text-[10px]">Danh sách học phần / môn học còn nợ:</span>
                                   <span className="font-bold text-purple-950 bg-purple-50 px-2.5 py-2 rounded block border border-purple-200 leading-relaxed">
                                     📚 {debtCourses}
                                   </span>
                                 </div>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
                                   <div>
-                                    <span className="text-slate-400 block text-[10px]">Thời hạn dự kiến hoàn thành môn nợ:</span>
+                                    <span className="text-slate-500 block text-[10px]">Thời hạn dự kiến hoàn thành môn nợ:</span>
                                     <span className="font-bold text-purple-900 bg-purple-50/70 px-2.5 py-1.5 rounded block border border-purple-200">
                                       ⏳ {completionDeadline}
                                     </span>
                                   </div>
                                   <div>
-                                    <span className="text-slate-400 block text-[10px]">Mục đích giải trình / sử dụng:</span>
+                                    <span className="text-slate-500 block text-[10px]">Mục đích giải trình / sử dụng:</span>
                                     <span className="font-medium text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
                                       {purpose}
                                     </span>
@@ -969,7 +969,7 @@ export default function StaffEscalationPage() {
                             {/* Form DV-05: Mục đích chung */}
                             {activeFormCode === 'GENERAL_CONFIRMATION' && (
                               <div>
-                                <span className="text-slate-400 block text-[10px]">Mục đích xác nhận cụ thể:</span>
+                                <span className="text-slate-500 block text-[10px]">Mục đích xác nhận cụ thể:</span>
                                 <span className="font-semibold text-indigo-950 bg-indigo-50/80 px-2.5 py-2 rounded block border border-indigo-200">
                                   🎯 {purpose}
                                 </span>
@@ -981,7 +981,7 @@ export default function StaffEscalationPage() {
                         {/* 3. Cơ sở nhận bản cứng & Hiệu lực quy chế */}
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 bg-white p-2.5 rounded-lg border border-slate-200">
                           <div className="sm:col-span-2">
-                            <span className="text-slate-400 block text-[10px] flex items-center gap-1">
+                            <span className="text-slate-500 block text-[10px] flex items-center gap-1">
                               <Building className="w-3 h-3 text-blue-600" />
                               Cơ sở nhận bản cứng tại trường:
                             </span>
@@ -990,7 +990,7 @@ export default function StaffEscalationPage() {
                             </span>
                           </div>
                           <div>
-                            <span className="text-slate-400 block text-[10px]">Thời hạn & Quy chế:</span>
+                            <span className="text-slate-500 block text-[10px]">Thời hạn & Quy chế:</span>
                             <span className="text-[10.5px] font-medium text-slate-600">
                               {meta.note}
                             </span>
@@ -1012,13 +1012,13 @@ export default function StaffEscalationPage() {
                   </span>
                   <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs mb-2">
                     <div>
-                      <span className="text-slate-400 block text-[10px]">Đợt tốt nghiệp:</span>
+                      <span className="text-slate-500 block text-[10px]">Đợt tốt nghiệp:</span>
                       <span className="font-semibold text-indigo-900">
                         {selectedPetition.inputData?.graduationPeriod || 'Đợt 1 - Năm học 2025-2026'}
                       </span>
                     </div>
                     <div>
-                      <span className="text-slate-400 block text-[10px]">Ghi chú / Nguyện vọng:</span>
+                      <span className="text-slate-500 block text-[10px]">Ghi chú / Nguyện vọng:</span>
                       <span className="font-medium text-slate-800">
                         {selectedPetition.inputData?.reason || 'Đủ điều kiện xét tốt nghiệp'}
                       </span>
@@ -1126,7 +1126,7 @@ export default function StaffEscalationPage() {
                                 {doc.verificationStatus || 'PENDING'}
                               </span>
                               {doc.documentType && (
-                                <span className="text-[10px] text-slate-400 font-mono">
+                                <span className="text-[10px] text-slate-500 font-mono">
                                   [{doc.documentType}]
                                 </span>
                               )}
@@ -1152,13 +1152,13 @@ export default function StaffEscalationPage() {
                                   href={doc.fileUrl.startsWith('http') || doc.fileUrl.startsWith('data:') ? doc.fileUrl : doc.fileUrl.startsWith('/') ? doc.fileUrl : `/${doc.fileUrl}`}
                                   target="_blank"
                                   rel="noreferrer"
-                                  className="text-xs text-slate-400 hover:text-blue-700 flex items-center gap-0.5"
+                                  className="text-xs text-slate-500 hover:text-blue-700 flex items-center gap-0.5"
                                 >
                                   <ExternalLink className="w-3 h-3" />
                                 </a>
                               </div>
                             ) : (
-                              <span className="text-xs text-slate-400">Đã lưu trữ nội bộ</span>
+                              <span className="text-xs text-slate-500">Đã lưu trữ nội bộ</span>
                             )}
                           </div>
                         ))}
@@ -1202,7 +1202,7 @@ export default function StaffEscalationPage() {
 
           </div>
         ) : (
-          <div className="m-auto text-center text-slate-400 text-xs">
+          <div className="m-auto text-center text-slate-500 text-xs">
             Vui lòng chọn một hồ sơ bên trái để xem chi tiết Context Capsule
           </div>
         )}

@@ -1,0 +1,123 @@
+.workspace-shell {
+  --eduref-primary: #225a9f;
+  --eduref-primary-rgb: 34 90 159;
+  --eduref-primary-hover: #19477f;
+  --eduref-ink: #183b67;
+  --eduref-tint: #eaf2fc;
+  --eduref-canvas: #f3f6fc;
+  --eduref-border: #d6e1ef;
+  --eduref-muted: #52657d;
+}
+
+.workspace-shell .workspace-sidebar {
+  background: #edf2f9;
+}
+
+.workspace-shell .workspace-sidebar-header {
+  background: #e5edf8;
+  border-bottom-color: #c8d8eb;
+}
+
+.workspace-shell .workspace-sidebar-header h2,
+.workspace-shell .sidebar-control {
+  color: #294f7c;
+}
+
+.workspace-shell .sidebar-control:hover,
+.workspace-shell .sidebar-control[aria-pressed="true"] {
+  background: #d1e1f4;
+  color: #19477f;
+}
+
+.workspace-shell .competition-workspace .student-chat-header {
+  background: #f8faff;
+  border-bottom: 2px solid #c9dcf1;
+}
+
+.workspace-shell .competition-workspace .chat-avatar {
+  background: linear-gradient(140deg, #225a9f, #317ca1);
+  box-shadow: 0 3px 9px #225a9f24;
+}
+
+.workspace-shell .chat-message-content.bg-white {
+  border-color: #d4e2f2;
+  box-shadow: 0 2px 7px #225a9f05;
+}
+
+.workspace-shell .chat-message-content.bg-eduref-primary {
+  background: #225a9f;
+  box-shadow: 0 3px 9px #225a9f16;
+}
+
+.workspace-shell .workspace-verify-entry {
+  background: linear-gradient(120deg, #1a4173, #2c617f);
+  border-color: #326b98;
+  color: #d7edff;
+}
+
+.workspace-shell .workspace-verify-entry:hover {
+  border-color: #6b9bc9;
+  box-shadow: 0 5px 16px #225a9f20;
+}
+
+.workspace-shell .agent-trace {
+  border-color: #cbdcf0;
+  border-left: 3px solid #5a87ba;
+  background: #f4f8fe;
+  color: #315b88;
+}
+
+.workspace-shell .agent-trace[data-trace-status="running"] {
+  border-left-color: #225a9f;
+  background: #edf4fd;
+}
+
+.workspace-shell .agent-trace[data-trace-status="failed"],
+.workspace-shell .agent-trace[data-trace-status="disconnected"],
+.workspace-shell .agent-trace[data-trace-status="interrupted"] {
+  border-color: #e9d4ab;
+  border-left-color: #ba8a38;
+  background: #fff8ec;
+  color: #80570e;
+}
+
+.workspace-shell .competition-workspace .chat-composer {
+  background: #f3f7fd;
+  border-top: 1px solid #ccddf0;
+}
+
+.workspace-shell .chat-composer input:focus {
+  box-shadow: 0 0 0 3px #225a9f15;
+}
+
+.workspace-shell .procedure-card {
+  --procedure-accent: #2c6098;
+  --procedure-tint: #eaf2fc;
+  border-left: 3px solid var(--procedure-accent);
+}
+
+.workspace-shell .procedure-card[data-form="TAX_DEDUCTION"] {
+  --procedure-accent: #67529a;
+  --procedure-tint: #f2eefb;
+}
+
+.workspace-shell .procedure-card[data-form="MILITARY_DEFERMENT"] {
+  --procedure-accent: #855b1d;
+  --procedure-tint: #fbf2e4;
+}
+
+.workspace-shell .procedure-card[data-form="COURSE_DEBT"] {
+  --procedure-accent: #965267;
+  --procedure-tint: #faeef0;
+}
+
+.workspace-shell .procedure-card[data-form="GENERAL_CONFIRMATION"] {
+  --procedure-accent: #246e62;
+  --procedure-tint: #e8f5f2;
+}
+
+.workspace-shell .procedure-card > div:first-child > span:last-child {
+  color: var(--procedure-accent);
+  background: var(--procedure-tint);
+  border-color: transparent;
+}

@@ -1,15 +1,29 @@
-import React, { useState, useEffect } from 'react';
+import React, { lazy, Suspense, useState, useEffect } from 'react';
 import TopNavbar from './components/common/TopNavbar';
 import StudentWorkspacePage from './pages/StudentWorkspacePage';
-import StaffEscalationPage from './pages/StaffEscalationPage';
-import VerifyHarnessPage from './pages/VerifyHarnessPage';
-import AuditExplorerPage from './pages/AuditExplorerPage';
-import MyPetitionsPage from './pages/MyPetitionsPage';
+import LandingPage from './pages/LandingPage';
+import ConnectionPanel from './components/common/ConnectionPanel';
+import LoadingSkeleton from './components/common/LoadingSkeleton';
 import DynamicPetitionModal from './components/forms/DynamicPetitionModal';
 import WelcomeOnboardingModal from './components/common/WelcomeOnboardingModal';
 import CustomProfileModal from './components/forms/CustomProfileModal';
 import api, { switchRoleAuth, DEMO_ACCOUNTS } from './services/api';
 import getSocket from './services/socket';
+
+const StaffEscalationPage = lazy(() => import('./pages/StaffEscalationPage'));
+const VerifyHarnessPage = lazy(() => import('./pages/VerifyHarnessPage'));
+const AuditExplorerPage = lazy(() => import('./pages/AuditExplorerPage'));
+const MyPetitionsPage = lazy(() => import('./pages/MyPetitionsPage'));
+
+const TAB_QUERY = {
+  LANDING: '', STUDENT_ASSISTANT: 'chat', MY_PETITIONS: 'petitions',
+  STAFF_ESCALATION: 'staff', VERIFY_HARNESS: 'verify', AUDIT_EXPLORER: 'audit',
+};
+
+export function getInitialTab(search = '') {
+  const query = new URLSearchParams(search).get('tab');
+  return Object.keys(TAB_QUERY).find((tab) => TAB_QUERY[tab] === query) || 'LANDING';
+}
 
 export default function App() {
   // Tài khoản hiện tại được chọn (mặc định sinh viên ACTIVE Cao Hữu Nhân)
@@ -17,26 +31,32 @@ export default function App() {
   const [authStatus, setAuthStatus] = useState('loading');
   const [authError, setAuthError] = useState('');
 
-  // Tab đang hoạt động: Mặc định là Trợ lý Sinh viên thân thiện, trừ khi có URL query ?tab=verify dành cho BGK
-  const getInitialTab = () => {
-    try {
-      const params = new URLSearchParams(window.location.search);
-      if (params.get('tab') === 'verify') return 'VERIFY_HARNESS';
-    } catch {
-      // Bỏ qua lỗi URL nếu có
-    }
-    return 'STUDENT_ASSISTANT';
-  };
-  const [activeTab, setActiveTab] = useState(getInitialTab);
+  const [activeTab, setActiveTab] = useState(() => getInitialTab(typeof window === 'undefined' ? '' : window.location.search));
+  const [onboardingOpen, setOnboardingOpen] = useState(false);
 
-  // Popup Onboarding chào mừng 30 giây (Kiểm tra xem người dùng đã chọn không hiển thị lại chưa)
-  const [onboardingOpen, setOnboardingOpen] = useState(() => {
-    try {
-      return localStorage.getItem('eduref_hide_onboarding') !== 'true';
-    } catch {
-      return true;
-    }
-  });
+  useEffect(() => {
+    const onBack = () => setActiveTab(getInitialTab(window.location.search));
+    window.addEventListener('popstate', onBack);
+    return () => window.removeEventListener('popstate', onBack);
+  }, []);
+
+  useEffect(() => {
+    const url = new URL(window.location.href);
+    if (TAB_QUERY[activeTab]) url.searchParams.set('tab', TAB_QUERY[activeTab]);
+    else url.searchParams.delete('tab');
+    window.history.replaceState(null, '', url);
+  }, [activeTab]);
+
+  const navigateTo = (tab) => {
+    if (tab === activeTab) return;
+    const url = new URL(window.location.href);
+    url.hash = '';
+    if (TAB_QUERY[tab]) url.searchParams.set('tab', TAB_QUERY[tab]);
+    else url.searchParams.delete('tab');
+    window.history.pushState(null, '', url);
+    setActiveTab(tab);
+    if (tab === 'LANDING') window.scrollTo({ top: 0, behavior: 'instant' });
+  };
 
   // Hồ sơ sinh viên tùy biến (lưu cục bộ trên máy của sinh viên đó)
   const [customProfile, setCustomProfile] = useState(() => {
@@ -184,32 +204,6 @@ export default function App() {
     }
   };
 
-  if (authStatus !== 'ready') {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#0B3B82] px-4 text-white">
-        <div className="w-full max-w-md rounded-2xl border border-blue-400/30 bg-[#082C64] p-7 text-center shadow-2xl">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-white flex items-center justify-center p-1.5 shadow-md">
-            <img src="/hutech_logo.png" alt="HUTECH" className="h-full w-auto object-contain" />
-          </div>
-          <h1 className="text-base font-bold text-white tracking-wide">EduRef AI · Cổng Dịch Vụ Học Vụ Tự Hành</h1>
-          {authStatus === 'loading' ? (
-            <div className="mt-3 flex items-center justify-center gap-2 text-xs text-blue-200">
-              <span className="w-2 h-2 rounded-full bg-blue-300 animate-ping"></span>
-              <span>Đang kết nối cổng dịch vụ học vụ HUTECH…</span>
-            </div>
-          ) : (
-            <>
-              <p className="mt-2 text-sm text-rose-300">{authError}</p>
-              <button onClick={initializeDemoSession} className="mt-4 rounded-lg bg-white hover:bg-slate-100 px-4 py-2 text-xs font-bold text-[#0B3B82] shadow-sm transition-colors cursor-pointer">
-                Thử kết nối lại
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    );
-  }
-
   // Mở modal biểu mẫu động
   const handleOpenDynamicForm = (type) => {
     setDynamicModal({
@@ -231,120 +225,81 @@ export default function App() {
     fetchPendingCount();
   };
 
+  const isLanding = activeTab === 'LANDING';
+  const conversationVisible = isLanding || activeTab === 'STUDENT_ASSISTANT';
+  const ready = authStatus === 'ready';
+
   return (
-    <div className="h-screen flex flex-col bg-[#F0F4F9] overflow-hidden font-sans select-none text-slate-800">
-      
-      {/* 1. Header trên cùng: Brand EduRef AI + Top Navigation Tabs + 1-Click Role Switcher */}
+    <div className={'app-shell ' + (isLanding ? 'landing-shell' : 'workspace-shell')}>
+      <a className="skip-link" href="#main-content">Chuyển tới nội dung chính</a>
       <TopNavbar
         currentAccountKey={currentAccountKey}
         onRoleChange={handleRoleChange}
         socketConnected={socketConnected}
         activeTab={activeTab}
-        setActiveTab={setActiveTab}
+        setActiveTab={navigateTo}
         pendingCount={pendingCount}
         customProfile={customProfile}
+        sessionReady={ready}
         onOpenCustomProfile={() => setCustomProfileModalOpen(true)}
         onOpenOnboarding={() => setOnboardingOpen(true)}
       />
-
-      {/* 2. Phần thân: Toàn bộ 100% chiều rộng màn hình cho nội dung chính */}
-      <div className="flex-1 flex overflow-hidden">
-        
-        {/* Màn hình chính */}
-        <main className="flex-1 flex flex-col overflow-hidden bg-[#F0F4F9] relative">
-          
-          {/* Toast Notification Floating */}
-          {toast && (
-            <div
-              className={`absolute top-4 right-4 z-50 px-4 py-2.5 rounded-lg shadow-lg border text-xs font-semibold flex items-center gap-2 animate-slide-in transition-all ${
-                toast.type === 'warning'
-                  ? 'bg-amber-50 text-amber-900 border-amber-300'
-                  : toast.type === 'success'
-                  ? 'bg-emerald-50 text-emerald-900 border-emerald-300'
-                  : 'bg-blue-50 text-blue-900 border-blue-300'
-              }`}
-            >
-              <span className="w-2 h-2 rounded-full bg-current"></span>
-              <span>{toast.message}</span>
-            </div>
-          )}
-
-          {/* 1. Trang Trợ lý AI Sinh viên: Giữ nguyên trạng thái (Keep-Alive) để không bị mất chat/terminal khi đổi vai trò hoặc chuyển tab */}
-          <div className={`flex-1 h-full overflow-hidden ${activeTab === 'STUDENT_ASSISTANT' ? 'flex' : 'hidden'}`}>
+      {toast && <div className={'app-toast app-toast-' + toast.type} role="status"><span>{toast.message}</span></div>}
+      <main id="main-content" className="app-main" tabIndex={-1}>
+        <LandingPage active={isLanding} visible={conversationVisible} onNavigate={navigateTo}>
+          {ready ? (
             <StudentWorkspacePage
               currentAccountKey={currentAccountKey}
               customProfile={customProfile}
               onOpenDynamicForm={handleOpenDynamicForm}
               externalPrompt={externalPrompt}
               onClearExternalPrompt={() => setExternalPrompt(null)}
-              onSwitchTab={setActiveTab}
+              onSwitchTab={navigateTo}
             />
-          </div>
-
-          {activeTab === 'MY_PETITIONS' && (
-            <div className="flex-1 h-full overflow-y-auto w-full">
-              <MyPetitionsPage
-                currentAccountKey={currentAccountKey}
-                onSwitchTab={setActiveTab}
-              />
+          ) : <ConnectionPanel status={authStatus} error={authError} onRetry={initializeDemoSession} />}
+        </LandingPage>
+        {!conversationVisible && (
+          ready ? (
+            <div className="workspace-page">
+              <Suspense fallback={<div className="p-8"><LoadingSkeleton label="Đang mở không gian làm việc…" /></div>}>
+                {activeTab === 'MY_PETITIONS' && <MyPetitionsPage currentAccountKey={currentAccountKey} onSwitchTab={navigateTo} />}
+                {activeTab === 'STAFF_ESCALATION' && <StaffEscalationPage currentAccountKey={currentAccountKey} />}
+                {activeTab === 'VERIFY_HARNESS' && <VerifyHarnessPage />}
+                {activeTab === 'AUDIT_EXPLORER' && <AuditExplorerPage />}
+              </Suspense>
             </div>
-          )}
-
-          {activeTab === 'STAFF_ESCALATION' && (
-            <div className="flex-1 h-full overflow-y-auto w-full">
-              <StaffEscalationPage
-                currentAccountKey={currentAccountKey}
-              />
-            </div>
-          )}
-
-          {activeTab === 'VERIFY_HARNESS' && (
-            <div className="flex-1 h-full overflow-y-auto w-full">
-              <VerifyHarnessPage />
-            </div>
-          )}
-
-          {activeTab === 'AUDIT_EXPLORER' && (
-            <div className="flex-1 h-full overflow-y-auto w-full">
-              <AuditExplorerPage />
-            </div>
-          )}
-        </main>
-      </div>
-
-      {/* 3. Modal nộp đơn học vụ sinh động */}
-      <DynamicPetitionModal
-        isOpen={dynamicModal.isOpen}
-        onClose={() => setDynamicModal({ isOpen: false, petitionType: null })}
-        petitionType={dynamicModal.petitionType}
-        currentAccountKey={currentAccountKey}
-        customProfile={customProfile}
-        onSubmitToChat={handleSubmitToChat}
-        onPetitionCreated={handlePetitionCreated}
-      />
-
-      {/* 4. Modal Hướng dẫn trải nghiệm 30 giây (Onboarding) */}
-      <WelcomeOnboardingModal
-        isOpen={onboardingOpen}
-        onClose={() => setOnboardingOpen(false)}
-        onSelectTestPrompt={(promptText) => handleSubmitToChat(promptText)}
-        onOpenCustomProfile={() => {
-          setOnboardingOpen(false);
-          setCustomProfileModalOpen(true);
-        }}
-      />
-
-      {/* 5. Modal Tạo / Cập nhật hồ sơ sinh viên tùy biến */}
-      <CustomProfileModal
-        isOpen={customProfileModalOpen}
-        onClose={() => setCustomProfileModalOpen(false)}
-        currentProfile={customProfile}
-        onProfileSaved={(savedProfile) => {
-          setCustomProfile(savedProfile);
-          setCurrentAccountKey('CUSTOM_STUDENT');
-          showToast(`Đã lưu và kích hoạt hồ sơ: ${savedProfile.name}`, 'success');
-        }}
-      />
+          ) : <div className="workspace-connection"><ConnectionPanel status={authStatus} error={authError} onRetry={initializeDemoSession} /></div>
+        )}
+      </main>
+      {ready && (
+        <>
+          <DynamicPetitionModal
+            isOpen={dynamicModal.isOpen}
+            onClose={() => setDynamicModal({ isOpen: false, petitionType: null })}
+            petitionType={dynamicModal.petitionType}
+            currentAccountKey={currentAccountKey}
+            customProfile={customProfile}
+            onSubmitToChat={handleSubmitToChat}
+            onPetitionCreated={handlePetitionCreated}
+          />
+          <WelcomeOnboardingModal
+            isOpen={onboardingOpen}
+            onClose={() => setOnboardingOpen(false)}
+            onSelectTestPrompt={(promptText) => handleSubmitToChat(promptText)}
+            onOpenCustomProfile={() => { setOnboardingOpen(false); setCustomProfileModalOpen(true); }}
+          />
+          <CustomProfileModal
+            isOpen={customProfileModalOpen}
+            onClose={() => setCustomProfileModalOpen(false)}
+            currentProfile={customProfile}
+            onProfileSaved={(savedProfile) => {
+              setCustomProfile(savedProfile);
+              setCurrentAccountKey('CUSTOM_STUDENT');
+              showToast(`Đã lưu và kích hoạt hồ sơ: ${savedProfile.name}`, 'success');
+            }}
+          />
+        </>
+      )}
     </div>
   );
 }

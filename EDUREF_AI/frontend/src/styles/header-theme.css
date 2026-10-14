@@ -1,0 +1,127 @@
+.app-shell .site-header {
+  background: linear-gradient(110deg, var(--eduref-header), var(--eduref-header-end));
+  border-color: #13345d;
+  box-shadow: 0 3px 14px #163b6820;
+}
+
+.app-shell .site-header.is-floating {
+  background: var(--eduref-header);
+  border-color: #719aca;
+  box-shadow: 0 14px 36px -22px #153f7c70;
+}
+
+@supports (backdrop-filter: blur(16px)) {
+  .app-shell .site-header.is-floating {
+    background: #153f7ced;
+  }
+}
+
+.header-brand {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.header-competition-badge {
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: #b72b47;
+  color: white;
+  font-size: 10px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.site-header .eduref-brand-name,
+.site-header .eduref-brand-name > span {
+  color: white;
+}
+
+.site-header .eduref-brand-caption {
+  color: var(--eduref-header-muted);
+}
+
+.site-header .eduref-brand-mark {
+  background: white;
+  color: var(--eduref-primary);
+  border: 1px solid #d3e3f5;
+}
+
+.app-shell .site-header .site-nav-link {
+  color: var(--eduref-header-text);
+  border: 1px solid transparent;
+}
+
+.app-shell .site-header .site-nav-link:hover,
+.app-shell .site-header .site-nav-link[aria-current="page"] {
+  color: white;
+  background: #ffffff18;
+  border-color: #719aca;
+}
+
+.site-header .connection-status {
+  color: var(--eduref-header-muted);
+}
+
+.site-header .connection-status[data-connected="true"] > svg {
+  color: #75e5ba;
+}
+
+.site-header .connection-status[data-connected="false"] > svg {
+  color: #ffda74;
+}
+
+.app-shell .site-header .icon-button,
+.site-header .account-trigger,
+.site-header .header-verify {
+  color: var(--eduref-header-text);
+  background: #ffffff0d;
+  border-color: #6588b3;
+}
+
+.app-shell .site-header .icon-button:hover,
+.site-header .account-trigger:hover,
+.site-header .header-verify:hover {
+  color: white;
+  background: #ffffff18;
+}
+
+.app-shell .site-header .header-help {
+  color: #ffda74;
+  border-color: #a28d53;
+}
+
+.site-header .account-trigger small {
+  color: var(--eduref-header-muted);
+}
+
+.site-header .account-avatar {
+  background: #edf5ff;
+  color: var(--eduref-primary);
+}
+
+.site-header :focus-visible {
+  outline-color: #bfddff;
+}
+
+.site-header .account-menu {
+  color: var(--eduref-text);
+}
+
+.site-header .account-menu :focus-visible {
+  outline-color: var(--eduref-primary);
+}
+
+@media (max-width: 1100px) {
+  .header-competition-badge {
+    display: none;
+  }
+}
+
+@media (max-width: 900px) {
+  .app-shell .site-header .site-nav {
+    background: var(--eduref-header);
+    border-color: #719aca;
+  }
+}

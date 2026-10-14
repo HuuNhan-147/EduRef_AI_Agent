@@ -1,0 +1,1148 @@
+# TASK: REDESIGN EDURef AI INTO A HUMAN-CENTERED AI AGENT WORKSPACE
+
+Bạn đang làm việc trên project EduRef AI hiện tại.
+
+Hãy đọc toàn bộ codebase trước, xác định:
+- framework/frontend stack hiện tại,
+- routing,
+- component structure,
+- state management,
+- API/WebSocket integration,
+- design system hiện có,
+- các màn hình/chat/terminal hiện tại.
+
+KHÔNG viết lại project từ đầu nếu không cần thiết.
+KHÔNG phá vỡ logic/backend/API hiện có.
+Hãy refactor và redesign UI/UX hiện tại thành một giao diện AI Agent chuyên nghiệp.
+
+==================================================
+1. PRODUCT VISION
+==================================================
+
+EduRef AI không phải chatbot thông thường.
+
+Đây là một:
+
+"HUMAN-IN-THE-LOOP AUTONOMOUS AI AGENT WORKSPACE"
+
+AI có khả năng:
+- nhận yêu cầu,
+- phân tích,
+- lập kế hoạch,
+- gọi tool/API,
+- thực hiện nhiều bước,
+- quan sát kết quả,
+- tự tiếp tục với hành động an toàn,
+- dừng lại khi gặp hành động nhạy cảm,
+- yêu cầu con người phê duyệt,
+- cho phép con người can thiệp/bẻ lái bất kỳ lúc nào.
+
+Triết lý:
+
+AI làm phần việc nặng.
+Con người luôn hiểu chuyện gì đang xảy ra.
+Con người luôn giữ quyền kiểm soát cuối cùng.
+
+UI phải tạo cảm giác:
+
+"Agent đang làm việc cho tôi"
+
+thay vì:
+
+"Tôi đang quan sát một hệ thống kỹ thuật phức tạp."
+
+==================================================
+2. DESIGN REFERENCES
+==================================================
+
+Tham khảo tinh thần UX của:
+
+- ChatGPT
+- Claude
+- Gemini
+- Linear
+- Vercel
+
+Không clone trực tiếp bất kỳ sản phẩm nào.
+
+Lấy những ưu điểm:
+
+ChatGPT:
+- conversation-first
+- ít visual noise
+- composer rõ ràng
+- hierarchy mạnh
+- dễ đọc conversation dài
+
+Claude:
+- Thinking/Reasoning tách biệt khỏi final answer
+- thinking có thể collapse
+- typography thoáng
+- trải nghiệm đọc dài tốt
+
+Gemini:
+- phản hồi AI sinh động
+- trạng thái processing rõ ràng
+- progressive disclosure
+- motion nhẹ nhàng
+
+Linear/Vercel:
+- professional
+- dense nhưng sạch
+- spacing tốt
+- border/subtle contrast tốt
+- keyboard friendly
+
+==================================================
+3. PRIMARY UX PRINCIPLE
+==================================================
+
+Ưu tiên theo thứ tự:
+
+1. Human control
+2. Clarity
+3. Trust
+4. Low cognitive load
+5. Ergonomics
+6. Speed
+7. Visual aesthetics
+
+Không hy sinh usability để tạo dashboard "trông ngầu".
+
+Người dùng phải luôn trả lời được 5 câu hỏi trong vòng vài giây:
+
+1. Agent đang làm gì?
+2. Agent đã làm những gì?
+3. Tại sao Agent đang dừng?
+4. Agent cần tôi quyết định điều gì?
+5. Tôi có thể can thiệp ở đâu?
+
+==================================================
+4. INFORMATION ARCHITECTURE
+==================================================
+
+Desktop layout sử dụng cấu trúc 3 vùng:
+
+LEFT SIDEBAR
+CENTER AGENT WORKSPACE
+RIGHT ACTIVITY / INSPECTOR
+
+Nhưng CENTER phải luôn là primary focus.
+
+Tỷ lệ tham khảo:
+
+Left: 220–260px
+Center: flexible / largest area
+Right: 300–360px
+
+Không để sidebar hoặc terminal cạnh tranh thị giác với conversation.
+
+==================================================
+5. LEFT SIDEBAR
+==================================================
+
+Sidebar chứa:
+
+- EduRef AI branding
+- New task / New conversation
+- Academic procedures
+- Recent conversations/tasks
+- Search nếu phù hợp
+- Settings / profile ở dưới
+
+Các thủ tục ví dụ:
+
+- Giấy Xác Nhận Sinh Viên
+- Đề Nghị Xét Tốt Nghiệp
+- Các workflow học vụ khác
+
+Hiển thị status nhỏ:
+
+AUTO
+REVIEW
+ESCALATE
+
+Nhưng tránh biến sidebar thành dashboard card-heavy.
+
+Sidebar phải quiet.
+
+==================================================
+6. CENTER = AGENT WORKSPACE
+==================================================
+
+Đây là vùng quan trọng nhất.
+
+Thiết kế theo vertical conversational timeline giống các AI chat hiện đại.
+
+Không dùng dashboard/grid cho conversation.
+
+Timeline:
+
+USER REQUEST
+      ↓
+AGENT THINKING
+      ↓
+ACTION
+      ↓
+OBSERVATION
+      ↓
+ACTION
+      ↓
+HUMAN APPROVAL (nếu cần)
+      ↓
+CONTINUE
+      ↓
+FINAL RESULT
+
+Conversation phải đọc tự nhiên từ trên xuống.
+
+==================================================
+7. USER MESSAGE
+==================================================
+
+User message:
+
+- căn phải hoặc phân biệt rõ với AI
+- visual đơn giản
+- không quá nhiều border
+- không quá rộng
+- typography dễ đọc
+
+Không cần avatar lớn nếu gây noise.
+
+==================================================
+8. AGENT MESSAGE
+==================================================
+
+Mỗi Agent turn có thể bao gồm:
+
+A. Thinking
+B. Tool/action
+C. Observation/result
+D. Approval request
+E. Final response
+
+Nhưng KHÔNG hiển thị tất cả với visual weight giống nhau.
+
+Final response và approval request quan trọng hơn logs.
+
+==================================================
+9. THINKING EXPERIENCE
+==================================================
+
+Không dùng spinner vô nghĩa kiểu:
+
+"Loading..."
+
+Thay bằng trạng thái có thông tin:
+
+Analyzing request...
+Checking student status...
+Reviewing DV-01 requirements...
+Preparing next action...
+
+Thinking phải là progressive disclosure.
+
+Khi đang chạy:
+
+● Thinking...
+
+hoặc:
+
+● Analyzing student request
+  ├─ Checking enrollment status
+  ├─ Validating request purpose
+  └─ Reviewing applicable policy
+
+Thinking panel mở khi cần.
+
+Sau khi hoàn tất:
+
+✓ Thought for 4.2s
+
+và tự collapse.
+
+User có thể click để xem lại.
+
+IMPORTANT:
+
+Không làm thinking panel quá nổi bật.
+Không biến internal reasoning thành một terminal dài chiếm màn hình.
+
+UI nên hiển thị concise reasoning/progress summaries và action rationale
+phù hợp cho người dùng, thay vì dump raw internal chain-of-thought.
+
+Ví dụ:
+
+THOUGHT
+Need to verify eligibility before generating the document.
+
+ACTION
+Check student enrollment status
+
+OBSERVATION
+Student is currently enrolled.
+
+NEXT
+Verify purpose-specific requirements.
+
+==================================================
+10. AGENT ACTION / TOOL CALL
+==================================================
+
+Tool call không nên giống debug log mặc định.
+
+Ví dụ compact card:
+
+┌──────────────────────────────────┐
+│ ✓ Checked student status         │
+│ Student Information System       │
+│ Completed · 420 ms               │
+└──────────────────────────────────┘
+
+Collapsed mặc định.
+
+Click "View details" để xem:
+
+- input
+- output
+- execution time
+- source
+- technical metadata
+
+Technical details là secondary information.
+
+==================================================
+11. HUMAN APPROVAL = MOST IMPORTANT COMPONENT
+==================================================
+
+Khi Agent gặp action nhạy cảm:
+
+Agent PHẢI dừng.
+
+Không chỉ hiện notification ở header.
+
+Approval UI phải xuất hiện NGAY TRONG conversation,
+ngay sau action cần quyết định.
+
+Ví dụ:
+
+┌─────────────────────────────────────────┐
+│ ◆ YOUR APPROVAL IS REQUIRED             │
+│                                         │
+│ Agent wants to:                         │
+│ Generate an official student            │
+│ confirmation document.                  │
+│                                         │
+│ Why?                                    │
+│ Eligibility checks passed.              │
+│                                         │
+│ Impact                                  │
+│ Creates a new document.                 │
+│ Does not modify student records.        │
+│                                         │
+│ [Reject / Modify]   [Approve & Continue]│
+└─────────────────────────────────────────┘
+
+Không bắt user nhìn sang terminal bên phải để approve.
+
+==================================================
+12. RISK COMMUNICATION
+==================================================
+
+Không dùng RED cho mọi thứ.
+
+Color semantics:
+
+Blue:
+normal interaction / primary navigation
+
+Green:
+completed / successful / safe confirmation
+
+Amber:
+needs attention / human approval
+
+Red:
+destructive / failure / dangerous action only
+
+Purple/Violet:
+reasoning / AI-specific metadata nếu cần
+
+Slate/Gray:
+neutral/system information
+
+Mục tiêu tâm lý:
+
+Amber = "Agent cần tôi xem xét"
+
+không phải:
+
+Red = "Có chuyện nghiêm trọng xảy ra"
+
+==================================================
+13. APPROVAL BUTTON ERGONOMICS
+==================================================
+
+Apply Fitts's Law.
+
+Buttons phải nằm sát decision context.
+
+Minimum height:
+40–44px preferred.
+
+Khoảng cách giữa destructive và positive actions:
+>= 16px.
+
+Primary:
+
+Approve & Continue
+
+Secondary:
+
+Modify
+
+Destructive:
+
+Reject & Stop
+
+Không đặt Approve và destructive button quá sát nhau.
+
+Nếu action irreversible:
+
+Không autofocus nút Approve.
+
+Nếu action low/medium risk có thể sử dụng keyboard shortcut.
+
+==================================================
+14. INTERVENTION / STEERING
+==================================================
+
+Con người phải có khả năng can thiệp bất kỳ lúc nào.
+
+Persistent composer ở cuối màn hình:
+
+"Message or steer the Agent…"
+
+User có thể nhập:
+
+"Stop."
+
+"Không gửi email."
+
+"Kiểm tra lại điều kiện học kỳ."
+
+"Chỉ tạo draft, chưa phát hành."
+
+"Đổi mục đích sang vay vốn."
+
+Khi user gửi intervention:
+
+Agent phải chuyển state:
+
+RUNNING
+→ INTERRUPTED
+→ RE-PLANNING
+→ RUNNING
+
+Hiển thị intervention trong timeline để audit được.
+
+==================================================
+15. KEYBOARD INTERACTION
+==================================================
+
+Implement:
+
+Enter
+Send message
+
+Shift + Enter
+New line
+
+Ctrl/Cmd + Enter
+Approve current pending action
+ONLY when approval exists.
+
+Esc
+Focus intervention composer / pause Agent where appropriate.
+
+Keyboard shortcut phải visible nhưng subtle.
+
+==================================================
+16. SMART SCROLL
+==================================================
+
+Implement real smart-scroll behavior.
+
+Nếu user đang ở cuối conversation:
+
+Agent streaming → auto scroll.
+
+Nếu user scroll lên:
+
+IMMEDIATELY disable auto-scroll.
+
+Không giật user xuống.
+
+Hiện floating button:
+
+↓ New activity
+
+Click → scroll bottom và resume auto-scroll.
+
+Đây là requirement quan trọng.
+
+==================================================
+17. STREAMING EXPERIENCE
+==================================================
+
+Agent output phải stream tự nhiên.
+
+Không animation từng chữ quá chậm.
+
+Không artificial delay gây khó chịu.
+
+Dùng:
+
+- subtle cursor
+- skeleton cho component chưa tải
+- progress status
+- smooth layout transitions
+
+Avoid:
+- excessive shimmer
+- bouncing dots everywhere
+- aggressive pulse
+- flashy gradients
+
+Respect:
+
+prefers-reduced-motion.
+
+==================================================
+18. HEADER
+==================================================
+
+Header phải compact.
+
+Không nhồi navigation quá nhiều.
+
+Hiển thị:
+
+EduRef AI
+Current task
+Agent status
+User/profile
+
+Agent states:
+
+IDLE
+THINKING
+ACTING
+WAITING FOR APPROVAL
+PAUSED BY HUMAN
+RE-PLANNING
+COMPLETED
+FAILED
+
+Ví dụ:
+
+● Agent working
+
+◆ Waiting for your approval
+
+✓ Completed
+
+Header status là secondary indicator.
+
+Primary approval vẫn nằm trong timeline.
+
+==================================================
+19. RIGHT ACTIVITY PANEL
+==================================================
+
+UI hiện tại có Live Reasoning Terminal rất lớn.
+
+Hãy redesign nó thành:
+
+AGENT ACTIVITY / INSPECTOR
+
+Không để raw terminal làm giao diện chính.
+
+Hiển thị compact:
+
+Agent Activity
+
+✓ Request classified
+✓ Student status checked
+✓ Policy retrieved
+◆ Waiting for approval
+○ Generate document
+
+Có thể click từng bước để inspect.
+
+Tabs nếu cần:
+
+Activity
+Details
+Audit
+
+Technical users có thể mở:
+
+"Developer details"
+
+để xem raw logs.
+
+Nhưng raw logs không được mặc định chiếm quá nhiều attention.
+
+==================================================
+20. PROGRESS / PLAN
+==================================================
+
+Nếu Agent chạy workflow nhiều bước, hiển thị plan nhỏ:
+
+Task progress
+3 / 5 steps
+
+✓ Understand request
+✓ Verify student
+✓ Check policy
+◆ Human approval
+○ Generate document
+
+User nhìn vào phải hiểu Agent đang ở đâu ngay lập tức.
+
+Không cần progress bar nếu task không xác định số bước.
+
+==================================================
+21. FINAL RESULT
+==================================================
+
+Khi hoàn tất:
+
+Thinking collapse.
+
+Activity steps completed.
+
+Final response phải trở thành visual focus.
+
+Ví dụ:
+
+✓ Request completed
+
+Giấy xác nhận sinh viên đã được tạo.
+
+[View document]
+[Download]
+[Start another request]
+
+Sau đó hiển thị subtle metadata:
+
+Completed in 8.4s
+4 automated actions
+1 human approval
+
+==================================================
+22. COGNITIVE LOAD
+==================================================
+
+Áp dụng progressive disclosure.
+
+LEVEL 1:
+User thấy:
+- conversation
+- current status
+- approval
+- result
+
+LEVEL 2:
+User click:
+- reasoning summary
+- activity
+- sources
+- tool execution
+
+LEVEL 3:
+Developer/advanced:
+- raw logs
+- payload
+- latency
+- IDs
+- debugging data
+
+Không hiển thị Level 3 mặc định.
+
+==================================================
+23. VISUAL DESIGN
+==================================================
+
+Style:
+
+professional
+minimal
+calm
+trustworthy
+modern
+AI-native
+
+Dark theme:
+
+background:
+Slate 950 / Carbon
+
+surface:
+Slate 900
+
+elevated surface:
+Slate 850-like
+
+borders:
+subtle Slate 800
+
+Avoid pure black + pure white contrast everywhere.
+
+Use off-white text.
+
+Hierarchy bằng:
+- typography
+- spacing
+- subtle surfaces
+
+hơn là quá nhiều màu.
+
+Border radius:
+10–16px.
+
+Không bo tròn mọi thứ thành pill.
+
+Pill chỉ dành cho:
+- status
+- tags
+- small metadata
+
+==================================================
+24. TYPOGRAPHY
+==================================================
+
+Ưu tiên:
+
+Inter
+Geist
+system-ui
+
+Conversation width:
+
+~720–850px.
+
+Không cho text chạy full chiều ngang màn hình.
+
+Body:
+14–16px
+
+Secondary:
+12–13px
+
+Metadata:
+10–12px
+
+Line-height rộng cho AI answer dài.
+
+Monospace chỉ dùng cho:
+
+code
+logs
+IDs
+technical values
+
+Không dùng monospace cho toàn Agent UI.
+
+==================================================
+25. SPACING / ERGONOMICS
+==================================================
+
+Dùng spacing system nhất quán:
+
+4
+8
+12
+16
+24
+32
+
+Click target:
+>= 40px
+ideal ~44px.
+
+Icon-only buttons:
+>= 36px.
+
+Không tạo tiny buttons như dashboard enterprise cũ.
+
+Các action quan trọng nằm gần nơi mắt user đang đọc.
+
+==================================================
+26. RESPONSIVE
+==================================================
+
+Desktop:
+3-column layout.
+
+Laptop:
+collapse left sidebar khi cần.
+
+Tablet:
+center workspace + drawer.
+
+Mobile:
+conversation first.
+
+Activity inspector trở thành bottom sheet/drawer.
+
+Approval action có thể sticky gần bottom nhưng vẫn phải gắn với approval context.
+
+==================================================
+27. ACCESSIBILITY
+==================================================
+
+Implement:
+
+- semantic HTML
+- keyboard navigation
+- visible focus states
+- aria-label
+- sufficient contrast
+- prefers-reduced-motion
+- no color-only status communication
+
+Status phải có:
+
+icon + text + color
+
+không chỉ color.
+
+==================================================
+28. COMPONENT ARCHITECTURE
+==================================================
+
+Nếu stack hiện tại phù hợp, chia thành reusable components tương đương:
+
+AppShell
+
+Sidebar
+TopBar
+
+AgentWorkspace
+ConversationTimeline
+
+UserMessage
+AgentMessage
+
+ThinkingBlock
+ReasoningStep
+
+ToolCallCard
+ObservationCard
+
+ApprovalCard
+RiskBadge
+
+TaskProgress
+
+AgentActivityPanel
+ActivityStep
+AuditDetails
+
+SteeringComposer
+
+NewActivityButton
+
+AgentStatusIndicator
+
+ResultCard
+
+Không tạo giant component chứa toàn màn hình.
+
+==================================================
+29. STATE MODEL
+==================================================
+
+Tạo state model rõ ràng:
+
+idle
+thinking
+acting
+waiting_approval
+paused
+replanning
+completed
+failed
+
+Approval:
+
+pending
+approved
+modified
+rejected
+
+Tool:
+
+queued
+running
+success
+failed
+
+UI render dựa trên state.
+
+Không hardcode giao diện theo từng demo case.
+
+==================================================
+30. DEMO SCENARIOS
+==================================================
+
+UI phải demo được ít nhất:
+
+SCENARIO A — Fully autonomous
+
+User request
+→ thinking
+→ actions
+→ result
+
+Không cần approval.
+
+SCENARIO B — Human approval
+
+User request
+→ thinking
+→ action
+→ approval required
+→ approve
+→ continue
+→ completed
+
+SCENARIO C — Human intervention
+
+Agent working
+→ user presses Esc
+→ user enters correction
+→ Agent re-plans
+→ continues.
+
+SCENARIO D — Reject
+
+Agent proposes sensitive action
+→ user Reject
+→ Agent stops
+→ user can provide alternative instruction.
+
+SCENARIO E — Tool failure
+
+Agent action
+→ failed
+→ clear explanation
+→ Retry / Change approach.
+
+==================================================
+31. IMPORTANT UX DETAILS
+==================================================
+
+Implement these carefully:
+
+1. Thinking automatically collapses after completion.
+
+2. Approval automatically scrolls into visible area,
+but must NOT steal scroll if user intentionally scrolled upward.
+
+3. Pending approval remains discoverable.
+
+If user scrolls away, show:
+
+◆ 1 approval waiting
+
+4. Never hide Stop/Pause while Agent is actively executing.
+
+5. User intervention must be visually distinguishable from original prompts.
+
+6. Every important Agent action should leave an audit trail.
+
+7. Do not show raw chain-of-thought by default.
+Show concise reasoning summaries and observable action rationale.
+
+8. User must always know whether an action:
+- has NOT happened,
+- is happening,
+- has completed,
+- requires approval.
+
+==================================================
+32. MICROCOPY
+==================================================
+
+Avoid robotic wording:
+
+"EXECUTION REQUIRED"
+"INTERVENTION NECESSARY"
+
+Prefer human wording:
+
+"Your approval is needed"
+
+"Agent is checking student eligibility"
+
+"Agent paused before creating the document"
+
+"You’re in control — review the action before continuing."
+
+Vietnamese equivalent should sound natural:
+
+"Cần bạn xác nhận"
+
+"Agent đang kiểm tra điều kiện"
+
+"Agent đã tạm dừng trước khi phát hành"
+
+"Bạn có thể chỉnh hướng xử lý trước khi tiếp tục"
+
+Tone:
+
+calm
+clear
+short
+professional
+
+==================================================
+33. DO NOT DO
+==================================================
+
+DO NOT:
+
+- redesign this as a monitoring dashboard
+- make terminal the primary UI
+- create excessive cards
+- use neon cyberpunk styling
+- overuse gradients
+- use red for ordinary approval
+- expose debugging information everywhere
+- animate everything
+- create tiny buttons
+- place approval far away from the decision
+- auto-scroll while user is reading history
+- hide Agent actions from the user
+- make users inspect logs to understand what happened
+- dump raw reasoning everywhere
+- rebuild backend unnecessarily
+
+==================================================
+34. IMPLEMENTATION STRATEGY
+==================================================
+
+Before coding:
+
+STEP 1:
+Inspect the existing project.
+
+STEP 2:
+Report briefly:
+- current frontend architecture
+- reusable components
+- what should remain
+- what should be refactored
+- what UI problems currently exist
+
+STEP 3:
+Create the target component architecture.
+
+STEP 4:
+Implement the redesigned UI using the existing stack.
+
+STEP 5:
+Wire it into existing mock/real Agent states.
+
+STEP 6:
+Implement interactions and keyboard controls.
+
+STEP 7:
+Test:
+- desktop
+- laptop
+- tablet/mobile
+- keyboard navigation
+- long conversation
+- long thinking process
+- pending approval
+- human intervention
+- failed tool
+- smart scroll
+
+==================================================
+35. ACCEPTANCE CRITERIA
+==================================================
+
+The redesign is successful when:
+
+A new user can understand within ~5 seconds:
+
+- what task is running,
+- what the Agent is doing,
+- whether they need to do anything.
+
+When approval appears:
+
+- user immediately notices it,
+- understands WHY approval is needed,
+- understands WHAT will happen,
+- can Approve / Modify / Reject without searching elsewhere.
+
+During autonomous execution:
+
+- user feels informed,
+- but not overwhelmed.
+
+During long-running tasks:
+
+- user can leave and return,
+- quickly understand progress.
+
+Advanced users:
+
+- can inspect detailed activity/logs.
+
+Normal users:
+
+- never need to read technical logs.
+
+Most importantly:
+
+The interface should feel like a modern AI assistant with controlled autonomy,
+not like an admin dashboard with a chatbot embedded inside it.
+
+==================================================
+36. FINAL DELIVERABLE
+==================================================
+
+Implement the redesign directly in the existing project.
+
+Preserve working backend/API behavior.
+
+Provide:
+
+1. Updated UI components.
+2. Responsive layout.
+3. Agent state system.
+4. Thinking/progress UX.
+5. Human approval flow.
+6. Intervention/steering flow.
+7. Smart scroll.
+8. Keyboard shortcuts.
+9. Activity inspector.
+10. Demo/mock states where backend data is unavailable.
+
+After implementation, summarize:
+
+- files changed,
+- components created,
+- UX decisions,
+- remaining backend integration points.
+
+Do not stop after producing a design proposal.
+Actually implement the UI and make it runnable.

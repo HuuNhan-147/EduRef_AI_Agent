@@ -1,0 +1,578 @@
+.competition-workspace {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  overflow: hidden;
+  background: var(--eduref-canvas);
+}
+
+.competition-workspace .student-chat,
+.competition-workspace .workspace-sidebar {
+  display: none;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+}
+
+.competition-workspace .is-mobile-active {
+  display: flex;
+  flex: 1;
+}
+
+.competition-workspace .student-chat {
+  overflow: hidden;
+  background: white;
+}
+
+.workspace-sidebar {
+  background: #edf3f6;
+}
+
+.workspace-sidebar-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 80px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--eduref-border);
+  flex-shrink: 0;
+}
+
+.workspace-sidebar-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  color: var(--eduref-ink);
+  font-size: 15px;
+  font-weight: 700;
+}
+
+.workspace-sidebar-header p {
+  margin-top: 5px;
+  color: #526575;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+.sidebar-control {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 40px;
+  min-height: 44px;
+  border-radius: 9px;
+  color: #355568;
+  flex-shrink: 0;
+  transition: color 160ms, background 160ms;
+}
+
+.sidebar-control:hover,
+.sidebar-control[aria-pressed="true"] {
+  background: #dce9ec;
+  color: var(--eduref-primary);
+}
+
+.sidebar-controls {
+  display: flex;
+  align-items: center;
+}
+
+.workspace-sidebar-body {
+  min-height: 0;
+  flex: 1;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.workspace-sidebar-body[hidden] {
+  display: none !important;
+}
+
+.sidebar-rail {
+  display: grid;
+  justify-items: center;
+  gap: 14px;
+  padding-block: 18px;
+  color: var(--eduref-primary);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.procedure-card {
+  box-shadow: 0 2px 5px #172d3c04;
+}
+
+.procedure-card > div:first-child {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.procedure-card > div:first-child > span:first-child {
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.procedure-card > div:first-child > span:last-child {
+  font-size: 11px;
+  background: #eaf3f4;
+  color: #236866;
+  border-color: #cbdddd;
+}
+
+.procedure-description {
+  color: #526575;
+  font-size: 13px;
+  line-height: 1.65;
+}
+
+.procedure-card button {
+  min-height: 36px;
+  font-size: 13px;
+}
+
+.workspace-test-presets {
+  margin: 4px 12px 16px;
+  border: 1px solid var(--eduref-border);
+  border-radius: 12px;
+  background: #ffffffb3;
+}
+
+.workspace-test-presets > summary {
+  padding: 14px 12px;
+  color: #355568;
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.workspace-test-presets button {
+  min-height: 40px;
+  font-size: 12px;
+  white-space: normal;
+}
+
+.terminal-panel-body {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 14px;
+  overflow: hidden;
+}
+
+.workspace-verify-entry {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 15px 14px;
+  border: 1px solid #31566b;
+  border-radius: 13px;
+  background: linear-gradient(120deg, #172d3c, #244d58);
+  color: #bcebe3;
+  flex-shrink: 0;
+  transition: background 180ms, border-color 180ms, box-shadow 180ms;
+}
+
+.workspace-verify-entry:hover {
+  border-color: #238b83;
+  box-shadow: 0 5px 14px #172d3c18;
+}
+
+.workspace-verify-entry > span {
+  flex: 1;
+  min-width: 0;
+}
+
+.workspace-verify-entry strong {
+  display: block;
+  color: white;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.workspace-verify-entry small {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+}
+
+.workspace-terminal {
+  flex: 1;
+  min-height: 0;
+  box-shadow: 0 8px 22px #172d3c14;
+}
+
+.workspace-terminal > div:last-child {
+  flex: 1;
+  min-height: 0;
+}
+
+.live-terminal-console > div:first-child {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.live-terminal-console > div:first-child button {
+  min-width: 36px;
+  min-height: 36px;
+}
+
+.live-terminal-console > div:last-child,
+.live-terminal-console .text-\[11px\] {
+  font-size: 12px;
+  line-height: 1.7;
+}
+
+.live-terminal-console .text-\[10px\],
+.live-terminal-console .text-\[9px\] {
+  font-size: 11px;
+}
+
+.terminal-log-details > summary {
+  width: fit-content;
+  padding-block: 7px;
+  color: #a6b7c6;
+  cursor: pointer;
+  font-size: 11px;
+}
+
+.competition-workspace .student-chat-header {
+  min-height: 80px;
+  padding: 14px 22px;
+  border-color: var(--eduref-border);
+}
+
+.competition-workspace .chat-title {
+  color: var(--eduref-ink);
+  font-size: 18px;
+}
+
+.competition-workspace .chat-caption {
+  font-size: 13px;
+  line-height: 1.55;
+}
+
+.competition-workspace .chat-avatar {
+  width: 40px;
+  height: 40px;
+  color: white;
+  background: var(--eduref-ink);
+}
+
+.competition-workspace .chat-messages {
+  padding: 24px clamp(16px, 2.2vw, 38px);
+}
+
+.competition-workspace .chat-message-content {
+  padding: 16px 18px;
+  font-size: 16px;
+  line-height: 1.75;
+}
+
+.competition-workspace .chat-message-content > .font-sans {
+  font-size: inherit;
+  line-height: inherit;
+}
+
+.competition-workspace .chat-message-content > div:last-child {
+  font-size: 12px;
+}
+
+.chat-actions-menu {
+  position: relative;
+}
+
+.chat-actions-menu > summary {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 44px;
+  border-radius: 9px;
+  cursor: pointer;
+  list-style: none;
+  color: #526575;
+}
+
+.chat-actions-menu > summary::-webkit-details-marker {
+  display: none;
+}
+
+.chat-actions-menu > summary:hover {
+  background: var(--eduref-canvas);
+}
+
+.chat-actions-popover {
+  position: absolute;
+  top: calc(100% + 6px);
+  right: 0;
+  width: min(270px, calc(100vw - 32px));
+  z-index: 20;
+  padding: 14px;
+  border: 1px solid var(--eduref-border);
+  border-radius: 12px;
+  background: white;
+  box-shadow: 0 12px 32px #172d3c1a;
+}
+
+.chat-actions-popover p {
+  margin-bottom: 8px;
+  color: #526575;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.competition-workspace .chat-header-tools button {
+  min-height: 44px;
+}
+
+.competition-workspace .chat-header-tools button span {
+  font-size: 13px;
+}
+
+.competition-workspace .chat-composer {
+  padding: 18px 22px;
+  border-color: var(--eduref-border);
+  background: #f8fafb;
+}
+
+.competition-workspace .chat-composer input {
+  min-height: 52px;
+  font-size: 16px;
+  border-radius: 12px;
+  border-color: #c4d2db;
+}
+
+.competition-workspace .chat-composer form > button {
+  min-height: 52px;
+  border-radius: 12px;
+  font-size: 14px;
+}
+
+.competition-workspace .chat-suggestions button {
+  min-height: 36px;
+  font-size: 13px;
+  background: white;
+  border-color: #d1dee5;
+}
+
+.competition-workspace .chat-composer-hint {
+  font-size: 12px;
+}
+
+.chat-outcome {
+  margin-top: 14px;
+  padding: 12px 14px;
+  border: 1px solid #c8dce0;
+  border-radius: 10px;
+  background: #f0f7f7;
+  color: #305465;
+  font-size: 14px;
+  line-height: 1.65;
+}
+
+.chat-outcome-label {
+  font-weight: 650;
+}
+
+.chat-outcome[data-outcome="ASK_CLARIFICATION"],
+.chat-outcome[data-outcome="WAITING_STUDENT"],
+.chat-outcome[data-outcome="ESCALATE_TO_STAFF"],
+.chat-outcome[data-outcome="ESCALATED"] {
+  border-color: #e9d4ab;
+  background: #fff8ec;
+  color: #80570e;
+}
+
+.chat-outcome[data-outcome^="REJECTED"] {
+  border-color: #efc9ce;
+  background: #fff3f4;
+  color: #9b3444;
+}
+
+.agent-trace {
+  width: 100%;
+  max-width: 74ch;
+  margin-right: auto;
+  border: 1px solid #d5e4e4;
+  border-radius: 12px;
+  background: #f7faf9;
+  color: #355d60;
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.agent-trace > summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-height: 44px;
+  padding: 10px 13px;
+  cursor: pointer;
+  list-style: none;
+}
+
+.agent-trace > summary::-webkit-details-marker {
+  display: none;
+}
+
+.trace-summary-label {
+  flex: 1;
+  min-width: min(180px, 100%);
+  font-weight: 600;
+}
+
+.trace-duration {
+  color: #526575;
+  font-variant-numeric: tabular-nums;
+}
+
+.trace-disclosure-label {
+  color: #526575;
+  font-size: 12px;
+}
+
+.trace-chevron {
+  transition: transform 160ms;
+}
+
+.agent-trace[open] .trace-chevron {
+  transform: rotate(180deg);
+}
+
+.trace-body {
+  padding: 0 14px 14px;
+}
+
+.trace-body li {
+  display: flex;
+  align-items: baseline;
+  gap: 9px;
+  padding-block: 5px;
+}
+
+.trace-body li svg {
+  flex-shrink: 0;
+}
+
+.trace-note {
+  margin-top: 9px;
+  color: #526575;
+  font-size: 12px;
+}
+
+.agent-trace[data-trace-status="running"] {
+  border-color: #a8c8c6;
+  background: #eff7f5;
+}
+
+.agent-trace[data-trace-status="failed"],
+.agent-trace[data-trace-status="disconnected"],
+.agent-trace[data-trace-status="interrupted"] {
+  border-color: #e9d4ab;
+  background: #fff8ec;
+  color: #80570e;
+}
+
+.site-header:not(.is-floating) .site-nav-link {
+  font-size: 14px;
+  color: #355568;
+}
+
+.site-header:not(.is-floating) .site-nav-link[aria-current="page"] {
+  color: var(--eduref-primary);
+  background: #dcefed;
+}
+
+.site-header:not(.is-floating) .account-trigger strong {
+  font-size: 13px;
+}
+
+@media (min-width: 1280px) {
+  .competition-workspace {
+    flex-direction: row;
+  }
+  .competition-workspace .workspace-mobile-nav {
+    display: none;
+  }
+  .competition-workspace .workspace-sidebar,
+  .competition-workspace .student-chat {
+    display: flex;
+  }
+  .competition-workspace .workspace-sidebar {
+    flex: 0 0 auto;
+    border-color: var(--eduref-border);
+    border-style: solid;
+    border-width: 0;
+  }
+  .competition-workspace .procedure-sidebar {
+    width: clamp(250px, 19vw, 288px);
+    border-right-width: 1px;
+  }
+  .competition-workspace .decision-sidebar {
+    width: clamp(320px, 26vw, 380px);
+    border-left-width: 1px;
+  }
+  .competition-workspace .student-chat {
+    flex: 1;
+  }
+  .competition-workspace[data-left-collapsed="true"] .procedure-sidebar,
+  .competition-workspace[data-right-collapsed="true"] .decision-sidebar {
+    width: 60px;
+  }
+  .competition-workspace[data-left-collapsed="true"] .procedure-sidebar .workspace-sidebar-header,
+  .competition-workspace[data-right-collapsed="true"] .decision-sidebar .workspace-sidebar-header {
+    justify-content: center;
+    padding-inline: 8px;
+  }
+  .competition-workspace[data-terminal-expanded="true"] .decision-sidebar {
+    width: min(46vw, 700px);
+  }
+}
+
+@media (max-width: 1279px) {
+  .terminal-expand {
+    display: none;
+  }
+  .competition-workspace .workspace-sidebar-body {
+    flex: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .competition-workspace .student-chat-header {
+    padding: 12px;
+  }
+  .competition-workspace .chat-title {
+    font-size: 16px;
+  }
+  .competition-workspace .chat-caption {
+    display: none;
+  }
+  .competition-workspace .chat-header-tools button span {
+    display: none;
+  }
+  .competition-workspace .chat-messages {
+    padding: 18px 12px;
+  }
+  .competition-workspace .chat-message-content {
+    padding: 13px 14px;
+    font-size: 16px;
+  }
+  .competition-workspace .chat-composer {
+    padding: 14px 12px;
+  }
+  .competition-workspace .chat-composer-hint > span:first-child {
+    display: none;
+  }
+  .trace-disclosure-label {
+    display: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .trace-chevron {
+    transition: none;
+  }
+}

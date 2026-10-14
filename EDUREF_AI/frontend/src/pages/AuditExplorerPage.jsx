@@ -64,7 +64,7 @@ export default function AuditExplorerPage() {
   };
 
   return (
-    <div className="flex-1 bg-[#F0F4F9] overflow-y-auto p-4 sm:p-6 space-y-5">
+    <div className="flex-1 bg-eduref-canvas overflow-y-auto p-4 sm:p-6 space-y-5">
       <div className="max-w-6xl mx-auto space-y-4">
         
         {/* Header Kiểm Toán */}
@@ -87,7 +87,7 @@ export default function AuditExplorerPage() {
           <button
             onClick={handleVerifyChain}
             disabled={isVerifyingChain}
-            className="px-4 py-2.5 rounded-lg bg-[#0B3B82] hover:bg-[#082C64] active:bg-[#062047] disabled:opacity-50 text-white text-xs font-bold shadow-xs flex items-center gap-2 transition-all shrink-0 cursor-pointer"
+            className="px-4 py-2.5 rounded-lg bg-eduref-primary hover:bg-eduref-hover active:bg-eduref-hover disabled:opacity-50 text-white text-xs font-bold shadow-xs flex items-center gap-2 transition-all shrink-0 cursor-pointer"
           >
             {isVerifyingChain ? (
               <>
@@ -271,7 +271,7 @@ export default function AuditExplorerPage() {
                       <span className="font-bold text-xs text-slate-900">
                         {log.action}
                       </span>
-                      <span className="font-mono text-[10px] text-slate-400">
+                      <span className="font-mono text-[10px] text-slate-500">
                         {new Date(log.createdAt).toLocaleString('vi-VN')}
                       </span>
                     </div>
@@ -306,7 +306,7 @@ export default function AuditExplorerPage() {
           <div className="w-full max-w-xl rounded-xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4 text-left animate-in fade-in zoom-in-95 duration-150 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
-                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                <span className="text-[10px] font-bold uppercase tracking-wider text-slate-500">
                   Chi Tiết Bằng Chứng Kiểm Toán
                 </span>
                 <h3 className="text-sm font-bold text-slate-900 mt-0.5">
@@ -315,7 +315,7 @@ export default function AuditExplorerPage() {
               </div>
               <button
                 onClick={() => setSelectedLog(null)}
-                className="text-slate-400 hover:text-slate-700 text-sm font-bold p-1"
+                className="text-slate-500 hover:text-slate-700 text-sm font-bold p-1"
               >
                 ✕
               </button>
@@ -324,19 +324,19 @@ export default function AuditExplorerPage() {
             <div className="space-y-3 text-xs">
               <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Tác tử (Who):</span>
+                  <span className="text-slate-500 block text-[10px]">Tác tử (Who):</span>
                   <span className="font-semibold text-slate-800">{selectedLog.actorType}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Quyết định:</span>
+                  <span className="text-slate-500 block text-[10px]">Quyết định:</span>
                   <span className="font-bold text-blue-700">{selectedLog.decision}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Thời gian:</span>
+                  <span className="text-slate-500 block text-[10px]">Thời gian:</span>
                   <span>{new Date(selectedLog.createdAt).toLocaleString('vi-VN')}</span>
                 </div>
                 <div>
-                  <span className="text-slate-400 block text-[10px]">Hồ sơ đơn:</span>
+                  <span className="text-slate-500 block text-[10px]">Hồ sơ đơn:</span>
                   <span className="font-mono font-bold">{selectedLog.request?.requestCode || 'N/A'}</span>
                 </div>
               </div>

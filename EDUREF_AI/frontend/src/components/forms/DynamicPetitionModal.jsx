@@ -455,7 +455,7 @@ export default function DynamicPetitionModal({
           </div>
           <button
             onClick={onClose}
-            className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+            className="p-1.5 rounded-md text-slate-500 hover:text-slate-700 hover:bg-slate-200 transition-colors"
           >
             <X className="w-4 h-4" />
           </button>
@@ -524,7 +524,7 @@ export default function DynamicPetitionModal({
                         }}
                         className={`py-2 px-2 rounded-lg text-[11px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer border ${
                           isActive
-                            ? 'bg-[#0B3B82] text-white border-[#082C64] shadow-xs'
+                            ? 'bg-eduref-primary text-white border-eduref-hover shadow-xs'
                             : 'bg-white text-slate-700 border-slate-200 hover:bg-slate-50 hover:text-slate-900'
                         }`}
                       >

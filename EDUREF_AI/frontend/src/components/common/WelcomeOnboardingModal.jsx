@@ -69,14 +69,14 @@ export default function WelcomeOnboardingModal({
         {/* Nút đóng góc phải */}
         <button
           onClick={handleClose}
-          className="absolute top-3.5 right-3.5 p-1.5 rounded-full text-slate-400 hover:text-slate-700 hover:bg-slate-100 transition-colors z-10 cursor-pointer"
+          className="absolute top-3.5 right-3.5 p-1.5 rounded-full text-slate-500 hover:text-slate-700 hover:bg-slate-100 transition-colors z-10 cursor-pointer"
           aria-label="Đóng"
         >
           <X className="w-5 h-5" />
         </button>
 
         {/* Header giới thiệu */}
-        <div className="bg-[#0B3B82] p-5 sm:p-6 text-white text-left">
+        <div className="bg-eduref-primary p-5 sm:p-6 text-white text-left">
           <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-white/15 text-blue-100 text-[11px] font-semibold mb-2.5 backdrop-blur-xs border border-white/20">
             <Sparkles className="w-3.5 h-3.5 text-amber-300" />
             <span>EduRef AI · Trợ Lý Học Vụ Tự Hành HUTECH</span>
@@ -94,7 +94,7 @@ export default function WelcomeOnboardingModal({
           
           {/* 3 Bước siêu nhanh */}
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2.5 flex items-center gap-1.5">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2.5 flex items-center gap-1.5">
               <Zap className="w-3.5 h-3.5 text-amber-500" />
               3 bước trải nghiệm cực nhanh:
             </div>
@@ -119,7 +119,7 @@ export default function WelcomeOnboardingModal({
 
           {/* 3 Kịch bản thử thách AI */}
           <div>
-            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-2 flex items-center justify-between">
+            <div className="text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2 flex items-center justify-between">
               <span className="flex items-center gap-1.5">
                 <MessageSquare className="w-3.5 h-3.5 text-blue-600" />
                 Gợi ý 3 câu nên nhắn để "thử thách" Bot (Bấm để test ngay):
@@ -172,7 +172,7 @@ export default function WelcomeOnboardingModal({
             </button>
             <button
               onClick={handleClose}
-              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-[#0B3B82] hover:bg-[#082C64] active:bg-[#062047] text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
+              className="flex-1 sm:flex-initial flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg bg-eduref-primary hover:bg-eduref-hover active:bg-eduref-hover text-white text-xs font-semibold shadow-xs transition-all cursor-pointer"
             >
               <span>Vào trải nghiệm</span>
               <ArrowRight className="w-3.5 h-3.5" />

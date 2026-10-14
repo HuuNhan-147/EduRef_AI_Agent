@@ -1,7 +1,9 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Activity, CheckCircle2, Clock, FileText, Play, RotateCw, Send, ShieldCheck, XCircle } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Activity, Play, RotateCw, Terminal } from 'lucide-react';
 import api from '../services/api';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
+import LoadingSkeleton from '../components/common/LoadingSkeleton';
+import VerifyResults, { DecisionBadge, VerifySummary, formatTimestamp } from '../components/common/VerifyResults';
 
 const TRACK_A_CASES = [
   { id: 'A-01', title: 'Thường quy: làm vé xe buýt', expectedDecision: 'AUTO_APPROVED', category: 'ROUTINE' },
@@ -45,12 +47,12 @@ const QUICK_TEST_CHIPS = [
     tip: 'ESCALATE_TO_STAFF: Yêu cầu ngoại lệ vượt thẩm quyền tự động',
   },
   {
-    label: 'Bị nợ học phí',
-    badge: 'REJECT',
-    color: 'border-rose-300 bg-rose-50 text-rose-900 hover:bg-rose-100',
+    label: 'Nợ học phí',
+    badge: 'TEST',
+    color: 'border-slate-200 bg-slate-50 text-slate-700 hover:bg-slate-100',
     prompt: 'Cho em xin giấy xác nhận sinh viên để làm hồ sơ học bổng',
     studentCode: '2110003',
-    tip: 'AUTO_REJECT: Sinh viên nợ học phí 15.000.000đ (Quy chế nợ 0đ)',
+    tip: 'Ca có nợ học phí: policy hiện tại không dùng nợ học phí để chặn cấp giấy. Xem quyết định thực tế từ backend.',
   },
   {
     label: 'Đã thôi học',
@@ -61,22 +63,6 @@ const QUICK_TEST_CHIPS = [
     tip: 'AUTO_REJECT: Sinh viên trạng thái thôi học (DROPPED)',
   },
 ];
-
-function formatTimestamp(value) {
-  if (!value) return '—';
-  return new Intl.DateTimeFormat('vi-VN', { dateStyle: 'short', timeStyle: 'medium' }).format(new Date(value));
-}
-
-function DecisionBadge({ value }) {
-  const color = value === 'AUTO_APPROVED'
-    ? 'bg-emerald-100 text-emerald-800 border border-emerald-300'
-    : value?.startsWith('ESCALATE_')
-      ? 'bg-amber-100 text-amber-800 border border-amber-300'
-      : value === 'REJECTED_POLICY'
-        ? 'bg-rose-100 text-rose-800 border border-rose-300'
-        : 'bg-blue-100 text-blue-800 border border-blue-300';
-  return <span className={`rounded px-2.5 py-1 font-mono text-[11px] font-bold ${color}`}>{value || 'CHƯA CHẠY'}</span>;
-}
 
 export default function VerifyHarnessPage() {
   const [run, setRun] = useState(null);
@@ -99,13 +85,7 @@ export default function VerifyHarnessPage() {
   }, []);
 
   const cases = run?.results || TRACK_A_CASES;
-  const selected = cases.find((item) => item.id === selectedId) || cases[0];
-  const passRate = run ? Math.round((run.passedCases / run.totalCases) * 100) : null;
 
-  const distributionLabel = useMemo(() => {
-    if (!run) return 'Tiêu chuẩn đề bài: 3 AUTO (60%) · 2 ESCALATE (40%)';
-    return `AUTO=${run.autoCount} · ESCALATE=${run.escalationCount} (Đạt chuẩn 100%)`;
-  }, [run]);
 
   const runSuite = async () => {
     setIsRunning(true);
@@ -151,267 +131,71 @@ export default function VerifyHarnessPage() {
     || customResult?.data?.contextCapsule?.actionableQuestion;
 
   return (
-    <div ref={containerRef} className="w-full min-h-full bg-[#F0F4F9] p-4 pb-24 text-slate-900">
-      <div className="mx-auto flex max-w-[1600px] flex-col gap-4">
-        {/* Header điều khiển Verify */}
-        <header className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-          <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
-            <div className="flex items-center gap-3">
-              <div className="rounded-lg bg-[#0B3B82] p-2.5 text-white shadow-xs">
-                <Activity className="h-6 w-6" />
-              </div>
-              <div>
-                <h1 className="text-base font-bold text-slate-900">
-                  Verify Harness — VNG Track A (OrganizationAI)
-                </h1>
-                <p className="text-xs text-slate-500">
-                  Thẩm định tự hành 5 ca chuẩn mực theo yêu cầu Ban Giám Khảo · 1 click duy nhất · Kết quả thật, timestamp thật, mã băm SHA-256 thật.
-                </p>
-              </div>
-            </div>
-
-            {/* Nút bấm Kích hoạt Thẩm định 1-Click duy nhất */}
-            <div className="flex items-center gap-2">
-              <button
-                onClick={runSuite}
-                disabled={isRunning}
-                className="flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 px-5 py-2.5 text-xs font-bold text-white shadow-md disabled:opacity-50 cursor-pointer transition-all"
-              >
-                {isRunning ? (
-                  <>
-                    <RotateCw className="h-4 w-4 animate-spin" />
-                    <span>Đang thẩm định 5 ca…</span>
-                  </>
-                ) : (
-                  <>
-                    <Play className="h-4 w-4 fill-current" />
-                    <span>KÍCH HOẠT THẨM ĐỊNH 5 CA CHUẨN TRACK A (VNG)</span>
-                  </>
-                )}
-              </button>
-            </div>
+    <div ref={containerRef} className="verify-page">
+      <div className="verify-container">
+        <header className="verify-header">
+          <div className="verify-header-copy">
+            <span className="eyebrow"><Activity size={15} aria-hidden="true" /> COMPETITION MODE · VNG TRACK A</span>
+            <h1>Kiểm chứng, không chỉ trình diễn.</h1>
+            <p>Bấm Chạy 5 ca Track A để kiểm tra 3 AUTO : 2 ESCALATE, sau đó nhập một tình huống mới.</p>
           </div>
-
-          {/* 4 Thẻ chỉ số tổng kết theo tiêu chuẩn BTC */}
-          <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
-            <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
-              <div className="text-[10px] font-bold uppercase text-slate-500">Tỷ lệ chính xác (Accuracy)</div>
-              <div className="mt-1 font-mono text-sm font-bold text-emerald-700">
-                {run ? `${run.passedCases}/${run.totalCases} PASS (${passRate}%)` : 'Chưa thực thi'}
-              </div>
-            </div>
-            <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
-              <div className="text-[10px] font-bold uppercase text-slate-500">Phân bố quyết định (3 Auto : 2 Escalate)</div>
-              <div className="mt-1 font-mono text-xs font-bold text-blue-800">
-                {distributionLabel}
-              </div>
-            </div>
-            <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
-              <div className="text-[10px] font-bold uppercase text-slate-500">Tổng thời gian thẩm định</div>
-              <div className="mt-1 font-mono text-sm font-bold text-slate-800">
-                {run ? `${run.totalDurationMs} ms` : '—'}
-              </div>
-            </div>
-            <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
-              <div className="text-[10px] font-bold uppercase text-slate-500">Hoàn tất lúc</div>
-              <div className="mt-1 font-mono text-sm font-bold text-slate-800">
-                {formatTimestamp(run?.completedAt)}
-              </div>
-            </div>
-          </div>
-          {error && (
-            <p className="mt-3 rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-700 font-medium">
-              Không thể chạy Verify: {error}
-            </p>
-          )}
+          <button type="button" onClick={runSuite} disabled={isRunning} className="ui-button ui-button-primary">
+            {isRunning ? <RotateCw size={17} className="animate-spin" aria-hidden="true" /> : <Play size={17} aria-hidden="true" />}
+            {isRunning ? 'Đang chạy 5 ca…' : 'Chạy 5 ca Track A'}
+          </button>
         </header>
+        {error && <div className="verify-error" role="alert">Không thể chạy Verify: {error}. Bạn có thể thử chạy lại.</div>}
+        {error && run && <p className="mb-4 text-xs text-eduref-muted">Bảng bên dưới là lượt hoàn tất lúc {formatTimestamp(run.completedAt)}. Lần chạy vừa rồi chưa trả kết quả mới.</p>}
+        <VerifySummary run={run} loading={isRunning} />
+        <VerifyResults cases={cases} selectedId={selectedId} onSelect={setSelectedId} run={run} loading={isRunning} />
 
-        {/* Nội dung ma trận kiểm thử và Live Console */}
-        <main className="grid gap-3 xl:grid-cols-12">
-          {/* Cột trái: Ma trận 5 ca chuẩn Track A */}
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-8">
-            <div className="flex items-center justify-between border-b border-slate-200 p-3 bg-slate-50">
-              <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-800">
-                <FileText className="h-4 w-4 text-blue-700" />
-                Ma trận kiểm thử chuẩn mực Track A (5 kịch bản VNG)
-              </div>
-              <span className="text-xs font-mono text-slate-500">
-                Policy: {run?.policyVersion || 'STUDENT_CONFIRMATION_V1.0.0'}
-              </span>
+        <section className="verify-custom" aria-labelledby="custom-case-heading">
+          <div className="verify-custom-intro">
+            <span className="eyebrow">THỬ MỘT TÌNH HUỐNG MỚI</span>
+            <h2 id="custom-case-heading">Ca của Ban Giám Khảo</h2>
+            <p>Nhập yêu cầu chưa có trong bộ mẫu. Kết quả hiển thị quyết định, phân loại và câu hỏi từ Policy Engine.</p>
+            <p className="verify-fixture-note">Các nút bên dưới dùng tài khoản mẫu. Bấm một nút sẽ thực thi ngay ca tương ứng.</p>
+            <div className="verify-chips">
+              {QUICK_TEST_CHIPS.map((chip) => (
+                <button key={chip.label} type="button" onClick={() => handleSelectChip(chip)} title={chip.tip} disabled={isCustomRunning} className={'verify-chip ' + chip.color}>
+                  <span>{chip.label}</span><small>{chip.badge}</small>
+                </button>
+              ))}
             </div>
-
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-xs">
-                <thead className="bg-slate-100/70 text-slate-600 font-bold">
-                  <tr>
-                    <th className="p-3">Mã</th>
-                    <th className="p-3">Kịch bản thẩm định</th>
-                    <th className="p-3">Phân loại đề bài</th>
-                    <th className="p-3">Kỳ vọng</th>
-                    <th className="p-3">Thực tế</th>
-                    <th className="p-3">Kết luận</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {cases.map((testCase) => {
-                    const executed = Object.prototype.hasOwnProperty.call(testCase, 'actualDecision');
-                    const isSelected = selected?.id === testCase.id;
-                    return (
-                      <tr
-                        key={testCase.id}
-                        onClick={() => setSelectedId(testCase.id)}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected ? 'bg-blue-50 font-medium' : 'hover:bg-slate-50'
-                        }`}
-                      >
-                        <td className="p-3 font-mono font-bold text-blue-700">{testCase.id}</td>
-                        <td className="p-3 font-semibold text-slate-900">{testCase.title}</td>
-                        <td className="p-3 font-mono text-[11px] text-slate-600">
-                          {testCase.classification || testCase.category || '—'}
-                        </td>
-                        <td className="p-3">
-                          <DecisionBadge value={testCase.expectedDecision} />
-                        </td>
-                        <td className="p-3">
-                          <DecisionBadge value={executed ? testCase.actualDecision : null} />
-                        </td>
-                        <td className="p-3">
-                          {executed ? (
-                            testCase.passed ? (
-                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
-                                <CheckCircle2 className="h-4 w-4" />
-                                PASS
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 font-bold text-rose-700">
-                                <XCircle className="h-4 w-4" />
-                                FAIL
-                              </span>
-                            )
-                          ) : (
-                            <span className="text-slate-400">Chờ kích hoạt</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-
-            {/* Chi tiết ca đang chọn */}
-            <div className="grid gap-3 border-t border-slate-200 p-4 bg-slate-50/50 md:grid-cols-3">
-              <div>
-                <div className="text-[10px] font-bold uppercase text-slate-500">Đầu vào của sinh viên (Input)</div>
-                <p className="mt-1 text-xs leading-5 text-slate-800 bg-white p-2.5 rounded border border-slate-200">
-                  {selected?.prompt || selected?.title}
-                </p>
-              </div>
-              <div>
-                <div className="text-[10px] font-bold uppercase text-slate-500">Quyết định & Câu hỏi hành động</div>
-                {selected?.actualDecision ? (
-                  <div className="mt-1 space-y-1.5 bg-white p-2.5 rounded border border-slate-200">
-                    <DecisionBadge value={selected.actualDecision} />
-                    <p className="text-xs leading-5 text-slate-700">
-                      {selected.actionableQuestion || selected.message}
-                    </p>
-                  </div>
-                ) : (
-                  <p className="mt-1 text-xs text-slate-400 bg-white p-2.5 rounded border border-slate-200">
-                    Chưa có kết quả thực thi.
-                  </p>
-                )}
-              </div>
-              <div>
-                <div className="text-[10px] font-bold uppercase text-slate-500">Bằng chứng kiểm toán (Audit Evidence)</div>
-                <div className="mt-1 space-y-1 font-mono text-[11px] bg-white p-2.5 rounded border border-slate-200 text-slate-600">
-                  <p>
-                    <Clock className="mr-1 inline h-3 w-3 text-slate-400" />
-                    Độ trễ: {selected?.durationMs != null ? `${selected.durationMs} ms` : '—'}
-                  </p>
-                  <p>Bắt đầu: {formatTimestamp(selected?.startedAt)}</p>
-                  <p>Kết thúc: {formatTimestamp(selected?.completedAt)}</p>
-                  <p className="break-all font-bold text-blue-700">
-                    SHA-256: {selected?.sha256Proof ? `${selected.sha256Proof.slice(0, 24)}...` : '—'}
-                  </p>
-                </div>
-              </div>
-            </div>
-          </section>
-
-          {/* Cột phải: Live Console & Ca thử nghiệm của Giám khảo */}
-          <aside className="flex flex-col gap-3 xl:col-span-4">
-            {/* Terminal theo dõi tiến trình thời gian thực */}
-            <div className="min-h-[300px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-sm">
-              <LiveTerminalConsole maxHeight="max-h-[360px] overflow-y-auto" className="h-full border-0 shadow-none" />
-            </div>
-
-            {/* Hộp thử nghiệm ca tự do dành cho Giám khảo */}
-            <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-              <div className="mb-2.5 flex items-center justify-between">
-                <div className="text-xs font-bold uppercase tracking-wider text-[#0B3B82]">
-                  Thử nghiệm ca của Giám khảo
-                </div>
-                <span className="text-[10px] text-slate-500 font-mono bg-slate-100 px-2 py-0.5 rounded border border-slate-200">
-                  MSSV: <strong className="text-[#0B3B82]">{customStudentCode}</strong>
-                </span>
-              </div>
-
-              {/* Quick-Test Chips 1-Click */}
-              <div className="mb-3">
-                <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
-                  Kịch bản thử nghiệm nhanh (1-Click):
-                </div>
-                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
-                  {QUICK_TEST_CHIPS.map((chip, idx) => (
-                    <button
-                      key={idx}
-                      type="button"
-                      onClick={() => handleSelectChip(chip)}
-                      title={chip.tip}
-                      disabled={isCustomRunning}
-                      className={`flex items-center justify-between rounded-lg border px-2 py-1.5 text-[11px] font-medium transition-all cursor-pointer disabled:opacity-50 ${chip.color}`}
-                    >
-                      <span className="truncate">{chip.label}</span>
-                      <span className="ml-1 text-[9px] font-bold uppercase opacity-80">{chip.badge}</span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <textarea
-                value={customPrompt}
-                onChange={(event) => setCustomPrompt(event.target.value)}
-                rows={2}
-                className="w-full resize-none rounded-lg border border-slate-300 p-2.5 text-xs outline-none focus:border-[#0B3B82] focus:ring-1 focus:ring-[#0B3B82]"
-                placeholder="Nhập yêu cầu kiểm thử hoặc bấm các nút kịch bản mẫu ở trên…"
-              />
-              <button
-                onClick={() => runCustom()}
-                disabled={isCustomRunning || !customPrompt.trim()}
-                className="mt-2 flex w-full items-center justify-center gap-2 rounded-lg bg-[#0B3B82] hover:bg-[#082C64] active:bg-[#062047] px-3 py-2 text-xs font-bold text-white disabled:opacity-50 cursor-pointer transition-all shadow-xs"
-              >
-                {isCustomRunning ? <RotateCw className="h-4 w-4 animate-spin" /> : null}
-                <span>Chạy qua Policy Engine</span>
+          </div>
+          <div className="verify-custom-workspace">
+            <form onSubmit={(event) => { event.preventDefault(); runCustom(); }}>
+              <label htmlFor="judge-student-code">Mã sinh viên kiểm thử</label>
+              <input id="judge-student-code" value={customStudentCode} onChange={(event) => setCustomStudentCode(event.target.value)} disabled={isCustomRunning} autoComplete="off" />
+              <label htmlFor="judge-prompt">Yêu cầu của sinh viên</label>
+              <textarea id="judge-prompt" value={customPrompt} onChange={(event) => setCustomPrompt(event.target.value)} rows={3} disabled={isCustomRunning} placeholder="Nhập một tình huống mới…" />
+              <button type="submit" disabled={isCustomRunning || !customPrompt.trim()} className="ui-button ui-button-primary">
+                {isCustomRunning ? <RotateCw size={16} className="animate-spin" aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
+                {isCustomRunning ? 'Đang đối chiếu policy…' : 'Chạy ca của bạn'}
               </button>
-              <div className="mt-3 min-h-24 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
-                {!customResult && <p className="text-slate-400">Kết quả sẽ xuất hiện sau khi backend thực thi.</p>}
-                {customResult && !customResult.success && <p className="text-rose-700 font-semibold">{customResult.error}</p>}
-                {customResult?.success && (
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <DecisionBadge value={customDecision} />
-                      <span className="font-mono text-[10px] text-slate-500">{customResult.durationMs} ms</span>
+            </form>
+            <div className="verify-custom-result" aria-live="polite" aria-busy={isCustomRunning}>
+              {isCustomRunning ? <LoadingSkeleton label="Đang chờ kết quả từ backend…" rows={2} /> : (
+                <>
+                  {!customResult && <p>Kết quả sẽ xuất hiện sau khi backend thực thi.</p>}
+                  {customResult && !customResult.success && <p className="text-rose-700" role="alert">{customResult.error || 'Backend chưa trả kết quả thành công. Hãy thử lại.'}</p>}
+                  {customResult?.success && (
+                    <div className="space-y-3">
+                      <div className="flex flex-wrap items-center justify-between gap-2"><DecisionBadge value={customDecision} /><span>{customResult.durationMs != null ? customResult.durationMs + ' ms' : '—'}</span></div>
+                      <p><strong>Phân loại: </strong>{customResult.data?.classification || '—'}</p>
+                      <p>{customQuestion || customResult.data?.message || 'Backend không trả câu hỏi bổ sung.'}</p>
+                      <p className="verify-result-time">Hoàn tất: {formatTimestamp(customResult.completedAt)}</p>
                     </div>
-                    <p><strong>Phân loại:</strong> {customResult.data?.classification || '—'}</p>
-                    <p className="text-slate-700">{customQuestion || customResult.data?.message}</p>
-                    <p className="text-[10px] text-slate-500 font-mono">Hoàn tất: {formatTimestamp(customResult.completedAt)}</p>
-                  </div>
-                )}
-              </div>
+                  )}
+                </>
+              )}
             </div>
-          </aside>
-        </main>
+          </div>
+        </section>
+        <details className="verify-technical">
+          <summary><Terminal size={16} aria-hidden="true" /><span>Nhật ký kỹ thuật</span><small>Chi tiết hoạt động từ hệ thống</small></summary>
+          <LiveTerminalConsole maxHeight="max-h-[320px] overflow-y-auto" />
+        </details>
       </div>
     </div>
   );

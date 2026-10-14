@@ -1,0 +1,8 @@
+{
+  "date": "2026-10-14",
+  "scope": "User-approved existing demo student display names only; no seed or schema change",
+  "students": [
+    { "studentCode": "2110002", "before": "Trần Thị Bình", "after": "Trần Minh Quang" },
+    { "studentCode": "2110004", "before": "Phạm Văn Dũng", "after": "Trần Đức Tài" }
+  ]
+}

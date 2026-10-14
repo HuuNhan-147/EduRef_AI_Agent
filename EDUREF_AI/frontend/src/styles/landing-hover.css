@@ -1,0 +1,194 @@
+.landing-page [data-hover-depth] {
+  --hover-rotate-x: 0deg;
+  --hover-rotate-y: 0deg;
+  --visual-lift: 0px;
+}
+
+.landing-page .capability-top .capability-label {
+  color: var(--eduref-primary);
+  font-family: inherit;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 1.1px;
+}
+
+.feature-visual {
+  --visual-ink: #35695f;
+  --visual-tint: #dcebe3;
+  position: relative;
+  display: grid;
+  place-items: center;
+  height: 164px;
+  margin-top: 10px;
+  overflow: hidden;
+  border-radius: 14px;
+  perspective: 900px;
+  pointer-events: none;
+}
+
+.feature-visual-documents {
+  --visual-ink: #3e638e;
+  --visual-tint: #dee8f5;
+}
+
+.feature-visual-routing {
+  --visual-ink: #665c87;
+  --visual-tint: #e8e3f1;
+}
+
+.feature-visual-stage {
+  position: relative;
+  width: 146px;
+  height: 98px;
+  transform-style: preserve-3d;
+  transform: translateY(var(--visual-lift)) rotateX(calc(12deg + var(--hover-rotate-x))) rotateY(calc(-12deg + var(--hover-rotate-y))) rotateZ(-4deg);
+  transition: transform 350ms cubic-bezier(.2, .8, .2, 1);
+}
+
+.feature-plane {
+  position: absolute;
+  inset: 0;
+  border: 1px solid var(--visual-tint);
+  border-radius: 13px;
+  background: linear-gradient(135deg, #fff, var(--visual-tint));
+  box-shadow: 0 12px 22px -14px #263e5b38;
+  backface-visibility: hidden;
+}
+
+.feature-plane-back {
+  transform: translate3d(16px, 14px, -22px);
+}
+
+.feature-plane-middle {
+  transform: translate3d(8px, 7px, -11px);
+}
+
+.feature-plane-front {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 18px;
+  background: linear-gradient(135deg, #fff, #f8fafb);
+  transform: translateZ(4px);
+}
+
+.feature-visual-icon {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 42px;
+  height: 46px;
+  border: 1px solid var(--visual-tint);
+  border-radius: 10px;
+  color: var(--visual-ink);
+  background: linear-gradient(140deg, #fff, var(--visual-tint));
+}
+
+.feature-paper-lines {
+  display: grid;
+  flex: 1;
+  gap: 7px;
+}
+
+.feature-paper-lines > i {
+  height: 3px;
+  border-radius: 3px;
+  background: var(--visual-tint);
+}
+
+.feature-paper-lines > i:last-child {
+  width: 65%;
+}
+
+.feature-route {
+  position: relative;
+  display: flex;
+  flex: 1;
+  height: 44px;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--visual-tint);
+}
+
+.feature-route > i {
+  width: 8px;
+  height: 8px;
+  border-radius: 3px;
+  border: 1px solid var(--visual-ink);
+  background: var(--visual-tint);
+}
+
+.feature-route > i:nth-child(2) {
+  align-self: flex-start;
+  margin-top: 3px;
+}
+
+.feature-visual-tile {
+  position: absolute;
+  right: -15px;
+  bottom: -10px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--visual-tint);
+  border-radius: 11px;
+  background: linear-gradient(140deg, #fff, var(--visual-tint));
+  color: var(--visual-ink);
+  box-shadow: 0 8px 18px -10px #263e5b42;
+  transform: translateZ(24px) rotateZ(10deg);
+}
+
+.landing-page .capability-card h3 {
+  margin-top: 8px;
+}
+
+.landing-page .ui-text-link > svg {
+  transition: transform 200ms;
+}
+
+@media (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .landing-page .hero-chat-stage:hover .hero-chat-frame:not(:focus-within):not(:has([data-processing="true"])) {
+    transform: translateY(-6px);
+    border-color: #a4c0e0;
+    box-shadow: 0 38px 72px -28px #163b6845, 0 8px 20px #163b6810;
+  }
+  .landing-page .capability-card.is-pointer-active {
+    --visual-lift: -4px;
+  }
+  .landing-page .ui-text-link:hover > svg {
+    transform: translateX(3px);
+  }
+}
+
+@media (hover: none), (pointer: coarse), (prefers-reduced-motion: reduce) {
+  .landing-page .hero-chat-frame {
+    transform: none;
+    transition: none;
+  }
+  .feature-visual-stage {
+    transform: rotateX(12deg) rotateY(-12deg) rotateZ(-4deg);
+    transition: none;
+  }
+}
+
+.landing-page .capability-card h3,
+.landing-page .landing-fact dt,
+.landing-page .process-steps h3 {
+  transition: color 200ms;
+}
+
+.landing-page .capability-card:hover h3,
+.landing-page .landing-fact:hover dt,
+.landing-page .process-steps > li:hover h3 {
+  color: var(--eduref-primary);
+}
+
+.landing-page .landing-fact {
+  border-radius: 12px;
+  transition: background-color 200ms;
+}
+
+.landing-page .landing-fact:hover {
+  background: #edf3fb;
+}

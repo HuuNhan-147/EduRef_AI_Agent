@@ -51,7 +51,7 @@ export const DEMO_ACCOUNTS = {
   STUDENT_DROPPED: {
     type: 'STUDENT',
     code: '2110002',
-    name: 'Trần Thị Bình',
+    name: 'Trần Minh Quang',
     role: 'STUDENT',
     status: 'DROPPED',
     class: null,
@@ -72,7 +72,7 @@ export const DEMO_ACCOUNTS = {
   STUDENT_SUSPENDED: {
     type: 'STUDENT',
     code: '2110004',
-    name: 'Phạm Văn Dũng',
+    name: 'Trần Đức Tài',
     role: 'STUDENT',
     status: 'SUSPENDED',
     class: '22DTHE2',
