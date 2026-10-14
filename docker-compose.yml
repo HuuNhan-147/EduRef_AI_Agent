@@ -8,7 +8,7 @@ services:
       POSTGRES_PASSWORD: root
       POSTGRES_DB: eduref_db
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - eduref_pgdata:/var/lib/postgresql/data
 
@@ -25,7 +25,9 @@ services:
       NODE_ENV: production
       DATABASE_URL: "${DATABASE_URL:-postgresql://postgres:root@postgres:5432/eduref_db?schema=public}"
       DIRECT_URL: "${DIRECT_URL:-postgresql://postgres:root@postgres:5432/eduref_db?schema=public}"
-      JWT_SECRET: "${JWT_SECRET:-eduref_jwt_secret_hackathon_2026_super_secure_key}"
+      # Bắt buộc tự đặt (vd: openssl rand -hex 32). Không có giá trị mặc định vì mọi giá trị
+      # mặc định trong repo công khai đều cho phép người ngoài giả mạo token STAFF/DEAN.
+      JWT_SECRET: "${JWT_SECRET:?Hay dat JWT_SECRET (openssl rand -hex 32) truoc khi chay docker compose}"
       ALLOW_DEMO_ROLE_SWITCH: "true"
       ALLOW_DESTRUCTIVE_SEED: "true"
       GEMINI_API_KEY: "${GEMINI_API_KEY}"
