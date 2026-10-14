@@ -7,6 +7,10 @@ const httpsAgent = new https.Agent({ keepAlive: true });
 
 let globalKeyIndex = 0;
 
+// Ngưỡng canh stream: im lặng quá lâu, và tổng thời lượng một lượt (có thể ghi đè bằng biến môi trường)
+const STREAM_IDLE_TIMEOUT_MS = Number(process.env.GEMINI_STREAM_IDLE_TIMEOUT_MS) || 30_000;
+const STREAM_MAX_DURATION_MS = Number(process.env.GEMINI_STREAM_MAX_DURATION_MS) || 120_000;
+
 export class GeminiStreamClient {
   constructor(apiKey = process.env.GEMINI_API_KEY, model = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest') {
     const rawKeys = apiKey || process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
@@ -89,12 +93,53 @@ export class GeminiStreamClient {
 
         return await new Promise((resolve, reject) => {
           let buffer = '';
+          let settled = false;
+          let idleTimer = null;
+          let maxTimer = null;
+
+          // `timeout` của axios với responseType 'stream' chỉ áp cho lúc chờ header; nếu Gemini
+          // gửi header rồi im lặng thì promise treo mãi, giữ cả phiên chat và controller trong RAM.
+          // Vì vậy tự canh hai ngưỡng: im lặng quá lâu, và tổng thời lượng một lượt stream.
+          const cleanup = () => {
+            clearTimeout(idleTimer);
+            clearTimeout(maxTimer);
+            if (signal) signal.removeEventListener('abort', onAbort);
+          };
+          const settleResolve = (value) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            resolve(value);
+          };
+          const settleReject = (error) => {
+            if (settled) return;
+            settled = true;
+            cleanup();
+            try {
+              response.data?.destroy();
+            } catch (e) {}
+            reject(error);
+          };
+          const failTimeout = (reason) => {
+            const timeoutError = new Error(reason);
+            timeoutError.code = 'ESTREAMTIMEOUT';
+            timeoutError.expose = true; // thông báo an toàn để hiển thị cho người dùng
+            console.warn(`⏱️ [GeminiStreamClient] ${reason} (Key: ${maskedKey}, Model: ${activeModel})`);
+            settleReject(timeoutError);
+          };
+          const armIdleTimer = () => {
+            clearTimeout(idleTimer);
+            idleTimer = setTimeout(
+              () => failTimeout(`Trợ lý AI không phản hồi trong ${STREAM_IDLE_TIMEOUT_MS / 1000} giây, vui lòng thử lại.`),
+              STREAM_IDLE_TIMEOUT_MS
+            );
+          };
 
           const onAbort = () => {
             try {
               response.data?.destroy();
             } catch (e) {}
-            resolve({
+            settleResolve({
               text: fullText,
               parts: originalParts,
               duration: Date.now() - apiStartTime,
@@ -111,6 +156,12 @@ export class GeminiStreamClient {
             }
             signal.addEventListener('abort', onAbort, { once: true });
           }
+
+          armIdleTimer();
+          maxTimer = setTimeout(
+            () => failTimeout(`Trợ lý AI xử lý quá ${STREAM_MAX_DURATION_MS / 1000} giây, vui lòng thử lại.`),
+            STREAM_MAX_DURATION_MS
+          );
 
           const processJsonObj = (jsonObj) => {
             const candidate = jsonObj.candidates?.[0];
@@ -131,6 +182,7 @@ export class GeminiStreamClient {
               onAbort();
               return;
             }
+            armIdleTimer(); // còn nhận được dữ liệu => chưa treo
             if (ttfb === null) {
               ttfb = Date.now() - apiStartTime;
             }
@@ -160,9 +212,7 @@ export class GeminiStreamClient {
           });
 
           response.data.on('end', () => {
-            if (signal) {
-              signal.removeEventListener('abort', onAbort);
-            }
+            if (settled) return;
             if (buffer.trim()) {
               let jsonStr = buffer.trim();
               if (jsonStr.startsWith('data:')) jsonStr = jsonStr.replace(/^data:\s*/, '').trim();
@@ -178,7 +228,7 @@ export class GeminiStreamClient {
               `⚡ [LLM Performance] Model: ${activeModel} | Key: ${maskedKey} | TTFB: ${ttfb || totalDuration}ms | Tổng: ${totalDuration}ms | Kiểu: ${hasTool ? '🔧 Tool Calling' : '💬 Text Stream'}`
             );
 
-            resolve({
+            settleResolve({
               text: fullText,
               parts: originalParts,
               duration: totalDuration,
@@ -189,13 +239,21 @@ export class GeminiStreamClient {
           });
 
           response.data.on('error', (err) => {
-            if (signal) {
-              signal.removeEventListener('abort', onAbort);
-            }
             if (signal?.aborted || axios.isCancel(err) || err.name === 'CanceledError' || err.name === 'AbortError') {
               onAbort();
             } else {
-              reject(err);
+              settleReject(err);
+            }
+          });
+
+          // Kết nối bị đóng giữa chừng mà không có 'end'/'error' (proxy ngắt, Gemini reset):
+          // trước đây promise treo vĩnh viễn.
+          response.data.on('close', () => {
+            if (!settled) {
+              const closedError = new Error('Kết nối tới trợ lý AI bị ngắt giữa chừng, vui lòng thử lại.');
+              closedError.code = 'ESTREAMCLOSED';
+              closedError.expose = true;
+              settleReject(closedError);
             }
           });
         });
