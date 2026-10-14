@@ -216,4 +216,4 @@
    - **Nhóm 8 & Nhóm 9:** Chứng minh kiểm soát chặt chẽ sinh viên quá 4 năm và hạn ngạch cấp lại lần 2 trong cùng học kỳ.
 3. **Kiểm tra Trách nhiệm Pháp lý Nghĩa vụ Quân sự & Bằng chứng Toàn vẹn:**
    - **Nhóm 10:** Chứng minh quy trình 2 bước đối với Giấy Tạm hoãn NVQS bắt buộc sinh viên xác nhận và cam kết chịu trách nhiệm pháp lý trước Ban Chỉ huy Quân sự địa phương (kể cả sau sáp nhập địa giới).
-   - Mọi quyết định phê duyệt tự động (`AUTO_APPROVED`) và chuyển tiếp Cán bộ (`ESCALATE_TO_STAFF`) đều sinh mã băm SHA-256 lưu trữ vĩnh viễn trên Sổ cái Kiểm toán [Audit Explorer](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/frontend/src/pages/AuditExplorerPage.jsx).
+   - Mọi quyết định phê duyệt tự động (`AUTO_APPROVED`) và chuyển tiếp Cán bộ (`ESCALATE_TO_STAFF`) đều sinh mã băm SHA-256 lưu trữ vĩnh viễn trên Sổ cái Kiểm toán [Audit Explorer](../../EDUREF_AI/frontend/src/pages/AuditExplorerPage.jsx).

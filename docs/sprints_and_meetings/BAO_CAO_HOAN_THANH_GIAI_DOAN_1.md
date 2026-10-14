@@ -1,3 +1,5 @@
+> Tài liệu thiết kế/lịch sử. Mô tả và số liệu tại thời điểm viết cần đối chiếu [API hiện hành](../../EDUREF_AI/docs/09_API.md) trước khi sử dụng.
+
 ﻿# 📋 BÁO CÁO NGHIỆM THU & TÀI LIỆU KỸ THUẬT GIAI ĐOẠN 1
 > **Dự án:** EduRef AI — Autonomous Student Service & Academic Escalation Referee  
 > **Cuộc thi:** MLAI Hackathon 2026 (Track VNG / Bảng 1 — OrganizationAI)  
@@ -63,12 +65,12 @@ Bám sát hướng dẫn thực tế từ Phòng Công tác Sinh viên HUTECH:
 
 | File | Thay đổi chính | Trạng thái |
 | :--- | :--- | :---: |
-| [AcademicWorkflowService.js](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/services/AcademicWorkflowService.js) | Cài đặt `processStudentConfirmation`, xóa bỏ lỗi `purpose` Prisma, lưu `pickupCampus` | ✅ Hoàn thành |
-| [AgentOrchestrator.js](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/modules/ai-agent/core/AgentOrchestrator.js) | Cài đặt trần an toàn `MAX_AGENT_STEPS = 7`, kích hoạt Graceful Escalation | ✅ Hoàn thành |
-| [PromptEngine.js](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/modules/ai-agent/core/PromptEngine.js) | Bổ sung Zero-Tool Gate 4 tầng, luồng hội thoại 2 bước 4A/4B, link Markdown HUTECH | ✅ Hoàn thành |
-| [StudentConfirmationDecisionService.js](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/services/StudentConfirmationDecisionService.js) | Thêm nhóm từ khóa `TAX_DEDUCTION`, nhận diện biểu mẫu trực tiếp CTSV | ✅ Hoàn thành |
-| [MarkdownRenderer.jsx](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/frontend/src/components/common/MarkdownRenderer.jsx) | Nâng cấp regex parse link Markdown và raw URL sang thẻ `<a>` mở tab mới | ✅ Hoàn thành |
-| [ToolRegistry.js](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/modules/ai-agent/tools/ToolRegistry.js) & [ToolResolver.js](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/modules/ai-agent/tools/ToolResolver.js) | Đăng ký và phân giải công cụ `process_student_confirmation` | ✅ Hoàn thành |
+| [AcademicWorkflowService.js](../../EDUREF_AI/backend/services/AcademicWorkflowService.js) | Cài đặt `processStudentConfirmation`, xóa bỏ lỗi `purpose` Prisma, lưu `pickupCampus` | ✅ Hoàn thành |
+| [AgentOrchestrator.js](../../EDUREF_AI/backend/modules/ai-agent/core/AgentOrchestrator.js) | Cài đặt trần an toàn `MAX_AGENT_STEPS = 7`, kích hoạt Graceful Escalation | ✅ Hoàn thành |
+| [PromptEngine.js](../../EDUREF_AI/backend/modules/ai-agent/core/PromptEngine.js) | Bổ sung Zero-Tool Gate 4 tầng, luồng hội thoại 2 bước 4A/4B, link Markdown HUTECH | ✅ Hoàn thành |
+| [StudentConfirmationDecisionService.js](../../EDUREF_AI/backend/services/StudentConfirmationDecisionService.js) | Thêm nhóm từ khóa `TAX_DEDUCTION`, nhận diện biểu mẫu trực tiếp CTSV | ✅ Hoàn thành |
+| [MarkdownRenderer.jsx](../../EDUREF_AI/frontend/src/components/common/MarkdownRenderer.jsx) | Nâng cấp regex parse link Markdown và raw URL sang thẻ `<a>` mở tab mới | ✅ Hoàn thành |
+| [ToolRegistry.js](../../EDUREF_AI/backend/modules/ai-agent/tools/ToolRegistry.js) & [ToolResolver.js](../../EDUREF_AI/backend/modules/ai-agent/tools/ToolResolver.js) | Đăng ký và phân giải công cụ `process_student_confirmation` | ✅ Hoàn thành |
 | `backend/scratch/` | Dọn dẹp sạch sẽ 18 file thử nghiệm rác, đưa vào `.gitignore` | ✅ Đã dọn sạch |
 | `WebMCPAdapter.js` & `LocalServiceAdapter.js` | Loại bỏ 100% code mồ côi WebMCP, thay thế bằng tài liệu `13_ZERO_TRUST_SECURITY.md` | ✅ Đã thanh lý |
 

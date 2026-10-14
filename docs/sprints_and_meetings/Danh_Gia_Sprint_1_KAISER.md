@@ -1,3 +1,5 @@
+> Tài liệu thiết kế/lịch sử. Mô tả và số liệu tại thời điểm viết cần đối chiếu [API hiện hành](../../EDUREF_AI/docs/09_API.md) trước khi sử dụng.
+
 # ĐÁNH GIÁ KỸ THUẬT SPRINT 1 — BAN GIÁM KHẢO HACKATHON
 
 ---
@@ -73,7 +75,7 @@ Kiến trúc thành phần Client-Server kết hợp AI Agent Orchestrator:
 
 ### Problem 1: Quá Nhiều Thư Mục Thử Nghiệm Và Code Rác Chưa Dọn Dẹp (Codebase Hygiene)
 * **Evidence (VERIFIED)**:
-  * Trong thư mục [`EDUREF_AI/backend/scratch/`](team_repos/KAISER/EDUREF_AI/backend/scratch/), nhóm lưu tới hơn 16 file script test thủ công (`test_blurry.js`, `test_real_vision.js`, `test_orchestrator_vision.js`, `diagnose_mismatch.js`...).
+  * Trong thư mục `EDUREF_AI/backend/scratch/` (thư mục thử nghiệm cục bộ, không lưu trong repository), nhóm lưu tới hơn 16 file script test thủ công (`test_blurry.js`, `test_real_vision.js`, `test_orchestrator_vision.js`, `diagnose_mismatch.js`...).
 * **Why it matters**: Việc để lẫn lộn hàng chục script thử nghiệm và các hàm tạm trong cây mã nguồn chính thức gây nhiễu cho việc bảo trì, tăng dung lượng repo và dễ dẫn đến việc nạp nhầm các module thử nghiệm vào luồng production.
 * **Impact**: Giảm tính trong sáng và khả năng bảo trì của mã nguồn.
 * **Recommended fix**: Di chuyển toàn bộ các script tạm thời sang thư mục `tools/` hoặc loại bỏ khỏi nhánh chính.

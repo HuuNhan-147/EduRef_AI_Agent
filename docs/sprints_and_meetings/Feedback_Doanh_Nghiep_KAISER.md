@@ -1,3 +1,5 @@
+> Tài liệu thiết kế/lịch sử. Mô tả và số liệu tại thời điểm viết cần đối chiếu [API hiện hành](../../EDUREF_AI/docs/09_API.md) trước khi sử dụng.
+
 # FEEDBACK TỪ DOANH NGHIỆP — SPRINT 1 (TRACK VNG)
 ## Đội thi: KAISER
 

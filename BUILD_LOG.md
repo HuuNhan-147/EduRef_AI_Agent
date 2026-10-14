@@ -20,7 +20,7 @@ Dự án áp dụng mô hình phân tách rõ ràng giữa **AI Trợ lý Kỹ t
 ## 2. TÍNH HIỆU QUẢ CỦA CÔNG CỤ AI
 
 Sự kết hợp giữa tư duy kiến trúc của nhóm và năng lực thực thi của **Antigravity (Gemini 3.8)** mang lại bước nhảy vọt về hiệu suất:
-- **Tốc độ tái cấu trúc an toàn (Safe Refactor Velocity):** Tái cấu trúc thành công toàn bộ hệ thống từ mô hình phân mảnh sang kiến trúc **Unified Pipeline (5 chốt chặn, 4 trạng thái kết thúc)** bám sát 100% sơ đồ StarUML [`SoDoHeThong_EduRef_AI.mdj`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/SoDoHeThong_EduRef_AI.mdj).
+- **Tốc độ tái cấu trúc an toàn (Safe Refactor Velocity):** Tái cấu trúc thành công toàn bộ hệ thống từ mô hình phân mảnh sang kiến trúc **Unified Pipeline (5 chốt chặn, 4 trạng thái kết thúc)** bám sát 100% sơ đồ StarUML [`SoDoHeThong_EduRef_AI.mdj`](SoDoHeThong_EduRef_AI.mdj).
 - **Bảo chứng Kiểm thử Tự động (Zero-Regression Testing):** Antigravity hỗ trợ thiết kế và thực thi toàn diện bộ kiểm thử hồi quy khắt khe, đạt **54/54 bài kiểm thử vượt qua tuyệt đối (100% PASS)** trên toàn bộ các tầng: Logic quy chế HUTECH, An ninh ranh giới JWT, Sổ cái Merkle SHA-256 và Bounded Autonomy.
 - **Tối ưu hóa Băng thông & Chi phí:** Tinh chỉnh prompt có cấu trúc và thiết lập trần an toàn giúp giảm 35% lượng token tiêu thụ trên mỗi phiên hội thoại của sinh viên.
 

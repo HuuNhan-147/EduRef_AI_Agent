@@ -1,3 +1,5 @@
+> Tài liệu thiết kế/lịch sử. Mô tả và số liệu tại thời điểm viết cần đối chiếu [API hiện hành](../../EDUREF_AI/docs/09_API.md) trước khi sử dụng.
+
 # 📝 BIÊN BẢN & ĐỊNH HƯỚNG CUỘC HỌP VỚI DOANH NGHIỆP (02/10/2026)
 > **Đội thi:** KAISER — EduRef AI Agent  
 > **Sự kiện:** MLAI Hackathon 2026 (Track VNG / Bảng 1 — OrganizationAI)  

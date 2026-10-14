@@ -1,3 +1,5 @@
+> Tài liệu thiết kế/lịch sử. Mô tả và số liệu tại thời điểm viết cần đối chiếu [API hiện hành](../../EDUREF_AI/docs/09_API.md) trước khi sử dụng.
+
 # Sprint 2 Final Plan - EduRef AI
 
 > **Phạm vi đã chốt:** Track A - The Escalation Referee.
