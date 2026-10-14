@@ -296,8 +296,9 @@ export const petitionTools = {
         afterState: { status: newStatus, qrCodeUrl },
         decisionTimeMs: Date.now() - startTime,
       }, async (tx, log) => {
-        await tx.studentRequest.update({
-          where: { id: requestId },
+        // Compare-and-set như staffDecision: chống hai cán bộ cùng quyết định một đơn
+        const updated = await tx.studentRequest.updateMany({
+          where: { id: request.id, status: 'ESCALATED' },
           data: {
             status: newStatus,
             decision: approved ? 'STAFF_APPROVED_EXCEPTION' : 'STAFF_REJECTED',
@@ -305,6 +306,9 @@ export const petitionTools = {
             sha256Proof: log.sha256Hash,
           },
         });
+        if (updated.count !== 1) {
+          throw new Error(`Hồ sơ [${request.requestCode}] vừa được người khác xử lý, vui lòng tải lại danh sách.`);
+        }
       });
 
       return {

@@ -1158,8 +1158,10 @@ class AcademicWorkflowService {
         beforeState,
         afterState: { status: newStatus, qrCodeUrl },
       }, async (tx, log) => {
-        await tx.studentRequest.update({
-          where: { id: request.id },
+        // Compare-and-set: chỉ chuyển trạng thái nếu đơn VẪN ở ESCALATED. Nếu người khác vừa
+        // quyết định trước, throw để transaction rollback (audit log cũng không được ghi).
+        const updated = await tx.studentRequest.updateMany({
+          where: { id: request.id, status: 'ESCALATED' },
           data: {
             status: newStatus,
             decision: approved ? 'STAFF_MANUAL_APPROVED' : 'STAFF_MANUAL_REJECTED',
@@ -1169,6 +1171,9 @@ class AcademicWorkflowService {
             contextCapsule: updatedCapsule,
           },
         });
+        if (updated.count !== 1) {
+          throw new Error(`Hồ sơ [${request.requestCode}] vừa được người khác xử lý, vui lòng tải lại danh sách.`);
+        }
       });
 
       return {
