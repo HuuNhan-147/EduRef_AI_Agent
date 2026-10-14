@@ -157,10 +157,13 @@ class AuditLogService {
   /**
    * Lấy danh sách audit log kèm thông tin đơn và policy
    */
-  static async getLogs({ limit = 50, action = null } = {}) {
+  static async getLogs({ limit = 50, action = null, studentId = null } = {}) {
     try {
       const where = {};
       if (action) where.action = action;
+      // Giới hạn phạm vi theo chủ hồ sơ: inputSnapshot chứa CCCD/SĐT/địa chỉ nên
+      // sinh viên chỉ được xem nhật ký của chính mình.
+      if (studentId) where.request = { studentId };
 
       return await prisma.auditLog.findMany({
         where,

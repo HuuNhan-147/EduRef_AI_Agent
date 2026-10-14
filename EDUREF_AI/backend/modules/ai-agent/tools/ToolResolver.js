@@ -1,9 +1,57 @@
 import workflowTools from './actions/workflowTools.js';
 import verifyTools from './actions/verifyTools.js';
+import prisma from '../../../config/prisma.js';
+
+// Các công cụ thao tác trên một hồ sơ cụ thể qua requestId/requestCode do LLM sinh ra.
+const REQUEST_SCOPED_TOOLS = new Set([
+  'get_request',
+  'check_requirements',
+  'evaluate_policy',
+  'check_authority',
+  'process_request',
+  'ask_student',
+  'escalate_request',
+  'get_execution_trace',
+]);
 
 export class ToolResolver {
+  /**
+   * Zero-Trust: requestId do LLM sinh ra (có thể bị Prompt Injection dẫn dắt) nên với phiên
+   * sinh viên phải xác minh hồ sơ thuộc đúng sinh viên đang đăng nhập trước khi chạy công cụ.
+   * Trả về object lỗi nếu bị chặn, hoặc null nếu được phép đi tiếp.
+   */
+  static async denyIfNotOwner(toolName, args) {
+    if (!REQUEST_SCOPED_TOOLS.has(toolName)) return null;
+    const caller = args.currentUser;
+    const isStudentCaller = caller?.role === 'STUDENT' || caller?.type === 'STUDENT';
+    if (!isStudentCaller) return null;
+
+    const requestId = args.requestId ? String(args.requestId).trim() : '';
+    if (!requestId) return null; // công cụ tự báo thiếu tham số
+
+    const owned = await prisma.studentRequest.findFirst({
+      where: { OR: [{ id: requestId }, { requestCode: requestId }] },
+      select: { student: { select: { studentCode: true } } },
+    });
+    if (!owned) return null; // công cụ tự báo không tìm thấy, không lộ thêm thông tin
+
+    if (!caller.studentCode || owned.student?.studentCode !== caller.studentCode) {
+      console.warn(`🚨 [ToolResolver] Chặn truy cập hồ sơ của sinh viên khác: tool=${toolName}, caller=${caller.studentCode}`);
+      return {
+        success: false,
+        found: false,
+        error: 'FORBIDDEN',
+        message: 'Bạn chỉ được thao tác trên hồ sơ của chính mình.',
+      };
+    }
+    return null;
+  }
+
   static async resolve(toolName, args = {}) {
     console.log(`🛠️ [ToolResolver] Thực thi công cụ: ${toolName}`, args);
+
+    const denied = await ToolResolver.denyIfNotOwner(toolName, args);
+    if (denied) return denied;
 
     switch (toolName) {
       // ⚡ Fast-Path Master Tool
@@ -51,9 +99,6 @@ export class ToolResolver {
 
       case 'run_verify_90s':
         return await verifyTools.run_verify_90s();
-
-      case 'run_general_verify':
-        return await verifyTools.run_general_verify();
 
       default:
         throw new Error(`Công cụ không được hỗ trợ: ${toolName}`);

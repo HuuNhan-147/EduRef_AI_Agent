@@ -254,7 +254,7 @@ export const petitionTools = {
   /**
    * Cán bộ / Lãnh đạo phê duyệt hoặc từ chối ca vượt thẩm quyền
    */
-  async staff_confirm_request({ requestId, reviewerNote = '', approved = true }) {
+  async staff_confirm_request({ requestId, reviewerNote = '', approved = true, actorType = 'STAFF', staffName = null }) {
     const startTime = Date.now();
     try {
       const request = await prisma.studentRequest.findUnique({
@@ -287,11 +287,11 @@ export const petitionTools = {
 
       const auditLog = await AuditLogService.recordLogWithMutation({
         requestId: request.id,
-        actorType: 'STAFF',
+        actorType: ['STAFF', 'DEAN', 'ADMIN'].includes(actorType) ? actorType : 'STAFF',
         action: approved ? 'STAFF_APPROVE' : 'STAFF_REJECT',
         decision: newStatus,
         reason: reviewerNote || (approved ? 'Cán bộ duyệt ngoại lệ' : 'Cán bộ bác bỏ yêu cầu'),
-        inputSnapshot: { requestId, approved, reviewerNote },
+        inputSnapshot: { requestId, approved, reviewerNote, staffName },
         beforeState,
         afterState: { status: newStatus, qrCodeUrl },
         decisionTimeMs: Date.now() - startTime,

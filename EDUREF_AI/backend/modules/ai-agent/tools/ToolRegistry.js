@@ -260,14 +260,6 @@ export class ToolRegistry {
           properties: {},
         },
       },
-      {
-        name: 'run_general_verify',
-        description: 'Chạy bộ Verify tổng quát 4 ca, hiển thị PASS/FAIL và timestamp cho từng ca.',
-        parameters: {
-          type: 'OBJECT',
-          properties: {},
-        },
-      },
     ];
   }
 }

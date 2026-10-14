@@ -10,7 +10,18 @@ const router = express.Router();
 router.get('/logs', authenticateToken, async (req, res) => {
   try {
     const { limit = 50, action } = req.query;
-    const logs = await AuditLogService.getLogs({ limit: Number(limit), action });
+    const parsedLimit = Number.parseInt(limit, 10);
+    const safeLimit = Number.isFinite(parsedLimit) && parsedLimit > 0 ? Math.min(parsedLimit, 200) : 50;
+    // Sinh viên chỉ thấy nhật ký thuộc hồ sơ của mình; cán bộ/Trưởng phòng xem toàn bộ.
+    const studentId = req.user?.role === 'STUDENT' ? req.user.id : null;
+    if (req.user?.role === 'STUDENT' && !studentId) {
+      return res.status(403).json({ success: false, message: 'Không xác định được danh tính sinh viên.' });
+    }
+    const logs = await AuditLogService.getLogs({
+      limit: safeLimit,
+      action: typeof action === 'string' ? action : null,
+      studentId,
+    });
     res.json({ success: true, total: logs.length, data: logs });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });

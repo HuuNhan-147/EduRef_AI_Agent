@@ -5,6 +5,8 @@ import { runAgent } from '../modules/ai-agent/index.js';
 import verifyTools from '../modules/ai-agent/tools/actions/verifyTools.js';
 import petitionTools from '../modules/ai-agent/tools/actions/petitionTools.js';
 import { checkCohortOverdueStatus } from '../services/StudentConfirmationDecisionService.js';
+import { RESERVED_BENCHMARK_STUDENT_CODES } from '../controllers/authController.js';
+import { scopeSessionId } from '../modules/ai-agent/memory/sessionScope.js';
 
 const router = express.Router();
 
@@ -38,7 +40,11 @@ router.post('/chat', authenticateToken, async (req, res) => {
         };
       }
     } else {
-      const codeToFind = explicitStudentCode || req.user?.studentCode;
+      // AN NINH (ZERO-TRUST IDENTITY): phiên STUDENT bắt buộc dùng studentCode trong JWT,
+      // không nhận studentCode do client gửi (đồng bộ với nhánh Socket.IO).
+      const codeToFind = req.user?.role === 'STUDENT'
+        ? req.user?.studentCode
+        : (explicitStudentCode || req.user?.studentCode);
       if (codeToFind) {
         const student = await prisma.student.findUnique({
           where: { studentCode: String(codeToFind).trim() },
@@ -86,7 +92,7 @@ router.post('/chat', authenticateToken, async (req, res) => {
     const result = await runAgent({
       message,
       currentUser: userContext,
-      sessionId,
+      sessionId: scopeSessionId(userContext, sessionId),
       attachments,
       inputData,
     });
@@ -128,10 +134,27 @@ router.post('/verify-custom', authenticateToken, requireStaffOrDean, async (req,
  */
 router.post('/verify-custom-prompt', authenticateToken, async (req, res) => {
   try {
-    const { prompt, studentCode } = req.body;
+    const { prompt } = req.body;
+    let { studentCode } = req.body;
     if (!prompt || !String(prompt).trim()) {
       return res.status(400).json({ success: false, message: 'Vui lòng nhập ca kiểm thử.' });
     }
+
+    // Ca kiểm thử TẠO ĐƠN THẬT. Sinh viên chỉ được chạy trên hồ sơ của chính mình hoặc
+    // hồ sơ benchmark của Nhà trường; nếu không có thể tạo/duyệt đơn thay sinh viên khác
+    // (kể cả bằng cách gõ "mssv ..." trong prompt). Cán bộ/Trưởng phòng không bị giới hạn.
+    if (req.user?.role === 'STUDENT') {
+      const ownCode = String(req.user.studentCode || '').trim();
+      const requested = studentCode ? String(studentCode).trim() : ownCode;
+      if (!requested || (requested !== ownCode && !RESERVED_BENCHMARK_STUDENT_CODES.includes(requested))) {
+        return res.status(403).json({
+          success: false,
+          message: 'Sinh viên chỉ được chạy ca kiểm thử trên hồ sơ của chính mình hoặc hồ sơ benchmark.',
+        });
+      }
+      studentCode = requested;
+    }
+
     const result = await verifyTools.run_custom_prompt({ prompt, studentCode });
     res.json(result);
   } catch (error) {
@@ -173,7 +196,14 @@ router.post('/staff-confirm', authenticateToken, requireStaffOrDean, async (req,
       return res.status(400).json({ success: false, message: 'Thiếu requestId.' });
     }
 
-    const result = await petitionTools.staff_confirm_request({ requestId, reviewerNote, approved });
+    const result = await petitionTools.staff_confirm_request({
+      requestId,
+      reviewerNote,
+      approved,
+      // Ghi danh tính người duyệt vào nhật ký kiểm toán (trước đây luôn ghi chung 'STAFF')
+      actorType: req.user?.role || 'STAFF',
+      staffName: req.user?.fullName || req.user?.username || null,
+    });
     res.json(result);
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
