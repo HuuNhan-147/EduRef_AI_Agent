@@ -1,3 +1,5 @@
+> Tài liệu thiết kế/lịch sử. Mô tả và số liệu tại thời điểm viết cần đối chiếu [API hiện hành](../09_API.md) trước khi sử dụng.
+
 # 🏆 ĐỀ BÀI THỬ THÁCH — BẢNG 1: ORGANIZATION AI
 ### **MLAI Hackathon 2026**
 > **Đơn vị tổ chức:** Mạng lưới AI khu vực phía Nam (Mạng lưới AI) · HCMUT × HUTECH  

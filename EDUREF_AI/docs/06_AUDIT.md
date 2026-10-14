@@ -40,7 +40,7 @@ Hệ thống EduRef AI triển khai cơ chế **Tamper-Evident Hash-Chained Audi
 
 Một thách thức lớn khi băm dữ liệu trong cơ sở dữ liệu PostgreSQL là cột `inputSnapshot` dạng `JSONB`. PostgreSQL không bảo toàn thứ tự các key trong đối tượng JSON khi lưu trữ, dẫn đến việc tính lại mã băm có thể bị sai lệch.
 
-EduRef AI giải quyết triệt để vấn đề này bằng hàm `canonicalStringify()` tại [AuditLogService.js:9-18](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/services/AuditLogService.js#L9-L18):
+EduRef AI giải quyết triệt để vấn đề này bằng hàm `canonicalStringify()` tại [AuditLogService.js:9-18](../backend/services/AuditLogService.js#L9-L18):
 ```javascript
 static canonicalStringify(obj) {
   if (obj === null || typeof obj !== 'object') {

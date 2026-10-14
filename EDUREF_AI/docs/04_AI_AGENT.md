@@ -8,7 +8,7 @@
 
 ## 1. MÔ HÌNH VÀ THÔNG SỐ CẤU HÌNH (MODEL CONFIGURATION)
 
-- **Mô hình chính:** Google Gemini 2.0 Flash Lite (`gemini-flash-lite-latest`), cấu hình tại [GeminiStreamClient.js:11](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/modules/ai-agent/llm/GeminiStreamClient.js#L11).
+- **Mô hình chính:** Google Gemini 2.0 Flash Lite (`gemini-flash-lite-latest`), cấu hình tại [GeminiStreamClient.js:11](../backend/modules/ai-agent/llm/GeminiStreamClient.js#L11).
 - **Endpoint:** `https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?alt=sse`.
 - **Cơ chế truyền tải (Streaming):** Server-Sent Events (SSE) HTTP Stream, phân tích từng chunk text theo thời gian thực và đẩy về Socket.IO client (`agent_response_chunk`).
 - **Nhiệt độ (Temperature):** Cố định ở mức `0.1` để triệt tiêu tính ngẫu hứng và ảo giác của mô hình, đảm bảo tuân thủ nghiêm ngặt quy chế đào tạo.
@@ -19,7 +19,7 @@
 
 ## 2. VÒNG LẶP SUY LUẬN TỰ HÀNH (AUTONOMOUS REACT LOOP)
 
-Vòng lặp ReAct (Reasoning + Acting) được điều phối tại [AgentOrchestrator.js:147-211](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/modules/ai-agent/core/AgentOrchestrator.js#L147-L211):
+Vòng lặp ReAct (Reasoning + Acting) được điều phối tại [AgentOrchestrator.js:147-211](../backend/modules/ai-agent/core/AgentOrchestrator.js#L147-L211):
 
 ```
 Người dùng gửi tin nhắn
@@ -113,4 +113,4 @@ Khi sinh viên hỏi: *"Đơn đó của em duyệt chưa?"* hoặc *"Hồ sơ n
 2. **Triệt tiêu quyền năng tự phong:**
    Trong prompt và tool declaration, AI được huấn luyện: *"Tác tử AI không bao giờ được tự cấp quyền duyệt cho chính mình đối với các đơn vượt thẩm quyền"*.
 3. **Backend re-check độc lập:**
-   Dù sinh viên có dùng kỹ thuật jailbreak làm AI ảo giác gọi lệnh `process_request` cho đơn tốt nghiệp, Backend Node.js tại [AcademicWorkflowService.js:458](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/services/AcademicWorkflowService.js#L458) sẽ chặn lại vì `checkAuthority` trả về `allowed: false`.
+   Dù sinh viên có dùng kỹ thuật jailbreak làm AI ảo giác gọi lệnh `process_request` cho đơn tốt nghiệp, Backend Node.js tại [AcademicWorkflowService.js:458](../backend/services/AcademicWorkflowService.js#L458) sẽ chặn lại vì `checkAuthority` trả về `allowed: false`.

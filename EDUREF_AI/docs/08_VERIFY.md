@@ -1,61 +1,31 @@
-# Verify Harness — VNG Track A
+# Verify Harness
 
-Verify là đường kiểm chứng độc lập, gọi thẳng policy/workflow backend và không phụ thuộc câu trả lời sinh văn bản của LLM. Màn hình không hiển thị kết quả thực tế, tỷ lệ đạt hay bằng chứng SHA-256 trước khi chạy.
+## Route đang hoạt động
 
-## Hai chế độ bắt buộc
+- `POST /api/agent/verify-90s`: bộ Track A năm ca, mục tiêu 3 phê duyệt thường quy và 2 chuyển cán bộ. Ghi hồ sơ/audit vào DB demo, không cần Gemini sinh câu trả lời.
+- `POST /api/agent/verify-custom`: chạy ca cấu trúc tùy chỉnh.
+- `POST /api/agent/verify-custom-prompt`: bóc tách prompt và kiểm tra policy/workflow. Sinh viên chỉ được nhắm hồ sơ của mình hoặc benchmark được cho phép.
 
-### General Verify — 4 ca
+General Verify bốn ca trong đặc tả cũ chưa có route runtime. Không đưa nó vào kịch bản demo.
 
-Endpoint: `POST /api/agent/verify-general`
+## Kết quả cần kiểm tra
 
-| Ca | Nhóm | Kỳ vọng |
-|---|---|---|
-| G-01 | Routine | `AUTO_APPROVED` |
-| G-02 | Unknown fact | `ASK_CLARIFICATION` |
-| G-03 | Explicit policy deny | `REJECTED_POLICY` |
-| G-04 | Beyond authority | `ESCALATE_TO_STAFF` |
+Mỗi ca có kỳ vọng và quyết định thực tế, thời gian xử lý, trạng thái PASS/FAIL và bằng chứng audit khi ghi quyết định. Ca chuyển cán bộ phải có câu hỏi hành động. Phân bố 3/2 là yêu cầu fixture, không phải tỷ lệ chất lượng mô hình trên dữ liệu thực.
 
-### Track A Escalation Verify — 5 ca
+Dữ kiện benchmark được nạp từ registry/fixture. Hồ sơ ACTIVE tùy biến thiếu TKB/tín chỉ không tự động trở thành ca hợp lệ. Verify có ghi DB nên chạy trên môi trường demo chủ đích; các bộ test cô lập không thay thế Verify trực tiếp.
 
-Endpoint: `POST /api/agent/verify-90s`
+## Kiểm tra code không dùng DB thật
 
-Bộ này luôn có đúng 5 ca trên cùng thủ tục `STUDENT_CONFIRMATION`: đúng 3 ca thường quy tự hoàn tất và đúng 2 ca chuyển tiếp.
-
-| Ca | Nhóm | Kỳ vọng |
-|---|---|---|
-| A-01 | Routine — vé xe buýt | `AUTO_APPROVED` |
-| A-02 | Routine — học bổng | `AUTO_APPROVED` |
-| A-03 | Routine — vay vốn | `AUTO_APPROVED` |
-| A-04 | Outside policy | `ESCALATE_TO_STAFF` |
-| A-05 | Beyond authority | `ESCALATE_TO_STAFF` |
-
-Mỗi ca chuyển tiếp phải có `actionableQuestion`. Toàn bộ ca trả `startedAt`, `completedAt`, `durationMs`, quyết định kỳ vọng/thực tế và PASS/FAIL. `distributionPassed` chỉ đúng khi phân bố thực tế là 3 AUTO + 2 ESCALATE.
-
-## Ca mới do giám khảo nhập
-
-Endpoint: `POST /api/agent/verify-custom-prompt`
-
-```json
-{
-  "prompt": "Em cần giấy xác nhận sinh viên để bảo lãnh hợp đồng thuê nhà"
-}
-```
-
-Prompt được bóc tách thành input có cấu trúc rồi chạy qua cùng `StudentConfirmationDecisionService` và `PetitionWorkflowCore`; không có nhánh demo riêng.
-
-## Chạy kiểm tra tại máy
-
-```bash
-cd backend
+```powershell
+cd EDUREF_AI/backend
 npm test
-npx prisma validate
-
+npm run test:security:mutation
 cd ../frontend
+npm run lint
+npm test
 npm run build
 ```
 
-Unit test kiểm tra bộ 15 ca, phân bố Track A 3/2 và yêu cầu câu hỏi hành động cho mọi ca ngoài policy/vượt thẩm quyền.
+Test 15 ca policy và test phân bố Track A dùng fixture trong bộ nhớ. Harness lấy cảm hứng từ 100 tình huống chạy mười nhóm ví dụ, không phải 100 bản ghi độc lập. Báo cáo mutation tại [SECURITY_MUTATION_RESULTS.json](SECURITY_MUTATION_RESULTS.json) chỉ phản ánh catalogue chủ đích.
 
-## Quy tắc báo cáo số liệu
-
-Không công bố `missedEscalationRate` hoặc `falseEscalationRate` khi chưa chạy trên tập độc lập có nhãn. API metrics trả `null` cho hai trường này cùng `measurementStatus: PARTIAL`, thay vì dùng số điền sẵn.
+Hai tỷ lệ `missedEscalationRate` và `falseEscalationRate` chưa được đo trên tập độc lập có nhãn; API trả `null`, `measurementStatus: PARTIAL`. Xem [kế hoạch đo](15_MEASUREMENT_PLAN.md), [API](09_API.md) và [runbook](../RUNBOOK.md).

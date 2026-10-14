@@ -1,14 +1,16 @@
+> Roadmap lịch sử, không dùng làm bằng chứng tính năng/số liệu đã đo. Các tuyên bố Jest, 54/54, 100 ca, missed 0% và false 1,5% trong bản cũ chưa được kết quả hiện hành xác nhận. Xem [lộ trình hiện hành](../../ROADMAP.md) và [kế hoạch đo lường](15_MEASUREMENT_PLAN.md).
+
 # 17. LỘ TRÌNH PHÁT TRIỂN & TIẾN HÓA KIẾN TRÚC DỰ ÁN EDUREF AI
 ### *(BOUNDED AUTONOMY ROADMAP & ARCHITECTURAL EVOLUTION)*
 
 > **Dự án:** EduRef AI — The Academic Escalation Referee (Bảng 1: Organization AI — Track A)  
 > **Đội thi:** KAISER (Trưởng nhóm: Cao Hữu Nhân · Backend: Trần Đức Tài · Frontend: Trần Minh Quang)  
 > **Căn cứ pháp lý & kỹ thuật:**
-> - [Đề bài Thử thách Bảng 1: Organization AI — Đề bài A](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/docs/specs/VNG_TRACK_A_REQUIREMENTS.md)
-> - [Đánh giá chuyên môn từ Giám khảo Doanh nghiệp KAISER](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/docs/sprints_and_meetings/Feedback_Doanh_Nghiep_KAISER.md)
+> - [Đề bài Thử thách Bảng 1: Organization AI — Đề bài A](specs/VNG_TRACK_A_REQUIREMENTS.md)
+> - [Đánh giá chuyên môn từ Giám khảo Doanh nghiệp KAISER](../../docs/sprints_and_meetings/Feedback_Doanh_Nghiep_KAISER.md)
 > - Barem chấm điểm Vòng Chung kết (Tiêu chí 5: Người dùng thực tế — 20đ; Tiêu chí 6: Vai trò con người — 20đ)
-> - Sơ đồ kiến trúc StarUML: [`SoDoHeThong_EduRef_AI.mdj`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/SoDoHeThong_EduRef_AI.mdj)
-> - Bộ dữ liệu kiểm chứng 100 ca thực tế: [`TAP_KIEM_THU_100_INPUT_THUC_TE.md`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md)
+> - Sơ đồ kiến trúc StarUML: [`SoDoHeThong_EduRef_AI.mdj`](../../SoDoHeThong_EduRef_AI.mdj)
+> - Bộ dữ liệu kiểm chứng 100 ca thực tế: [`TAP_KIEM_THU_100_INPUT_THUC_TE.md`](../../docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md)
 
 ---
 
@@ -58,10 +60,10 @@ Dựa trên bản nhận xét chuyên môn từ Giám khảo Doanh nghiệp Kais
 | **1. Khóa trần cứng `maxSteps = 5`**<br>*"Một trọng tài biết dừng mà chính nó không dừng được là mâu thuẫn... Đặt trần cứng năm bước và báo lên khi vượt."* | Vòng lặp ReAct của Agent có nguy cơ lặp vô hạn khi gặp dữ liệu lạ hoặc lỗi mạng bên ngoài. | Cài đặt biến đếm cứng `maxSteps = 5` tại `OrchestratorAgent.js`. Khi chạm bước thứ 5 mà chưa hội tụ kết quả, hệ thống tự động ngắt, gán nhãn `BEYOND_AUTHORITY` và chuyển tiếp cho cán bộ kèm cảnh báo vượt ngưỡng suy luận. | **ĐÃ HOÀN THÀNH 100%** |
 | **2. Dọn thư mục nháp ra khỏi cây mã chính** | Mã nguồn còn lẫn các file nháp, artifact thử nghiệm tạm thời. | Tái cấu trúc kho mã nguồn: Di chuyển toàn bộ script debug sang thư mục scratch cô lập, dọn dẹp các endpoint thử nghiệm, đảm bảo cây thư mục Git sạch sẽ, chuẩn kiến trúc doanh nghiệp. | **ĐÃ HOÀN THÀNH 100%** |
 | **3. Gom các bài kiểm thử về sau một lệnh duy nhất** | Các bài test nằm rải rác ở nhiều file runner khác nhau. | Thiết lập bộ kiểm thử tự động chuẩn Jest gom toàn bộ **15 test suites** về sau 1 lệnh duy nhất: `npm test`. Kết quả đạt **54/54 tests PASS 100% (Xanh tuyệt đối)**. | **ĐÃ HOÀN THÀNH 100%** |
-| **4. Đo tỷ lệ báo lên sai (`False Escalation Rate`)** | Chưa có số liệu thực nghiệm đo lường trên tập kiểm thử độc lập. | Xây dựng bộ dữ liệu 100 ca thực tế ([`TAP_KIEM_THU_100_INPUT_THUC_TE.md`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md)) bao phủ toàn bộ nhánh rẽ của sơ đồ `.mdj`. Đo lường thực tế: `Missed Escalation Rate = 0.0%`, `False Escalation Rate = 1.5%`. | **ĐÃ HOÀN THÀNH 100%** |
+| **4. Đo tỷ lệ báo lên sai (`False Escalation Rate`)** | Chưa có số liệu thực nghiệm đo lường trên tập kiểm thử độc lập. | Xây dựng bộ dữ liệu 100 ca thực tế ([`TAP_KIEM_THU_100_INPUT_THUC_TE.md`](../../docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md)) bao phủ toàn bộ nhánh rẽ của sơ đồ `.mdj`. Đo lường thực tế: `Missed Escalation Rate = 0.0%`, `False Escalation Rate = 1.5%`. | **ĐÃ HOÀN THÀNH 100%** |
 
 * **Đồng bộ Kiến trúc theo Sơ đồ StarUML (`SoDoHeThong_EduRef_AI.mdj`):**
-  - Tái cấu trúc toàn bộ luồng nghiệp vụ học vụ về một nguồn chân lý duy nhất ([`StudentConfirmationDecisionService.js`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/services/StudentConfirmationDecisionService.js)).
+  - Tái cấu trúc toàn bộ luồng nghiệp vụ học vụ về một nguồn chân lý duy nhất ([`StudentConfirmationDecisionService.js`](../backend/services/StudentConfirmationDecisionService.js)).
   - Thiết lập **7 Chốt chặn Nghiệp vụ Bất khả Xâm phạm**:
     1. *Chốt 1:* Nhận diện & Đối soát lệch form (`detectCrossFormMismatch` đơn lượt và đa lượt).
     2. *Chốt 2:* Kiểm tra dữ kiện tối thiểu (Zero-Tolerance Input Guard: SĐT 10 số, cơ sở nhận, chuẩn hóa địa chỉ thường trú 4 cấp).
@@ -125,7 +127,7 @@ Từ góp ý sâu sắc của **Thầy Nguyễn Văn Thành (Phòng CTSV)** và 
    - *Trước đây:* Hệ thống tạo mã QR động dẫn ra link kiểm chứng online của bên thứ ba.
    - *Thay đổi trong code:* Chuyển sang phát hành **Mã công văn nội bộ chuẩn CTSV** (ví dụ: `XNSV-954839`), lưu trữ bản ghi vào sổ công văn điện tử, hướng dẫn sinh viên đến nhận **Bản in có chữ ký sống và mộc đỏ của Trưởng phòng CTSV** tại 2 cơ sở (Phòng A-01.01 Sài Gòn hoặc E1-01.08 Thủ Đức). Điều này đảm bảo 100% giá trị pháp lý trước Ban Chỉ huy Quân sự và Cơ quan Thuế.
 2. **Chia tách 1 Form duy nhất thành 5 Biểu mẫu Hành chính Độc lập:**
-   - *Trong code:* Xây dựng bộ thẩm định riêng biệt tại [`StudentConfirmationDecisionService.js`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/services/StudentConfirmationDecisionService.js):
+   - *Trong code:* Xây dựng bộ thẩm định riêng biệt tại [`StudentConfirmationDecisionService.js`](../backend/services/StudentConfirmationDecisionService.js):
      - `MILITARY_DEFERMENT`: Bắt buộc địa chỉ 4 cấp, xác nhận trách nhiệm pháp lý với BCH Quân sự địa phương, chặn sinh viên quá 4 năm đào tạo.
      - `BANK_LOAN`: Tuân thủ chuẩn Mẫu 01/TDSV (Thông tư 27/2019/TT-NHCS), kiểm tra số lần vay và số tiền kỳ gần nhất.
      - `TAX_DEDUCTION`: Bắt buộc cơ quan thuế / cơ quan chi trả thu nhập của cha mẹ.
@@ -156,7 +158,7 @@ Cuộc thi nhấn mạnh việc đánh giá trung thực: *"Bài thi nhận di�
 
 Theo yêu cầu Sprint 2 của Đề bài A, hệ thống phải công bố số liệu đo lường cụ thể trên tập kiểm thử độc lập bao gồm **Missed Escalation Rate** và **False Escalation Rate**.
 
-Đội thi đã tiến hành kiểm thử thực nghiệm trên bộ dữ liệu **100 ca thực tế** ([`TAP_KIEM_THU_100_INPUT_THUC_TE.md`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md)) với kết quả định lượng chuẩn xác:
+Đội thi đã tiến hành kiểm thử thực nghiệm trên bộ dữ liệu **100 ca thực tế** ([`TAP_KIEM_THU_100_INPUT_THUC_TE.md`](../../docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md)) với kết quả định lượng chuẩn xác:
 
 ### 1. Bảng Phân Bố 100 Ca Kiểm Thử Thực Tế
 

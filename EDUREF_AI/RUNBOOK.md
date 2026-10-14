@@ -4,7 +4,7 @@ Runbook này đi từ repository sạch đến Verify Harness hoạt động. Kh
 
 ## 1. Yêu cầu
 
-- Git và Node.js 18+.
+- Git và Node.js 20.
 - Một project Supabase PostgreSQL.
 - Hai terminal riêng cho backend và frontend.
 - Gemini API key chỉ bắt buộc khi trình diễn chat AI; Verify Harness không phụ thuộc câu trả lời sinh bởi LLM.
@@ -14,10 +14,10 @@ Runbook này đi từ repository sạch đến Verify Harness hoạt động. Kh
 ```bash
 git clone https://github.com/HuuNhan-147/EduRef_AI_Agent.git
 cd EduRef_AI_Agent
-git checkout fix/vng-track-a-compliance
+# Chọn nhánh/commit cần chạy; không mặc định một nhánh demo cũ.
 ```
 
-Sau khi nhánh đã được merge vào `main`, có thể bỏ lệnh `git checkout` cuối.
+Dùng nhánh hiện tại nếu đang kiểm tra bản vá chưa merge.
 
 ## 3. Cấu hình và khởi tạo backend
 
@@ -42,7 +42,7 @@ Copy-Item .env.example .env
 - `GEMINI_API_KEY`: khóa thật nếu trình diễn chat AI.
 - `ALLOW_DEMO_ROLE_SWITCH=true`: chỉ dành cho bản hackathon demo công khai. Đặt `false` ngoài môi trường demo.
 
-Kiểm tra và áp dụng migration:
+Đối chiếu schema trước khi áp dụng migration: migration hiện hữu chưa bao phủ toàn bộ cột nhân thân mới của Student. Cần bổ sung/kiểm chứng migration trên DB thử nghiệm trước khi khởi tạo DB mới; không dùng db push để vá DB đang phục vụ. Các lệnh bên dưới không tự khắc phục khoảng trống này.
 
 ```bash
 npx prisma validate
@@ -95,8 +95,7 @@ Mở `http://localhost:5173`. Trang phải tự khởi tạo phiên sinh viên d
 3. Xác nhận `5/5 PASS`, `AUTO=3`, `ESCALATE=2` và timestamp thật.
 4. Mở A-04 và A-05; xác nhận hai phân loại khác nhau và đều có câu hỏi hành động cụ thể.
 5. Nhập ca mới: “Em cần giấy xác nhận để bảo lãnh hợp đồng thuê nhà”. Kỳ vọng `OUTSIDE_POLICY`, `ESCALATE_TO_STAFF` và một câu hỏi cán bộ có thể trả lời trực tiếp.
-6. Chọn **General · 4 ca**, chạy và xác nhận `4/4 PASS`.
-7. Dùng role switch chuyển sang cán bộ để kiểm tra hàng đợi escalation và quyết định HITL.
+6. Dùng role switch chuyển sang cán bộ để kiểm tra hàng đợi escalation và quyết định HITL.
 
 ## 6. Kiểm tra regression trước khi nộp
 
@@ -137,3 +136,21 @@ Sau deploy, cập nhật README bằng URL frontend công khai và kiểm tra l�
 - Verify tạo hồ sơ và audit log thật trong database demo.
 - Không công bố missed/false escalation bằng `0%` khi chưa đo trên tập độc lập có nhãn.
 - Nếu database, Gemini hoặc dịch vụ ngoài lỗi, hiển thị lỗi thật; không tự tạo kết quả PASS hoặc chứng từ hợp lệ giả.
+
+## Test integration tách riêng
+
+`npm test` chỉ chạy test cô lập, nạp môi trường khóa DB về loopback cổng 1 và dùng khóa Gemini giả; không nạp .env ứng dụng. Test ghi DB nằm trong `backend/test/integration`. Chỉ chạy với PostgreSQL local disposable có tên kết thúc bằng `_test`, đã có schema và dữ liệu benchmark cần thiết:
+
+```powershell
+$env:ALLOW_INTEGRATION_TESTS='true'
+$env:DATABASE_URL='postgresql://LOCAL_TEST_USER:LOCAL_TEST_PASSWORD@127.0.0.1:5432/eduref_test'
+$env:DIRECT_URL=$env:DATABASE_URL
+npm run test:integration
+Remove-Item Env:ALLOW_INTEGRATION_TESTS, Env:DATABASE_URL, Env:DIRECT_URL
+```
+
+Guard từ chối host ngoài localhost/loopback, tên DB không có hậu tố _test hoặc thiếu opt-in. Tên và host chỉ là chốt tránh nhầm; người chạy vẫn cần bảo đảm DB đó dành riêng cho test. Runner không tự reset/migrate/seed DB. Các test tích hợp này vẫn cần kiểm chứng lại trên DB disposable; không có cam kết suite xanh từ kết quả unit.
+
+Frontend có thêm `npm run lint` (cú pháp/import không dùng toàn source JS/JSX) và `npm test` (payload biểu mẫu, bổ sung và CSS token).
+
+Compose truyền URL frontend lúc build và mặc định tắt seed phá dữ liệu. Compose không tự migrate/seed; dùng hostname truy cập phù hợp khi chạy từ máy khác.

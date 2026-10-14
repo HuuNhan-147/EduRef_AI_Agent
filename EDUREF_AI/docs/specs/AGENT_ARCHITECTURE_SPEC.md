@@ -1,3 +1,5 @@
+> Tài liệu thiết kế/lịch sử. Mô tả và số liệu tại thời điểm viết cần đối chiếu [API hiện hành](../09_API.md) trước khi sử dụng.
+
 # Đặc tả tác tử EduRef AI
 
 ## Phạm vi MVP

@@ -1,3 +1,5 @@
+> Tài liệu thiết kế/lịch sử. Mô tả và số liệu tại thời điểm viết cần đối chiếu [API hiện hành](../09_API.md) trước khi sử dụng.
+
 ﻿# EDUREF AI FRONTEND IMPLEMENTATION PLAN
 ## Kiến Trúc & Kế Hoạch Triển Khai Giao Diện Cổng Dịch Vụ Học Vụ Tự Hành (The Academic Escalation Referee)
 

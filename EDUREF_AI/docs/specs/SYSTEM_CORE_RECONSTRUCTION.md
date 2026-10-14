@@ -1,3 +1,5 @@
+> Tài liệu thiết kế/lịch sử. Mô tả và số liệu tại thời điểm viết cần đối chiếu [API hiện hành](../09_API.md) trước khi sử dụng.
+
 ﻿# TÀI LIỆU KIỂM TOÁN VÀ TÁI THIẾT HỆ THỐNG LÕI
 # (SYSTEM CORE RECONSTRUCTION DOCUMENT)
 

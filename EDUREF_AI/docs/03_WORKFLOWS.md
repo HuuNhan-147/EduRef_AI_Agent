@@ -1,7 +1,7 @@
 # 03. Quy Trình Nghiệp Vụ Bản Chung Kết
 
 > Quy trình chuẩn hóa: `STUDENT_CONFIRMATION` — Cấp Giấy Xác Nhận Sinh Viên (5 Biểu Mẫu Chuẩn HUTECH).  
-> Nguồn chân lý kiến trúc: [`SoDoHeThong_EduRef_AI.mdj`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/SoDoHeThong_EduRef_AI.mdj) và [`StudentConfirmationDecisionService.js`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/services/StudentConfirmationDecisionService.js).
+> Nguồn chân lý kiến trúc: [`SoDoHeThong_EduRef_AI.mdj`](../../SoDoHeThong_EduRef_AI.mdj) và [`StudentConfirmationDecisionService.js`](../backend/services/StudentConfirmationDecisionService.js).
 
 ---
 
@@ -107,6 +107,6 @@ flowchart TD
 
 Hệ thống cung cấp các endpoint kiểm chứng độc lập:
 - `POST /api/agent/verify-90s`: Chạy tự động bộ 5 ca Track A Escalation Verify (đúng tỷ lệ 3 AUTO : 2 ESCALATE).
-- `POST /api/agent/verify-general`: Chạy kiểm chứng 4 nhóm quyết định học vụ tổng quát.
+- General Verify bốn ca chỉ có trong thiết kế cũ, chưa có route hiện tại.
 - `POST /api/agent/verify-custom-prompt`: Kiểm chứng ca tự do do Giám khảo nhập vào theo thời gian thực.
-Mọi ca test đều gọi trực tiếp Động cơ Quy chế [`StudentConfirmationDecisionService.js`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/services/StudentConfirmationDecisionService.js), đảm bảo tính xác định tuyệt đối (Deterministic) mà không phụ thuộc vào độ trễ hay ảo tưởng của LLM.
+Mọi ca test đều gọi trực tiếp Động cơ Quy chế [`StudentConfirmationDecisionService.js`](../backend/services/StudentConfirmationDecisionService.js), đảm bảo tính xác định tuyệt đối (Deterministic) mà không phụ thuộc vào độ trễ hay ảo tưởng của LLM.

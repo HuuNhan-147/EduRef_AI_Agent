@@ -1,38 +1,18 @@
 # Tài liệu EduRef AI
 
-Tài liệu được ưu tiên theo mã nguồn hiện tại. Với Track A, đọc theo thứ tự:
+## Tài liệu hiện hành
 
-1. `14_TRACK_A_POLICY.md` — policy chuẩn của quy trình giấy xác nhận sinh viên.
-2. `08_VERIFY.md` — hai bộ Verify và ca mới của giám khảo.
-3. `../RUNBOOK.md` — kịch bản chạy/demo.
-4. `15_MEASUREMENT_PLAN.md` — cách đo Sprint 2 không dùng số liệu giả.
-5. `11_SECURITY.md` — kiểm soát đã có và rủi ro còn lại.
-6. `16_SUPABASE_DEPLOYMENT.md` — cấu hình Supabase, migration và biến môi trường deploy.
-7. `17_ROADMAP.md` — Lộ trình phát triển & Tiến hóa kiến trúc chuẩn Barem BGK (Tiêu chí 5 & Feedback Doanh nghiệp Kaiser).
-8. `18_DEFENSE_QA_PLAYBOOK.md` — Cẩm nang 12 kịch bản phản biện hóc búa với Hội đồng Ban Giám khảo Vòng Chung kết.
-9. `../../docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md` — Bộ dữ liệu kiểm thử 100 ca thực tế bao phủ toàn diện.
+- [API](09_API.md) — route, quyền và dữ liệu vào/ra.
+- [Bảo mật](11_SECURITY.md) — kiểm soát, test cô lập và giới hạn kiểm chứng.
+- [Policy thực thi](14_TRACK_A_POLICY.md) — hành vi của code hiện tại, các khoảng trống dữ kiện.
+- [Verify](08_VERIFY.md) — Track A năm ca và ca tùy chỉnh.
+- [Runbook](../RUNBOOK.md) — chạy local, cấu hình DB, test và deploy.
+- [Kế hoạch đo lường](15_MEASUREMENT_PLAN.md), [hướng dẫn Supabase](16_SUPABASE_DEPLOYMENT.md).
+- [Lộ trình hiện hành](../../ROADMAP.md).
+- [Kết quả dọn dẹp](../../docs/KET_QUA_DON_DEP_CODEBASE.md).
 
-Các tài liệu kiến trúc bổ trợ:
+## Thiết kế và lịch sử
 
-- `01_SYSTEM_OVERVIEW.md`
-- `02_FEATURES.md`
-- `03_WORKFLOWS.md`
-- `04_AI_AGENT.md`
-- `05_POLICY_AUTHORITY.md`
-- `06_AUDIT.md`
-- `07_ROLLBACK.md`
-- `09_API.md`
-- `10_DATABASE.md`
-- `12_TECHNICAL_DEBT.md`
-- `13_ZERO_TRUST_SECURITY.md` — Nguyên lý Zero-Trust Client Boundary và bảo vệ toàn vẹn quyết định học vụ.
-- `17_ROADMAP.md` — Lộ trình phát triển & Tiến hóa kiến trúc chuẩn Barem BGK.
-- `18_DEFENSE_QA_PLAYBOOK.md` — Cẩm nang phản biện bảo vệ dự án.
+Các tài liệu 01–07, 10, 12–13 và [roadmap cũ](17_ROADMAP.md) cung cấp ngữ cảnh thiết kế; một số mô tả có trước thay đổi runtime. [specs/](specs/) là đặc tả/đề xuất, không chứng minh mọi route hoặc tính năng đã được triển khai. Khi có khác biệt, đối chiếu mã nguồn, API và kết quả kiểm chứng hiện hành.
 
-Đặc tả thiết kế & Kế hoạch kỹ thuật nội bộ (`specs/`):
-
-- `specs/VNG_TRACK_A_REQUIREMENTS.md` — Yêu cầu bài toán VNG Track A chuẩn hóa.
-- `specs/AGENT_ARCHITECTURE_SPEC.md` — Đặc tả kiến trúc ReAct Agent tự hành.
-- `specs/SYSTEM_CORE_RECONSTRUCTION.md` — Thiết kế tái cấu trúc Core học vụ & 4 chốt chặn.
-- `specs/FRONTEND_IMPLEMENTATION_PLAN.md` — Kế hoạch thiết kế giao diện UI/UX frontend.
-
-Nếu tài liệu cũ mâu thuẫn với `14_TRACK_A_POLICY.md`, policy chuẩn và test tự động là nguồn chân lý.
+[Bộ 100 tình huống](../../docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md) là dữ liệu tham khảo; không đồng nghĩa 100 test tự động đã chạy. [Biên bản và sprint](../../docs/README.md) giữ lịch sử dự án.

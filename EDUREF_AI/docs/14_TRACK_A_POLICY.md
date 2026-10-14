@@ -1,51 +1,36 @@
-# Policy chuẩn — Giấy xác nhận sinh viên (Quy chuẩn Phòng CTSV HUTECH)
+# Policy thực thi — Giấy xác nhận sinh viên
 
-Policy version: `STUDENT_CONFIRMATION_V2.0.0`
+Phiên bản runtime: `HUTECH_CTSV_5FORMS_V2.0.0`. Đây là mô tả code hiện tại, không phải văn bản quy chế được nhà trường xác nhận. Nguồn thực thi: [StudentConfirmationDecisionService](../backend/services/StudentConfirmationDecisionService.js), [handler](../backend/modules/petition-core/handlers/StudentConfirmationHandler.js) và [Core](../backend/modules/petition-core/PetitionWorkflowCore.js).
 
-Đây là quy trình thẩm định học vụ theo chuẩn thực tế của Trường Đại học HUTECH. Nguồn chân lý thực thi là `backend/services/StudentConfirmationDecisionService.js`.
+## Phạm vi và dữ kiện
 
-## 1. Dữ kiện và phạm vi 5 biểu mẫu thực tế
+Workflow `STUDENT_CONFIRMATION` có năm mẫu: `TAX_DEDUCTION`, `BANK_LOAN`, `MILITARY_DEFERMENT`, `COURSE_DEBT`, `GENERAL_CONFIRMATION`. Metadata `requiredFields` của danh mục chưa dẫn dắt một validator chung cho mọi đường vào; validator thực tế ở handler và fast path.
 
-- **Danh tính, tiến độ và tài chính:** Lấy từ cơ sở dữ liệu theo phiên đã xác thực (Mã sinh viên, trạng thái, khóa tuyển sinh, thời khóa biểu/tín chỉ học kỳ này, nợ học phí).
-- **5 Biểu mẫu học vụ chuẩn hóa:**
-  1. `TAX_DEDUCTION`: Đơn xin xác nhận giảm trừ gia cảnh Thuế TNCN (Thời hạn 1 học kỳ; bắt buộc nơi nhận/cơ quan thuế).
-  2. `BANK_LOAN`: Đơn xin xác nhận vay vốn Ngân hàng CSXH (Mẫu 01/TDSV theo TT 27/2019/TT-NHCS; thời hạn 1 học kỳ; bắt buộc địa chỉ thường trú 4 cấp Title Case).
-  3. `MILITARY_DEFERMENT`: Đơn xin tạm hoãn Nghĩa vụ Quân sự (Hiệu lực 30 ngày / 1 tháng theo Luật NVQS; bắt buộc BCH Quân sự Xã/Phường tiếp nhận).
-  4. `COURSE_DEBT`: Đơn xin xác nhận sinh viên còn nợ môn / Kéo dài tiến độ (Dành riêng cho sinh viên học quá 4 năm chuẩn; bắt buộc danh sách môn nợ và cam kết hoàn thành).
-  5. `GENERAL_CONFIRMATION`: Đơn xin xác nhận sinh viên thông thường (Làm vé xe buýt, visa, bổ sung hồ sơ học tập...; thời hạn 1 học kỳ).
+Danh tính/quyền lấy từ phiên đã xác thực. Trạng thái sinh viên và lịch sử cấp giấy lấy từ DB; ngày nộp/hạn mức do máy chủ tính. TKB/tín chỉ và một phần nhân thân còn dùng registry benchmark, chưa có nguồn DB học vụ đầy đủ cho hồ sơ tùy biến. Không dùng dữ kiện client để tự xác nhận học lực hoặc hạn mức.
 
-## 2. Điều kiện tiên quyết học vụ
+Handler yêu cầu họ tên, MSSV, ngày sinh, giới tính, lớp, CCCD, số điện thoại, cơ sở nhận và mục đích. Địa chỉ được kiểm tra chặt cho NVQS/thuế; mẫu nợ môn cần danh sách học phần. NVQS có bước xác nhận địa chỉ. Cơ quan tiếp nhận có trong metadata/UI nhưng chưa được kiểm tra bắt buộc thống nhất ở mọi đường vào.
 
-- **Hoạt động học tập hiện tại:** Bắt buộc có Thời khóa biểu hoặc đã đăng ký ít nhất 1 tín chỉ trong học kỳ này (`hasSchedule === true`, `enrolledCredits > 0`). Trường hợp chưa có TKB nhưng có lý do giải trình cần gấp sẽ được chuyển tiếp Cán bộ CTSV xem xét; nếu không có lý do sẽ bị từ chối theo quy chế.
-- **Trạng thái học vụ đặc biệt:** Sinh viên thôi học (`DROPPED`) hoặc đang bảo lưu (`SUSPENDED`) đều bị **từ chối ngay lập tức** (`REJECTED_POLICY`), tuyệt đối không bypass và không chuyển sang biểu mẫu nợ môn; sinh viên cần liên hệ trực tiếp CTSV.
-- **Thời hạn đào tạo & Chuẩn 150 tín chỉ:**
-  - Sinh viên trong hạn 4 năm: Áp dụng quy chế thông thường.
-  - Sinh viên quá 4 năm VÀ còn nợ môn (< 150 tín chỉ): Điều hướng sang Biểu mẫu Nợ môn (`COURSE_DEBT`).
-  - Sinh viên quá 4 năm NHƯNG đã hoàn thành đủ $\ge 150$ tín chỉ tốt nghiệp: **Vượt thẩm quyền AI** (`BEYOND_AUTHORITY`), chuyển tiếp Cán bộ CTSV.
-- **Chính sách hỗ trợ tài chính:** Nhà trường hiện đã hỗ trợ tối đa cho sinh viên, không ràng buộc việc nợ học phí để chặn cấp giấy xác nhận; sinh viên chỉ cần đáp ứng điều kiện có hoạt động học tập / có thời khóa biểu trong học kỳ là được giải quyết.
-- **Cơ chế nhận bản cứng:** Nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường tại Phòng Công tác Sinh viên (Sài Gòn Campus: A-01.01 hoặc Thủ Đức Campus: E1-01.08), lưu mã công văn `XNSV-XXXXXX` vào sổ kiểm toán SHA-256.
+## Thứ tự và quyết định
 
-## 3. Bảng quyết định trọng tài
+| Điều kiện | Hành vi hiện tại |
+|---|---|
+| Thôi học `DROPPED` / bảo lưu `SUSPENDED` | Core submit/resume từ chối trước khi hỏi dữ kiện thiếu |
+| Thiếu dữ kiện hoặc lệch mẫu | `ASK_CLARIFICATION`, hồ sơ `WAITING_STUDENT` |
+| Không có TKB/tín chỉ kỳ hiện tại, không có lý do cần gấp | `REJECTED_POLICY` |
+| Không có TKB nhưng cần gấp | `BEYOND_AUTHORITY`, chuyển cán bộ |
+| Quá hạn đào tạo chuẩn, còn nợ môn, đang dùng mẫu khác | Hỏi làm rõ/chuyển sang `COURSE_DEBT` |
+| Quá hạn và đủ khối lượng tốt nghiệp | Chuyển cán bộ, AI không tự quyết định |
+| Cấp lại cùng mẫu trong kỳ, chưa có lý do | Hỏi lý do |
+| Cấp lại có lý do / mục đích ngoài policy | Chuyển cán bộ |
+| Yêu cầu vượt quyền hoặc bỏ quy định | Chuyển cán bộ |
+| Đủ điều kiện thường quy | `AUTO_APPROVED`, trạng thái DB `APPROVED` |
 
-| Điều kiện | Phân loại | Hành động |
-|---|---|---|
-| Thiếu cơ quan tiếp nhận / thiếu môn nợ / lệch form | `UNKNOWN_FACT` | `ASK_CLARIFICATION` hướng dẫn 2 cách: điền form trái hoặc chat trực tiếp |
-| Sinh viên thôi học (`DROPPED`) hoặc bảo lưu (`SUSPENDED`) | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` (Chặn đứng lập tức, không bypass) |
-| Chưa có TKB kỳ này (không có giải trình cần gấp) | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` theo quy chế đào tạo |
-| Chưa có TKB kỳ này nhưng có lý do cần gấp | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` đóng gói chuyển tiếp cán bộ |
-| Sinh viên quá 4 năm xin NVQS/XNSV thường quy | `ROUTINE_POLICY_DENY` | `REJECTED_POLICY` hướng dẫn chuyển sang Form nợ môn (`COURSE_DEBT`) |
-| Sinh viên quá 4 năm đã hoàn thành $\ge 150$ tín chỉ tốt nghiệp | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` chuyển tiếp cán bộ xem xét khóa cũ |
-| Mục đích ngoài danh mục hoặc xin cấp lần 2 cùng kỳ có lý do | `OUTSIDE_POLICY` | `ESCALATE_TO_STAFF` kèm lý do giải trình |
-| Cấp lần 2 trong cùng kỳ nhưng chưa có lý do giải trình | `UNKNOWN_FACT` | `ASK_CLARIFICATION` yêu cầu nêu lý do hoặc chọn mẫu khác |
-| Yêu cầu bỏ qua quy định / phê duyệt miệng | `BEYOND_AUTHORITY` | `ESCALATE_TO_STAFF` với cảnh báo ép quyền |
-| Đủ dữ kiện, đúng biểu mẫu, đạt chuẩn học vụ | `ROUTINE` | `AUTO_APPROVED` (Cấp mã công văn `XNSV-XXXXXX`) |
+Policy dùng quy ước đào tạo bốn năm và mốc 150 tín chỉ trong code; cần cấu hình theo chương trình khi dùng thực tế. Hạn mức hiện xét lịch sử cùng mẫu trong cửa sổ học kỳ do code tính. Nợ học phí không phải ngưỡng chặn cấp giấy trong policy xác nhận hiện tại.
 
-## 4. Bất biến an toàn (Safety Invariants)
+## Cán bộ, bản cứng và kiểm toán
 
-- Không có mục đích / cơ quan tiếp nhận hợp lệ thì không duyệt.
-- Sinh viên mở form này nhưng xin giấy khác (`Cross-Form Mismatch`) phải được chặn lại hỏi làm rõ trước khi tạo đơn.
-- Ca bị gắn cờ không được công bố là đã đạt.
-- Hồ sơ `WAITING_STUDENT` không thể được cán bộ duyệt tắt.
-- Chỉ hồ sơ `ESCALATED` mới nhận quyết định của con người.
-- Quyết định cuối và audit hash của auto-approve được ghi trong cùng database transaction.
-- Chứng từ mới luôn bắt đầu ở `PENDING`, không tự mang nhãn `VERIFIED`.
+Cán bộ chỉ quyết định hồ sơ `ESCALATED`; CAS trong transaction ngăn quyết định lặp. Hai endpoint cán bộ dùng chung `AcademicWorkflowService.staffDecision`, lưu reviewerNote/reviewedBy/reviewedAt và hash. Rollback lưu lý do hoàn tác, trạng thái `CANCELLED`.
+
+Hồ sơ hiện nhận giấy bản cứng; luồng chính không tạo QR mới. Code chọn Sài Gòn A-01.01 hoặc Thủ Đức E1-01.05; thông tin phòng/lịch hẹn cần CTSV xác nhận trước vận hành thật. Không suy hiệu lực pháp lý hoặc thời hạn giấy từ mô tả demo.
+
+Tham khảo [API](09_API.md), [bảo mật và kiểm chứng](11_SECURITY.md), [kế hoạch đo lường](15_MEASUREMENT_PLAN.md).

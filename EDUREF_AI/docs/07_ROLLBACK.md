@@ -22,7 +22,7 @@ Trong quản lý đào tạo đại học, một khi quyết định đã đư�
 
 ## 2. QUY TRÌNH THỰC THI CAN THIỆP DỪNG (WORKFLOW)
 
-Mã nguồn thực tế tại [AcademicWorkflowService.js:693-743](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/EDUREF_AI/backend/services/AcademicWorkflowService.js#L693-L743):
+Mã nguồn thực tế tại [AcademicWorkflowService.js:693-743](../backend/services/AcademicWorkflowService.js#L693-L743):
 
 ```
 Cán bộ PĐT / Giám khảo nhấn "Can thiệp Dừng Khẩn Cấp (Rollback)"
