@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from "react";
 import { Sparkles, Clock, Loader2, CheckCircle2, Square, ChevronDown, ChevronUp } from 'lucide-react';
 
 export default function AgentProgress({

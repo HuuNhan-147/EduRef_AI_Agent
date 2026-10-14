@@ -1,20 +1,5 @@
-import React, { useState } from 'react';
-import {
-  ShieldCheck,
-  UserCheck,
-  ChevronDown,
-  Check,
-  Wifi,
-  WifiOff,
-  School,
-  MessageSquare,
-  FileText,
-  AlertOctagon,
-  CheckCircle,
-  Zap,
-  HelpCircle,
-  UserPlus
-} from 'lucide-react';
+import { useState } from "react";
+import { ShieldCheck, ChevronDown, Check, MessageSquare, FileText, AlertOctagon, CheckCircle, HelpCircle, UserPlus } from "lucide-react";
 import { DEMO_ACCOUNTS } from '../../services/api';
 
 export default function TopNavbar({
@@ -139,7 +124,7 @@ export default function TopNavbar({
 
                 {/* Badge số lượng đơn chờ nếu có */}
                 {item.count > 0 && (
-                  <span className="px-1.5 py-0.2 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse">
+                  <span className="px-1.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500 text-white animate-pulse">
                     {item.count}
                   </span>
                 )}
@@ -199,7 +184,7 @@ export default function TopNavbar({
 
             {/* Dropdown Menu */}
             {dropdownOpen && (
-              <div className="absolute right-0 mt-2 w-76 sm:w-84 max-w-[92vw] rounded-xl bg-white text-slate-900 shadow-2xl border border-slate-200 overflow-hidden z-50 animate-in fade-in slide-in-from-top-2 duration-150">
+              <div className="absolute right-0 mt-2 w-76 sm:w-84 max-w-[92vw] rounded-xl bg-white text-slate-900 shadow-2xl border border-slate-200 overflow-hidden z-50 animate-fade-in slide-in-from-top-2 duration-150">
                 
                 {/* Hồ sơ riêng của sinh viên (Nếu đã tạo) */}
                 {customProfile && (

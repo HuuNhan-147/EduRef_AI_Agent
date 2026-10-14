@@ -1,24 +1,10 @@
 // src/pages/AuditExplorerPage.jsx
 // Trình Khám Phá Chuỗi Kiểm Toán Bất Biến SHA-256 & Live Terminal Console
 
-import React, { useState, useEffect, useRef } from 'react';
-import {
-  ShieldCheck,
-  Terminal,
-  Clock,
-  RotateCw,
-  CheckCircle2,
-  AlertTriangle,
-  Copy,
-  Check,
-  Search,
-  Filter,
-  Layers,
-  ChevronRight,
-  ExternalLink,
-} from 'lucide-react';
+import { useState, useEffect } from "react";
+import { ShieldCheck, Terminal, RotateCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import api from '../services/api';
-import getSocket from '../services/socket';
+
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
 
 export default function AuditExplorerPage() {
@@ -106,7 +92,7 @@ export default function AuditExplorerPage() {
         {/* Banner Kết Quả Kiểm Tra Chuỗi Khối */}
         {chainVerification && (
           <div
-            className={`p-4 rounded-xl border flex items-center justify-between animate-in fade-in duration-200 ${
+            className={`p-4 rounded-xl border flex items-center justify-between animate-fade-in duration-200 ${
               chainVerification.chainValid
                 ? 'bg-emerald-50 border-emerald-300 text-emerald-950'
                 : 'bg-rose-50 border-rose-300 text-rose-950'
@@ -303,7 +289,7 @@ export default function AuditExplorerPage() {
       {/* MODAL XEM CHI TIẾT 1 BẢN GHI AUDIT LOG */}
       {selectedLog && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-xl rounded-xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4 text-left animate-in fade-in zoom-in-95 duration-150 max-h-[85vh] overflow-y-auto">
+          <div className="w-full max-w-xl rounded-xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4 text-left animate-fade-in duration-150 max-h-[85vh] overflow-y-auto">
             <div className="flex items-center justify-between pb-3 border-b border-slate-100">
               <div>
                 <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400">

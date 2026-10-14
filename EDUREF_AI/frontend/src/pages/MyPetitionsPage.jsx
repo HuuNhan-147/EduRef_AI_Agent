@@ -1,22 +1,11 @@
 // src/pages/MyPetitionsPage.jsx
 // Danh sách Hồ sơ & Đơn Học Vụ Cá Nhân / Toàn Trường
 
-import React, { useState, useEffect } from 'react';
-import {
-  FileText,
-  CheckCircle2,
-  AlertTriangle,
-  Clock,
-  XCircle,
-  RotateCcw,
-  Search,
-  Filter,
-  QrCode,
-  ExternalLink,
-} from 'lucide-react';
+import { useState, useEffect } from "react";
+import { FileText, RotateCcw, Search, QrCode } from "lucide-react";
 import api, { DEMO_ACCOUNTS } from '../services/api';
 
-export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE', onSwitchTab }) {
+export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }) {
   const [petitions, setPetitions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
@@ -206,7 +195,7 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE', 
       {/* MODAL PHÓNG TO MÃ QR CHỨNG THỰC */}
       {selectedQrModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4 text-center animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4 text-center animate-fade-in duration-150">
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
               Mã QR Chứng Thực Số Hợp Lệ
             </div>

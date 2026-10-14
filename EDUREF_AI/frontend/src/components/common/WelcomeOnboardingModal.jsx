@@ -1,8 +1,8 @@
 // src/components/common/WelcomeOnboardingModal.jsx
 // Popup chào mừng và hướng dẫn 3 bước trải nghiệm nhanh dành cho sinh viên và khách thử nghiệm
 
-import React, { useState } from 'react';
-import { Sparkles, MessageSquare, Zap, ShieldCheck, ArrowRight, X, UserPlus, CheckCircle2 } from 'lucide-react';
+import { useState } from "react";
+import { Sparkles, MessageSquare, Zap, ArrowRight, X, UserPlus } from "lucide-react";
 
 const SUGGESTED_PROMPTS = [
   {
@@ -63,7 +63,7 @@ export default function WelcomeOnboardingModal({
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-in fade-in duration-200">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-950/70 backdrop-blur-xs animate-fade-in duration-200">
       <div className="relative w-full max-w-2xl rounded-2xl bg-white shadow-2xl border border-slate-200 overflow-hidden flex flex-col max-h-[92vh]">
         
         {/* Nút đóng góc phải */}

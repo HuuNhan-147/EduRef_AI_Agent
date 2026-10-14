@@ -1,29 +1,9 @@
 // src/pages/StaffEscalationPage.jsx
 // Hàng đợi Chuyển tiếp Hồ sơ Học vụ dành cho Cán bộ Phòng Đào tạo (Staff Escalation Hub & HITL)
 
-import React, { useState, useEffect } from 'react';
-import {
-  AlertOctagon,
-  CheckCircle2,
-  XCircle,
-  RotateCcw,
-  User,
-  FileText,
-  Clock,
-  ShieldCheck,
-  AlertTriangle,
-  ArrowRight,
-  ExternalLink,
-  Info,
-  Award,
-  GraduationCap,
-  Building,
-  Eye,
-  X,
-  Search,
-  ChevronLeft,
-} from 'lucide-react';
-import api, { API_BASE_URL } from '../services/api';
+import { useState, useEffect } from "react";
+import { AlertOctagon, CheckCircle2, XCircle, RotateCcw, User, FileText, ShieldCheck, AlertTriangle, ExternalLink, Info, Award, GraduationCap, Building, Eye, X, Search, ChevronLeft } from "lucide-react";
+import api from "../services/api";
 
 export default function StaffEscalationPage() {
   const [petitions, setPetitions] = useState([]);
@@ -115,7 +95,7 @@ export default function StaffEscalationPage() {
           reason: actionNote || 'Can thiệp dừng và thu hồi bởi Cán bộ Quản lý',
         });
         if (res.data?.success) {
-          showToast(`Đã hoàn tác và vô hiệu hóa mã QR đơn [${selectedPetition.requestCode}].`, 'warning');
+          showToast(`Đã hoàn tác phê duyệt đơn [${selectedPetition.requestCode}].`, 'warning');
         }
       }
 
@@ -253,7 +233,7 @@ export default function StaffEscalationPage() {
             }`}
           >
             <span>Chờ duyệt</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
               statusFilter === 'ESCALATED' ? 'bg-amber-400 text-slate-900' : 'bg-amber-100 text-amber-800'
             }`}>
               {escalatedList.length}
@@ -269,7 +249,7 @@ export default function StaffEscalationPage() {
             }`}
           >
             <span>Tất cả</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
               statusFilter === 'ALL' ? 'bg-white/20 text-white' : 'bg-slate-200 text-slate-700'
             }`}>
               {petitions.length}
@@ -285,7 +265,7 @@ export default function StaffEscalationPage() {
             }`}
           >
             <span>Đã duyệt</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
               statusFilter === 'APPROVED' ? 'bg-emerald-900 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
             }`}>
               {approvedList.length}
@@ -301,7 +281,7 @@ export default function StaffEscalationPage() {
             }`}
           >
             <span>Từ chối</span>
-            <span className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
               statusFilter === 'REJECTED' ? 'bg-rose-900 text-rose-100' : 'bg-rose-100 text-rose-800'
             }`}>
               {rejectedList.length}
@@ -536,7 +516,18 @@ export default function StaffEscalationPage() {
               </div>
 
               {/* Ý kiến / Ghi chú phê duyệt của Người duyệt (Staff / Dean Review Note) */}
-              {(selectedPetition.status === 'APPROVED' || selectedPetition.status === 'REJECTED' || capsule?.reviewerNote) && (
+              {selectedPetition.status === 'CANCELLED' && (
+                <div className="space-y-1.5">
+                  <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
+                    <RotateCcw className="w-3.5 h-3.5 text-amber-600" />
+                    Lý do hoàn tác / Thu hồi hồ sơ:
+                  </span>
+                  <div className="p-3 rounded-lg text-xs leading-relaxed border whitespace-pre-line font-medium bg-amber-50/80 border-amber-200 text-amber-950">
+                    {selectedPetition.escalationReason || 'Hồ sơ đã được cán bộ thu hồi.'}
+                  </div>
+                </div>
+              )}
+              {selectedPetition.status !== 'CANCELLED' && (selectedPetition.status === 'APPROVED' || selectedPetition.status === 'REJECTED' || capsule?.reviewerNote) && (
                 <div className="space-y-1.5">
                   <div className="flex items-center justify-between">
                     <span className="text-xs font-bold text-slate-700 flex items-center gap-1.5">
@@ -1290,7 +1281,7 @@ export default function StaffEscalationPage() {
       {/* MODAL THAO TÁC DUYỆT / TỪ CHỐI / HOÀN TÁC */}
       {actionModal && (
         <div className="fixed inset-0 z-50 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center p-4">
-          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border border-slate-200 p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <div className="w-full max-w-md rounded-xl bg-white shadow-2xl border border-slate-200 p-5 space-y-4 animate-fade-in duration-150">
             
             <div className="flex items-center gap-2">
               {actionModal === 'APPROVE' && <CheckCircle2 className="w-5 h-5 text-emerald-600" />}
@@ -1311,12 +1302,20 @@ export default function StaffEscalationPage() {
 
             <div className="space-y-1">
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
-                {actionModal === 'APPROVE' ? 'Ghi chú phê duyệt của Thầy/Cô (Lưu vào hồ sơ):' : 'Lý do từ chối (Bắt buộc):'}
+                {actionModal === 'APPROVE'
+                  ? 'Ghi chú phê duyệt của Thầy/Cô (Lưu vào hồ sơ):'
+                  : actionModal === 'ROLLBACK'
+                  ? 'Lý do hoàn tác / Thu hồi (Tùy chọn):'
+                  : 'Lý do từ chối (Bắt buộc):'}
               </label>
               <textarea
                 value={actionNote}
                 onChange={(e) => setActionNote(e.target.value)}
-                placeholder={actionModal === 'REJECT' ? 'Nhập lý do từ chối đơn...' : 'Nhập ý kiến / ghi chú phê duyệt của Thầy/Cô...'}
+                placeholder={actionModal === 'REJECT'
+                  ? 'Nhập lý do từ chối đơn...'
+                  : actionModal === 'ROLLBACK'
+                  ? 'Nhập lý do hoàn tác / thu hồi hồ sơ...'
+                  : 'Nhập ý kiến / ghi chú phê duyệt của Thầy/Cô...'}
                 rows={3}
                 className="w-full text-xs p-2.5 rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600"
               />

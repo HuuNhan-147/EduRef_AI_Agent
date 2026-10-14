@@ -1,5 +1,5 @@
-import React, { useMemo, useState, useEffect, useRef } from 'react';
-import { Activity, CheckCircle2, Clock, FileText, Play, RotateCw, Send, ShieldCheck, XCircle } from 'lucide-react';
+import { useMemo, useState, useEffect, useRef } from "react";
+import { Activity, CheckCircle2, Clock, FileText, Play, RotateCw, XCircle } from "lucide-react";
 import api from '../services/api';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
 

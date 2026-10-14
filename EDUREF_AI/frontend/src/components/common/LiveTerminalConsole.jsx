@@ -1,8 +1,8 @@
 // src/components/common/LiveTerminalConsole.jsx
 // LIVE AGENT TERMINAL CONSOLE — Cửa sổ theo dõi log suy luận tác tử thời gian thực (Chuẩn DA_IELS_NEW)
 
-import React, { useState, useEffect, useRef } from 'react';
-import { Terminal, RefreshCw, Trash2, ShieldCheck, Sparkles, Activity } from 'lucide-react';
+import { useState, useEffect, useRef } from "react";
+import { Terminal, RefreshCw, Trash2 } from "lucide-react";
 import api from '../../services/api';
 import getSocket from '../../services/socket';
 
@@ -171,7 +171,7 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
                       [{timeStr}]
                     </span>
                   )}
-                  <span className={`px-1.5 py-0.2 rounded text-[9px] border font-mono shrink-0 ${badgeClass}`}>
+                  <span className={`px-1.5 py-0.5 rounded text-[9px] border font-mono shrink-0 ${badgeClass}`}>
                     {tag}
                   </span>
                   <span className="text-slate-200 flex-1 break-words font-mono text-[11px]">
