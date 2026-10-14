@@ -1,8 +1,17 @@
 import express from 'express';
 import prisma from '../config/prisma.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
+import { stripServerAuthoritativeFields } from '../services/ClientInputGuard.js';
+import { isDemoRoleSwitchEnabled } from '../controllers/authController.js';
 
 const router = express.Router();
+
+// Giới hạn số bản ghi trả về để tránh quét toàn bộ bảng / giá trị NaN làm Prisma lỗi
+const clampLimit = (value, fallback = 50, max = 200) => {
+  const n = Number.parseInt(value, 10);
+  if (!Number.isFinite(n) || n < 1) return fallback;
+  return Math.min(n, max);
+};
 
 /**
  * GET /api/petitions (Lấy danh sách đơn phiếu sinh viên)
@@ -11,12 +20,12 @@ router.get('/', authenticateToken, async (req, res) => {
   try {
     const { status, limit = 50 } = req.query;
     const where = {};
-    if (status) where.status = status;
+    if (status && typeof status === 'string') where.status = status;
     if (req.user?.role === 'STUDENT') where.studentId = req.user.id;
 
     const petitions = await prisma.studentRequest.findMany({
       where,
-      take: Number(limit),
+      take: clampLimit(limit),
       orderBy: { createdAt: 'desc' },
       include: {
         student: {
@@ -77,6 +86,10 @@ router.post('/', authenticateToken, async (req, res) => {
       inputData = req.body.inputData;
     }
 
+    // inputData từ client là dữ liệu không tin cậy: bỏ các khóa do máy chủ tự tính
+    // (hạn ngạch cấp lại, ngày xét duyệt...) để sinh viên không tự khai né quy chế.
+    inputData = stripServerAuthoritativeFields(inputData);
+
     if (!requestCode && req.body.type) {
       requestCode = req.body.type;
     }
@@ -103,22 +116,30 @@ router.post('/', authenticateToken, async (req, res) => {
     const documents = [];
 
     const { getStudentFullProfile } = await import('../config/studentRegistry.js');
+    const { default: AcademicWorkflowService } = await import('../services/AcademicWorkflowService.js');
     const fullProfile = getStudentFullProfile(studentCode, req.user);
+
+    // Hạn ngạch cấp lại luôn được tính từ lịch sử trong DB, không tin dữ liệu client.
+    const historyRequests = await AcademicWorkflowService.loadApprovalHistory({ studentCode });
+
+    // SĐT và địa chỉ thường trú BẮT BUỘC do sinh viên tự khai (Zero-Tolerance Guard):
+    // không điền mặc định từ registry, nếu không guard thiếu dữ kiện sẽ bị vô hiệu và
+    // giấy có thể in ra số điện thoại/địa chỉ của người khác.
     const enrichedInputData = {
       fullName: inputData?.fullName || fullProfile.fullName,
-      studentCode: String(studentCode || fullProfile.studentCode).trim(),
       birthDate: inputData?.birthDate || fullProfile.birthDate,
       gender: inputData?.gender || fullProfile.gender,
       studentClass: inputData?.studentClass || fullProfile.studentClass,
       faculty: inputData?.faculty || fullProfile.faculty,
       major: inputData?.major || fullProfile.major,
-      phone: inputData?.phone || fullProfile.phone,
       idCard: inputData?.idCard || fullProfile.idCard,
       idCardDate: inputData?.idCardDate || fullProfile.idCardDate,
       idCardPlace: inputData?.idCardPlace || fullProfile.idCardPlace,
-      permanentAddress: inputData?.permanentAddress || fullProfile.permanentAddress,
       pickupCampus: inputData?.pickupCampus || null,
       ...inputData,
+      // Đặt sau ...inputData để client không ghi đè danh tính / lịch sử do máy chủ xác lập
+      studentCode: String(studentCode || fullProfile.studentCode).trim(),
+      historyRequests,
     };
 
     const { default: petitionWorkflowCore } = await import('../modules/petition-core/PetitionWorkflowCore.js');
@@ -378,7 +399,8 @@ router.post('/ocr-certificate', authenticateToken, async (req, res) => {
  */
 router.post('/:id/resume', authenticateToken, async (req, res) => {
   try {
-    const { additionalData = {}, newDocuments = [] } = req.body;
+    const { newDocuments = [] } = req.body;
+    const additionalData = stripServerAuthoritativeFields(req.body.additionalData);
     const ownedRequest = await prisma.studentRequest.findUnique({
       where: { id: req.params.id },
       include: { student: true },
@@ -414,6 +436,10 @@ router.post('/:id/resume', authenticateToken, async (req, res) => {
  */
 router.post('/reset-test', authenticateToken, async (req, res) => {
   try {
+    // Xóa đơn cũng xóa luôn hạn ngạch "1 bản/kỳ", nên chỉ cho phép ở chế độ demo.
+    if (!isDemoRoleSwitchEnabled()) {
+      return res.status(403).json({ success: false, message: 'Chức năng dọn dữ liệu thử nghiệm chỉ khả dụng ở chế độ demo.' });
+    }
     const studentCode = req.body?.studentCode || req.user?.studentCode;
     if (!studentCode) {
       return res.status(400).json({ success: false, message: 'Thiếu studentCode để làm sạch dữ liệu test.' });

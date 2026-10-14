@@ -8,6 +8,7 @@ import { conversationMemory } from '../memory/ConversationMemory.js';
 import certificateVisionService from '../../../services/CertificateVisionService.js';
 import AuditLogService from '../../../services/AuditLogService.js';
 import { describeToolOutcome } from './toolOutcome.js';
+import { stripServerAuthoritativeFields } from '../../../services/ClientInputGuard.js';
 
 export class AgentOrchestrator {
   constructor(socket = null, sessionId = null) {
@@ -327,8 +328,10 @@ export class AgentOrchestrator {
           isAddressConfirmed: isExplicitlyConfirmed,
           currentUser,
           inputData: {
-            ...(inputData || {}),
-            ...(toolArgs.inputData || {}),
+            // inputData từ client và từ tham số tool do LLM sinh đều là dữ liệu không tin cậy:
+            // loại các khóa do máy chủ tự tính (hạn ngạch cấp lại, ngày xét duyệt...).
+            ...stripServerAuthoritativeFields(inputData),
+            ...stripServerAuthoritativeFields(toolArgs.inputData),
             pickupCampus: effectivePickupCampus,
             isAddressConfirmed: isExplicitlyConfirmed,
           },

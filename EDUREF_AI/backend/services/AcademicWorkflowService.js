@@ -12,6 +12,42 @@ import {
 
 class AcademicWorkflowService {
   /**
+   * Nạp lịch sử đơn đã cấp/đang chờ của sinh viên TỪ DATABASE để tính hạn ngạch cấp lại.
+   * Đây là nguồn chân lý duy nhất cho hạn ngạch; không bao giờ tin `existingApprovedCount` từ client.
+   */
+  static async loadApprovalHistory({ studentId = null, studentCode = null } = {}) {
+    let resolvedId = studentId;
+    if (!resolvedId && studentCode) {
+      const student = await prisma.student.findUnique({
+        where: { studentCode: String(studentCode).trim() },
+        select: { id: true },
+      });
+      resolvedId = student?.id || null;
+    }
+    if (!resolvedId) return [];
+
+    const rawHistory = await prisma.studentRequest.findMany({
+      where: {
+        studentId: resolvedId,
+        requestType: { code: 'STUDENT_CONFIRMATION' },
+        status: { in: ['APPROVED', 'COMPLETED', 'ESCALATED'] },
+      },
+      select: { id: true, requestCode: true, status: true, inputData: true, createdAt: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    // Sanitize để triệt tiêu đệ quy inputData phình to cấp số nhân
+    return rawHistory.map((r) => ({
+      id: r.id,
+      requestCode: r.requestCode,
+      status: r.status,
+      createdAt: r.createdAt,
+      inputData: {
+        formCode: r.inputData?.formCode || 'GENERAL_CONFIRMATION',
+      },
+    }));
+  }
+
+  /**
    * ⚡ FAST-PATH MASTER TOOL: Xử lý trọn gói quy trình Cấp Giấy Xác Nhận Sinh Viên trong 1 bước duy nhất (5 Biểu Mẫu Chuẩn HUTECH)
    */
   static async processStudentConfirmation({
@@ -124,25 +160,7 @@ class AcademicWorkflowService {
       let historyRequests = [];
       if (studentRec?.id) {
         try {
-          const rawHistory = await prisma.studentRequest.findMany({
-            where: {
-              studentId: studentRec.id,
-              requestType: { code: 'STUDENT_CONFIRMATION' },
-              status: { in: ['APPROVED', 'COMPLETED', 'ESCALATED'] },
-            },
-            select: { id: true, requestCode: true, status: true, inputData: true, createdAt: true },
-            orderBy: { createdAt: 'desc' },
-          });
-          // Sanitize để triệt tiêu đệ quy inputData phình to cấp số nhân
-          historyRequests = rawHistory.map((r) => ({
-            id: r.id,
-            requestCode: r.requestCode,
-            status: r.status,
-            createdAt: r.createdAt,
-            inputData: {
-              formCode: r.inputData?.formCode || 'GENERAL_CONFIRMATION',
-            },
-          }));
+          historyRequests = await AcademicWorkflowService.loadApprovalHistory({ studentId: studentRec.id });
         } catch (_e) {
           historyRequests = inputData?.historyRequests || [];
         }
@@ -972,6 +990,11 @@ class AcademicWorkflowService {
 
       if (!request) return { success: false, error: 'Không tìm thấy đơn.' };
 
+      // State Guard: đơn đã có kết luận cuối không được kéo ngược về WAITING_STUDENT
+      if (['APPROVED', 'REJECTED', 'CANCELLED'].includes(request.status)) {
+        return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể yêu cầu bổ sung.` };
+      }
+
       await AuditLogService.recordLogWithMutation({
         requestId: request.id,
         actorType: 'AI_AGENT',
@@ -1013,6 +1036,11 @@ class AcademicWorkflowService {
       });
 
       if (!request) return { success: false, error: 'Không tìm thấy đơn.' };
+
+      // State Guard: đơn đã có kết luận cuối không được chuyển ngược về ESCALATED
+      if (['APPROVED', 'REJECTED', 'CANCELLED'].includes(request.status)) {
+        return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể chuyển tiếp.` };
+      }
 
       const contextCapsule = {
         requestCode: request.requestCode,
