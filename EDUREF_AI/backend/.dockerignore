@@ -4,3 +4,10 @@ npm-debug.log
 .git
 .gitignore
 test
+testSupport
+scripts
+.npm-cache
+scratch
+*.log
+*.tmp
+*.bak

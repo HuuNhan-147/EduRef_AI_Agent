@@ -4,3 +4,10 @@ npm-debug.log
 .env
 .git
 .gitignore
+.npm-cache
+test
+scripts
+scratch
+*.log
+*.tmp
+*.bak

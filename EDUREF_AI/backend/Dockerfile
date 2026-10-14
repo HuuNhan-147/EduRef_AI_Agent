@@ -7,12 +7,12 @@ RUN apt-get update -y && apt-get install -y openssl ca-certificates && rm -rf /v
 WORKDIR /app
 
 # Sao chép package.json, package-lock.json và thư mục prisma trước
-# (để postinstall của npm install có thể chạy prisma generate)
+# (để postinstall của npm ci có thể chạy prisma generate)
 COPY package*.json ./
 COPY prisma ./prisma/
 
 # Cài đặt toàn bộ dependencies và tự động kích hoạt prisma generate
-RUN npm install
+RUN npm ci
 
 # Sao chép toàn bộ mã nguồn backend
 COPY . .

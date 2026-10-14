@@ -29,7 +29,7 @@ services:
       # mặc định trong repo công khai đều cho phép người ngoài giả mạo token STAFF/DEAN.
       JWT_SECRET: "${JWT_SECRET:?Hay dat JWT_SECRET (openssl rand -hex 32) truoc khi chay docker compose}"
       ALLOW_DEMO_ROLE_SWITCH: "true"
-      ALLOW_DESTRUCTIVE_SEED: "true"
+      ALLOW_DESTRUCTIVE_SEED: "false"
       GEMINI_API_KEY: "${GEMINI_API_KEY}"
       GEMINI_MODEL: "${GEMINI_MODEL:-gemini-flash-lite-latest}"
       FRONTEND_URL: "${FRONTEND_URL:-http://localhost:8080}"
@@ -40,6 +40,9 @@ services:
     build:
       context: ./EDUREF_AI/frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_URL: "${VITE_API_URL:-http://localhost:5000/api}"
+        VITE_SOCKET_URL: "${VITE_SOCKET_URL:-http://localhost:5000}"
     container_name: eduref_frontend
     restart: always
     ports:
