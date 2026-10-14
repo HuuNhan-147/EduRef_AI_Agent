@@ -1,25 +1,17 @@
 // backend/test/harness-100-cases.test.js
-// Bộ kiểm thử tự động toàn diện 100 Ca Thực Tế (TC-001 -> TC-100)
-// Khớp 100% tài liệu TAP_KIEM_THU_100_INPUT_THUC_TE.md và Sơ đồ SoDoHeThong_EduRef_AI.mdj
+// Mười nhóm ví dụ policy lấy cảm hứng từ bộ dữ liệu 100 tình huống.
+// Không nạp 100 record độc lập, không đo tool call của Agent hoặc parse sơ đồ .mdj.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  evaluateStudentConfirmation,
-  validatePermanentAddress,
-  detectCrossFormMismatch,
-  detectFormIntent,
-  checkCohortOverdueStatus,
-  HUTECH_FORMS,
-  TRACK_A_DECISION,
-} from '../services/StudentConfirmationDecisionService.js';
+import { evaluateStudentConfirmation, validatePermanentAddress, detectCrossFormMismatch, detectFormIntent, TRACK_A_DECISION } from "../services/StudentConfirmationDecisionService.js";
 
-test('⭐ BỘ KIỂM THỬ 100 CA THỰC TẾ (TAP_KIEM_THU_100_INPUT_THUC_TE.MD)', async (t) => {
+test('Policy examples: 10 nhóm minh họa từ tài liệu 100 tình huống', async (t) => {
 
   // =========================================================================
   // NHÓM 1: Chào hỏi, Giao tiếp xã giao & Lạc đề ngoài phạm vi (TC-001 -> TC-010)
   // =========================================================================
-  await t.test('Nhóm 1 (TC-001 -> TC-010): Zero-Tool Intent Gate', () => {
+  await t.test('Nhóm 1: policy nhận diện isInquiry', () => {
     const student = { studentCode: '2280602154', fullName: 'Cao Hữu Nhân', status: 'ACTIVE' };
     
     // TC-001 & TC-002: Chào hỏi

@@ -1,11 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  evaluateStudentConfirmation,
-  validatePermanentAddress,
-  detectCrossFormMismatch,
-  TRACK_A_DECISION,
-} from '../services/StudentConfirmationDecisionService.js';
+import { evaluateStudentConfirmation, TRACK_A_DECISION } from "../services/StudentConfirmationDecisionService.js";
 import studentConfirmationHandler from '../modules/petition-core/handlers/StudentConfirmationHandler.js';
 
 console.log('\n========================================================================================');

@@ -1,14 +1,9 @@
 // backend/test/system-architecture-mdj.test.js
-// Bộ kiểm thử tự động kiểm chứng 100% các luồng quyết định theo Sơ đồ StarUML SoDoHeThong_EduRef_AI.mdj
+// Kiểm tra các kịch bản policy diễn giải từ thiết kế; không parse hoặc xác minh toàn bộ sơ đồ .mdj.
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  evaluateStudentConfirmation,
-  detectCrossFormMismatch,
-  checkCohortOverdueStatus,
-  HUTECH_FORMS,
-} from '../services/StudentConfirmationDecisionService.js';
+import { evaluateStudentConfirmation, detectCrossFormMismatch, checkCohortOverdueStatus } from "../services/StudentConfirmationDecisionService.js";
 
 test('1. TC-1: Sinh viên ACTIVE, có TKB, đủ thông tin, không trùng -> AUTO_APPROVE', () => {
   const student = {

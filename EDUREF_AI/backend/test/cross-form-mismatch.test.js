@@ -3,13 +3,7 @@
 
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {
-  HUTECH_FORMS,
-  getFormFieldsGuide,
-  detectCrossFormMismatch,
-  evaluateStudentConfirmation,
-  inferStudentConfirmationInput,
-} from '../services/StudentConfirmationDecisionService.js';
+import { getFormFieldsGuide, detectCrossFormMismatch, evaluateStudentConfirmation, inferStudentConfirmationInput } from "../services/StudentConfirmationDecisionService.js";
 
 test('1. getFormFieldsGuide cung cấp đầy đủ danh sách trường cho 5 biểu mẫu HUTECH', () => {
   const nvqsGuide = getFormFieldsGuide('MILITARY_DEFERMENT');

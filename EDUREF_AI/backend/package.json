@@ -12,14 +12,16 @@
     "db:generate": "prisma generate",
     "db:deploy": "prisma migrate deploy",
     "db:status": "prisma migrate status",
-    "test": "node --test --test-concurrency=1"
+    "test": "node scripts/run-tests.mjs",
+    "test:integration": "node scripts/run-tests.mjs --integration",
+    "test:security": "node --test --test-concurrency=1 test/security-*.test.js",
+    "test:security:mutation": "node scripts/test-security-mutations.mjs"
   },
   "dependencies": {
     "@prisma/client": "^5.14.0",
     "axios": "^1.7.0",
     "bcryptjs": "^2.4.3",
     "cors": "^2.8.5",
-    "docx": "^9.8.1",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
     "jsonwebtoken": "^9.0.2",

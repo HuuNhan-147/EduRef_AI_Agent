@@ -1,9 +1,10 @@
+import '../../testSupport/integrationTestEnv.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import AcademicWorkflowService from '../services/AcademicWorkflowService.js';
-import { evaluateStudentConfirmation } from '../services/StudentConfirmationDecisionService.js';
+import AcademicWorkflowService from '../../services/AcademicWorkflowService.js';
+import { evaluateStudentConfirmation } from '../../services/StudentConfirmationDecisionService.js';
 
-test('MASTER E2E: Kiểm chứng tất cả 8 luồng từ Điểm Bắt Đầu đến đúng Điểm Đích (ActivityFinalNode1) của Sơ Đồ .mdj', async () => {
+test('Integration: kiểm tra 8 kịch bản diễn giải từ Điểm Bắt Đầu đến đúng Điểm Đích (ActivityFinalNode1) của Sơ Đồ .mdj', async () => {
   console.log('\n========================================================================================');
   console.log('📊 MA TRẬN KIỂM CHỨNG TOÀN DIỆN TẤT CẢ CÁC LUỒNG THEO SƠ ĐỒ HỆ THỐNG SODOHETHONG_EDUREF_AI.MDJ');
   console.log('========================================================================================\n');

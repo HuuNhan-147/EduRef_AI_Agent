@@ -1,14 +1,15 @@
+import '../../testSupport/integrationTestEnv.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import prisma from '../config/prisma.js';
-import { petitionWorkflowCore } from '../modules/petition-core/PetitionWorkflowCore.js';
-import AcademicWorkflowService from '../services/AcademicWorkflowService.js';
+
+
+import AcademicWorkflowService from '../../services/AcademicWorkflowService.js';
 import {
   validatePermanentAddress,
   formatVietnameseAddress,
   calculatePickupAppointment,
   evaluateStudentConfirmation,
-} from '../services/StudentConfirmationDecisionService.js';
+} from '../../services/StudentConfirmationDecisionService.js';
 
 test('1. Zero-Tolerance Guard: Thiếu số điện thoại (phone) BẮT BUỘC trả về ASK_CLARIFICATION', async () => {
   const studentCode = '2380600001';
