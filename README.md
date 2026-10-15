@@ -356,14 +356,15 @@ Hệ thống đã nạp sẵn bộ dữ liệu chuẩn hóa phục vụ Ban Giá
 
 ### 6.1. Tài khoản Demo sẵn có (Chuyển nhanh trên thanh TopBar)
 
-| Vai trò | Tài khoản | Mật khẩu | Đặc điểm hồ sơ & Mục đích kiểm thử |
+| Vai trò | Tài khoản (MSSV / Code) | Mật khẩu | Đặc điểm hồ sơ & Mục đích kiểm thử |
 | :--- | :--- | :---: | :--- |
-| **Sinh viên (Chính quy)** | `2280602154` (Cao Hữu Nhân) | `123456` | Trạng thái `ACTIVE`, có TKB (15 tín chỉ) — Trải nghiệm nộp đơn thường quy & chat với AI |
-| **Sinh viên (Nợ môn)** | `2110005` (Võ Quốc Tuấn) | `123456` | Đang trả nợ môn, nợ 6 tín chỉ — Thử nghiệm hướng dẫn sử dụng Biểu mẫu Nợ môn |
-| **Sinh viên (Thôi học)** | `2110002` (Trần Thị Bình) | `123456` | Trạng thái `DROPPED` (0 tín chỉ, không có TKB) — Kiểm thử chốt chặn từ chối tự động theo quy chế |
-| **Sinh viên (Bảo lưu)** | `2110004` (Phạm Văn Dũng) | `123456` | Trạng thái `SUSPENDED` — Kiểm thử quy định bảo lưu không cấp giấy online |
-| **Cán bộ PĐT / CTSV** | `staff_daotao` (Cán bộ phụ trách) | `123456` | Thẩm định và xử lý hàng đợi các đơn chuyển tiếp (`ESCALATED`) |
-| **Lãnh đạo Phòng ban** | `dean_daotao` (Lãnh đạo duyệt ngoại lệ) | `123456` | Phê duyệt tối cao các ngoại lệ vượt trần thẩm quyền & can thiệp Rollback |
+| **Sinh viên (Chính quy)** | `2380600001` (Nguyễn Văn An) | `123456` | Trạng thái `ACTIVE`, Khóa 2023 (Trong hạn 4 năm), Khoa CNTT, có TKB (18 tín chỉ) — Trải nghiệm nộp đơn thường quy & chat với AI |
+| **Sinh viên (Quá 4 năm nợ môn)** | `2280602154` (Cao Hữu Nhân) | `123456` | Trạng thái `ACTIVE`, Khóa 2022 (Quá 4 năm sau 30/08/2026), Khoa CNTT, nợ 2 môn (*Thực tập DN, Đồ án*) — Thử nghiệm hướng dẫn sử dụng Biểu mẫu Nợ môn |
+| **Sinh viên (Nợ môn Khóa 2020)** | `2050200005` (Hoàng Thị Mai) | `123456` | Trạng thái `ACTIVE`, Khóa 2020 cũ, Khoa Điện - Điện tử, nợ môn *Mạng máy tính, Toán rời rạc* — Thử nghiệm trả nợ môn |
+| **Sinh viên (Thôi học)** | `2150200002` (Trần Thị Bình) | `123456` | Trạng thái `DROPPED` (Khoa Điện - Điện tử, 0 tín chỉ, không có TKB) — Kiểm thử chốt chặn từ chối tự động theo quy chế |
+| **Sinh viên (Bảo lưu)** | `2280600004` (Phạm Văn Dũng) | `123456` | Trạng thái `SUSPENDED` (Khoa CNTT, 0 tín chỉ, không có TKB) — Kiểm thử quy định bảo lưu không cấp giấy online |
+| **Cán bộ PĐT / CTSV** | `staff_daotao` (Thầy Trần Hữu Nghĩa) | `123456` | Chuyên viên PĐT thẩm định và xử lý hàng đợi các đơn chuyển tiếp (`ESCALATED`) |
+| **Lãnh đạo Phòng ban** | `dean_daotao` (Thầy Lê Trung Hiếu) | `123456` | Lãnh đạo PĐT phê duyệt tối cao các ngoại lệ vượt trần thẩm quyền & can thiệp Rollback |
 
 > **Tham vấn chuyên môn thực tế:** Hệ thống được thiết kế và kiểm chứng dựa trên khảo sát nghiệp vụ trực tiếp với 3 nhân sự tại Trường Đại học Công nghệ TP.HCM (HUTECH):  
 > 1. **Thầy Lê Trung Hiếu** — Trợ lý Trưởng phòng Phòng Đào tạo HUTECH, Phụ trách Quản lý Hệ thống Học vụ Điện tử.  
@@ -378,10 +379,10 @@ Trên giao diện **Student Workspace**, Ban Giám khảo có thể bấm trực
 
 1. **NVQS: Đủ 4 cấp Title Case (AUTO):** Sinh viên nộp đơn tạm hoãn NVQS khai báo địa chỉ đầy đủ 4 cấp hành chính viết hoa đúng chuẩn văn thư. Hệ thống duyệt tự động, cấp mã công văn `XNSV-XXXXXX` và xuất lịch hẹn nhận bản cứng.
 2. **Lệch biểu mẫu: Vay vốn vs Chung (MISMATCH):** Sinh viên mở đơn Xác nhận SV chung nhưng gõ xin vay vốn NHCSXH. AI phát hiện lệch form ngay lập tức và đưa ra hướng dẫn kép (chuyển sang biểu mẫu Vay vốn bên trái hoặc nhắn tin trực tiếp để AI tạo đơn).
-3. **SV Nợ môn: Hướng dẫn Mẫu Nợ Môn (COURSE_DEBT):** Sinh viên khóa cũ quá 4 năm còn nợ môn (`2110005`) xin Giấy NVQS. Hệ thống từ chối cấp mẫu thường quy và hướng dẫn chuyển sang Biểu mẫu Nợ môn để được giải quyết hợp lệ.
+3. **SV Nợ môn: Hướng dẫn Mẫu Nợ Môn (COURSE_DEBT):** Sinh viên khóa cũ quá 4 năm còn nợ môn (`2280602154` - Cao Hữu Nhân) xin Giấy NVQS. Hệ thống từ chối cấp mẫu thường quy và hướng dẫn chuyển sang Biểu mẫu Nợ môn để được giải quyết hợp lệ.
 4. **Vay vốn NHCSXH: Mẫu 01 (AUTO):** Sinh viên xin giấy xác nhận vay vốn ngân hàng chính sách theo Mẫu 01/TDSV. Hệ thống kiểm tra đủ 11 trường thông tin bắt buộc và tự động phê duyệt trong $< 1.0$s.
 5. **Địa chỉ viết thường: Hỏi chuẩn hóa Title Case (ASK):** Sinh viên nhập địa chỉ cẩu thả toàn chữ thường. Hệ thống dừng lại, cảnh báo quy chuẩn văn thư và yêu cầu xác nhận địa chỉ đã được tự động chuẩn hóa.
-6. **Không có TKB kỳ này / Thôi học (REJECT):** Sinh viên thôi học (`2110002`) hoặc chưa đăng ký tín chỉ học kỳ này nộp đơn. Hệ thống từ chối dứt khoát theo Quy chế đào tạo (không cho phép bypass).
+6. **Không có TKB kỳ này / Thôi học (REJECT):** Sinh viên thôi học (`2150200002` - Trần Thị Bình) hoặc chưa đăng ký tín chỉ học kỳ này nộp đơn. Hệ thống từ chối dứt khoát theo Quy chế đào tạo (không cho phép bypass).
 7. **Cấp lại lần 2: Tự động kế thừa đơn cũ (REISSUE):** Sinh viên xin cấp lại lần 2 do bị thất lạc bản chính. Hệ thống kiểm tra lịch sử, tự động kế thừa dữ liệu đơn cũ và đóng gói lý do chuyển Cán bộ CTSV phê duyệt ngoại lệ.
 
 ---
