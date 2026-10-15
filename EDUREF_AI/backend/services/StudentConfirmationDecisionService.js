@@ -381,19 +381,39 @@ export function detectFormIntent(prompt = '') {
 }
 
 export const ROUTINE_PURPOSE_RULES = Object.freeze([
-  { code: 'BUS_PASS', keywords: ['xe buýt', 'xe buyt', 'vé tháng', 've thang'] },
+  { code: 'BUS_PASS', keywords: ['xe buýt', 'xe buyt', 'vé tháng', 've thang', 'giao thông', 'giao thong', 'trung tâm giao thông', 'xe bus'] },
   { code: 'SCHOLARSHIP', keywords: ['học bổng', 'hoc bong'] },
   { code: 'BANK_LOAN', keywords: ['vay vốn', 'vay von', 'ngân hàng', 'ngan hang', 'nhcsxh'] },
-  { code: 'MILITARY_SERVICE', keywords: ['nghĩa vụ quân sự', 'nghia vu quan su', 'nvqs', 'tạm hoãn nvqs'] },
+  { code: 'MILITARY_SERVICE', keywords: ['nghĩa vụ quân sự', 'nghia vu quan su', 'nvqs', 'tạm hoãn nvqs', 'quân sự', 'quan su', 'ban chỉ huy quân sự', 'ban chi huy quan su', 'bchqs', 'bch quân sự', 'tạm hoãn', 'tam hoan', 'nhập ngũ', 'hoãn nghĩa vụ'] },
   { code: 'VISA', keywords: ['visa', 'thị thực', 'thi thuc'] },
-  { code: 'TAX', keywords: ['thuế', 'thue', 'thuế tncn', 'giảm trừ gia cảnh'] },
-  { code: 'COURSE_DEBT', keywords: ['nợ môn', 'no mon', 'trả nợ môn', 'quá 4 năm'] },
+  { code: 'TAX', keywords: ['thuế', 'thue', 'thuế tncn', 'giảm trừ gia cảnh', 'chi cục thuế'] },
+  { code: 'COURSE_DEBT', keywords: ['nợ môn', 'no mon', 'trả nợ môn', 'quá 4 năm', 'hoàn thành học phần'] },
   { code: 'ACADEMIC_RECORD', keywords: ['hồ sơ học tập', 'ho so hoc tap', 'bổ sung hồ sơ', 'bo sung ho so', 'việc làm', 'bổ sung'] },
 ]);
 
-export function matchRoutinePurpose(purpose = '') {
+export function matchRoutinePurpose(purpose = '', formCode = null) {
   const normalized = normalizeText(purpose);
-  return ROUTINE_PURPOSE_RULES.find((rule) => rule.keywords.some((keyword) => normalized.includes(keyword))) || null;
+  const matched = ROUTINE_PURPOSE_RULES.find((rule) => rule.keywords.some((keyword) => normalized.includes(keyword)));
+  if (matched) return matched;
+
+  // Nhận diện theo ngữ cảnh Biểu mẫu học vụ chính thức (Form-aware Routine Match)
+  if (formCode === 'MILITARY_DEFERMENT' && (normalized.includes('quân sự') || normalized.includes('bch') || normalized.includes('thạnh mỹ tây') || normalized.includes('tạm hoãn') || normalized.includes('hoãn'))) {
+    return { code: 'MILITARY_SERVICE', keywords: ['quân sự'] };
+  }
+  if (formCode === 'GENERAL_CONFIRMATION' && (normalized.includes('giao thông') || normalized.includes('xe') || normalized.includes('buýt') || normalized.includes('vé'))) {
+    return { code: 'BUS_PASS', keywords: ['giao thông'] };
+  }
+  if (formCode === 'TAX_DEDUCTION' && (normalized.includes('thuế') || normalized.includes('chi cục') || normalized.includes('gia cảnh'))) {
+    return { code: 'TAX', keywords: ['thuế'] };
+  }
+  if (formCode === 'BANK_LOAN' && (normalized.includes('ngân hàng') || normalized.includes('vay') || normalized.includes('nhcsxh') || normalized.includes('chính sách'))) {
+    return { code: 'BANK_LOAN', keywords: ['ngân hàng'] };
+  }
+  if (formCode === 'COURSE_DEBT' && (normalized.includes('nợ') || normalized.includes('học phần') || normalized.includes('môn') || normalized.includes('giải trình'))) {
+    return { code: 'COURSE_DEBT', keywords: ['nợ môn'] };
+  }
+
+  return null;
 }
 
 /**
@@ -960,7 +980,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
 
   // 8. KIỂM TRA MỤC ĐÍCH THƯỜNG QUY (ALLOWLIST & OUTSIDE_POLICY)
   const finalPurposeText = String(inputData.purpose || inputData.reason || '').trim();
-  const routinePurpose = matchRoutinePurpose(finalPurposeText);
+  const routinePurpose = matchRoutinePurpose(finalPurposeText, targetForm.code);
   if (!routinePurpose && finalPurposeText.length > 0) {
     return {
       classification: TRACK_A_CLASSIFICATION.OUTSIDE_POLICY,

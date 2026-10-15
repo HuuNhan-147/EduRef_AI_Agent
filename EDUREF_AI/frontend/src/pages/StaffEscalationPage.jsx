@@ -12,7 +12,7 @@ export default function StaffEscalationPage() {
   const [previewImg, setPreviewImg] = useState(null);
 
   // Bộ lọc trạng thái & tìm kiếm nhanh để thanh danh sách không bị dài
-  const [statusFilter, setStatusFilter] = useState('ESCALATED'); // Mặc định hiển thị đơn chờ PĐT duyệt
+  const [statusFilter, setStatusFilter] = useState('ALL'); // Mặc định hiển thị Tất cả để thấy cả đơn AI duyệt lẫn đơn chờ PĐT thẩm định
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // Chuyển đổi màn hình trên mobile
 
@@ -36,9 +36,7 @@ export default function StaffEscalationPage() {
         const all = res.data.data || [];
         setPetitions(all);
         if (!selectedPetition && all.length > 0) {
-          // Mặc định chọn đơn ESCALATED đầu tiên hoặc đơn bất kỳ
-          const firstEscalated = all.find((p) => p.status === 'ESCALATED') || all[0];
-          handleSelectPetition(firstEscalated);
+          handleSelectPetition(all[0]);
         }
       }
     } catch (err) {
@@ -225,22 +223,6 @@ export default function StaffEscalationPage() {
         {/* Bộ Lọc Trạng Thái Dạng Tabs Nhỏ Gọn */}
         <div className="px-2.5 py-1.5 border-b border-slate-100 bg-slate-50/50 flex items-center gap-1 overflow-x-auto text-[11px] font-medium custom-scrollbar">
           <button
-            onClick={() => setStatusFilter('ESCALATED')}
-            className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
-              statusFilter === 'ESCALATED'
-                ? 'bg-[#0B3B82] text-white shadow-xs font-semibold'
-                : 'text-slate-600 hover:bg-slate-200/70'
-            }`}
-          >
-            <span>Chờ duyệt</span>
-            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
-              statusFilter === 'ESCALATED' ? 'bg-amber-400 text-slate-900' : 'bg-amber-100 text-amber-800'
-            }`}>
-              {escalatedList.length}
-            </span>
-          </button>
-
-          <button
             onClick={() => setStatusFilter('ALL')}
             className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
               statusFilter === 'ALL'
@@ -257,6 +239,22 @@ export default function StaffEscalationPage() {
           </button>
 
           <button
+            onClick={() => setStatusFilter('ESCALATED')}
+            className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
+              statusFilter === 'ESCALATED'
+                ? 'bg-amber-600 text-white shadow-xs font-semibold'
+                : 'text-slate-600 hover:bg-slate-200/70'
+            }`}
+          >
+            <span>Chờ duyệt</span>
+            <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+              statusFilter === 'ESCALATED' ? 'bg-amber-900 text-white' : 'bg-amber-100 text-amber-800'
+            }`}>
+              {escalatedList.length}
+            </span>
+          </button>
+
+          <button
             onClick={() => setStatusFilter('APPROVED')}
             className={`px-2.5 py-1 rounded-md shrink-0 flex items-center gap-1 transition-all ${
               statusFilter === 'APPROVED'
@@ -264,7 +262,7 @@ export default function StaffEscalationPage() {
                 : 'text-slate-600 hover:bg-slate-200/70'
             }`}
           >
-            <span>Đã duyệt</span>
+            <span>Đã duyệt (Rollback)</span>
             <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
               statusFilter === 'APPROVED' ? 'bg-emerald-900 text-emerald-100' : 'bg-emerald-100 text-emerald-800'
             }`}>
@@ -289,18 +287,31 @@ export default function StaffEscalationPage() {
           </button>
         </div>
 
+        {/* Thanh gợi ý Rollback & Đếm kết quả */}
+        <div className="px-2.5 py-1 bg-amber-50/70 border-b border-amber-200/60 flex items-center justify-between text-[10px] text-amber-900">
+          <span>💡 <b>Thu hồi / Rollback</b>: Chọn tab <b>Đã duyệt</b> để can thiệp dừng hồ sơ.</span>
+          {searchQuery && (
+            <button
+              onClick={() => setSearchQuery('')}
+              className="text-amber-800 hover:underline font-semibold"
+            >
+              Xóa tìm
+            </button>
+          )}
+        </div>
+
         {/* Thanh đếm kết quả nhỏ */}
         <div className="px-3 py-1 bg-slate-50 border-b border-slate-100 flex items-center justify-between text-[10px] text-slate-500">
           <span>Hiển thị <b>{filteredPetitions.length}</b> / {petitions.length} hồ sơ</span>
-          {(searchQuery || statusFilter !== 'ESCALATED') && (
+          {(searchQuery || statusFilter !== 'ALL') && (
             <button
               onClick={() => {
                 setSearchQuery('');
-                setStatusFilter('ESCALATED');
+                setStatusFilter('ALL');
               }}
               className="text-[#0B3B82] hover:underline font-medium"
             >
-              Mặc định
+              Xem tất cả
             </button>
           )}
         </div>
