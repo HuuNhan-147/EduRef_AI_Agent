@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
-import { X, FileText, Sparkles, AlertCircle, CheckCircle2, Building } from "lucide-react";
+import { X, FileText, Sparkles, AlertCircle, CheckCircle2, Building, RotateCcw } from "lucide-react";
 import api, { DEMO_ACCOUNTS } from '../../services/api';
 import MarkdownRenderer from '../common/MarkdownRenderer';
-import { CONFIRMATION_FORMS, FORM_AGENCY_DEFAULTS, buildConfirmationInput } from '../../config/confirmationForms';
+import { CONFIRMATION_FORMS, FORM_AGENCY_DEFAULTS, SAMPLE_CONFIRMATION_DATA, buildConfirmationInput } from '../../config/confirmationForms';
 
 export default function DynamicPetitionModal({
   isOpen,
@@ -29,71 +29,58 @@ export default function DynamicPetitionModal({
 
   // Xác định mã thủ tục
   const isConfirmForm = petitionType?.code === 'STUDENT_CONFIRMATION';
-
-
   const [activeFormCode, setActiveFormCode] = useState(petitionType?.formCode || 'GENERAL_CONFIRMATION');
-
-  useEffect(() => {
-    if (petitionType?.formCode) {
-      setActiveFormCode(petitionType.formCode);
-      setConfirmData((prev) => ({
-        ...prev,
-        recipientAgency: FORM_AGENCY_DEFAULTS[petitionType.formCode] || '',
-      }));
-    }
-  }, [petitionType]);
 
   const getFacultyString = (val) => {
     if (typeof val === 'string') return val;
     return val?.name || 'Khoa Công nghệ thông tin';
   };
 
-  const initialFaculty = getFacultyString(currentAccount.department || currentAccount.faculty || currentAccount.departmentName);
-  const initialMajor = currentAccount.major || (initialFaculty && typeof initialFaculty === 'string' && initialFaculty.startsWith('Khoa ') ? initialFaculty.replace('Khoa ', '') : initialFaculty);
+  // Helper sinh dữ liệu mẫu đầy đủ cho biểu mẫu được chọn
+  const getPrefilledConfirmData = (formCode, account) => {
+    const acc = account || getEffectiveAccount();
+    const activeFaculty = getFacultyString(acc?.department || acc?.faculty || acc?.departmentName);
+    const activeMajor = acc?.major || (activeFaculty && typeof activeFaculty === 'string' && activeFaculty.startsWith('Khoa ') ? activeFaculty.replace('Khoa ', '') : activeFaculty);
+    const sampleByForm = SAMPLE_CONFIRMATION_DATA.defaultsByForm[formCode] || {};
+
+    return {
+      fullName: acc?.name || acc?.fullName || 'Nguyễn Văn An',
+      studentCode: acc?.code || acc?.studentCode || '2380600001',
+      birthDate: acc?.birthDate || '15/03/2004',
+      gender: acc?.gender || 'Nam',
+      idCard: acc?.idCard || SAMPLE_CONFIRMATION_DATA.idCard,
+      idCardDate: acc?.idCardDate || SAMPLE_CONFIRMATION_DATA.idCardDate,
+      idCardPlace: acc?.idCardPlace || SAMPLE_CONFIRMATION_DATA.idCardPlace,
+      faculty: activeFaculty || 'Khoa Công nghệ thông tin',
+      major: activeMajor || 'Công nghệ thông tin',
+      studentClass: acc?.studentClass || acc?.class || '23DTHE1',
+      phone: acc?.phone || SAMPLE_CONFIRMATION_DATA.phone,
+      permanentAddress: acc?.permanentAddress || sampleByForm.permanentAddress || SAMPLE_CONFIRMATION_DATA.permanentAddress,
+      purpose: sampleByForm.purpose || 'Làm vé tháng xe buýt và bổ sung hồ sơ học tập',
+      recipientAgency: sampleByForm.recipientAgency || FORM_AGENCY_DEFAULTS[formCode] || '',
+      debtCourses: acc?.debtCourses || sampleByForm.debtCourses || (formCode === 'COURSE_DEBT' ? SAMPLE_CONFIRMATION_DATA.debtCourses : ''),
+      completionDeadline: sampleByForm.completionDeadline || SAMPLE_CONFIRMATION_DATA.completionDeadline,
+      pickupCampus: 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)',
+    };
+  };
 
   // State cho Form: Giấy Xác Nhận Sinh Viên (5 Biểu mẫu HUTECH)
-  const [confirmData, setConfirmData] = useState({
-    fullName: currentAccount.name || currentAccount.fullName || '',
-    birthDate: currentAccount.birthDate || '',
-    gender: currentAccount.gender || 'Nam',
-    idCard: currentAccount.idCard || '',
-    idCardDate: currentAccount.idCardDate || '',
-    idCardPlace: currentAccount.idCardPlace || '',
-    major: initialMajor,
-    studentClass: currentAccount.studentClass || currentAccount.class || '',
-    studentCode: currentAccount.code || currentAccount.studentCode || '',
-    faculty: initialFaculty,
-    phone: currentAccount.phone || '',
-    purpose: 'Làm vé tháng xe buýt và bổ sung hồ sơ học tập',
-    recipientAgency: FORM_AGENCY_DEFAULTS[petitionType?.formCode || 'GENERAL_CONFIRMATION'] || '',
-    permanentAddress: currentAccount.permanentAddress || '',
-    debtCourses: '',
-    completionDeadline: 'Tháng 12/2026',
-    pickupCampus: 'Trụ sở chính: phòng Công tác sinh viên (A-01.01)'
-  });
+  const [confirmData, setConfirmData] = useState(() =>
+    getPrefilledConfirmData(petitionType?.formCode || 'GENERAL_CONFIRMATION', currentAccount)
+  );
 
-  // Tự động đồng bộ thông tin của sinh viên đang chọn khi mở form
+  useEffect(() => {
+    if (petitionType?.formCode) {
+      const code = petitionType.formCode;
+      setActiveFormCode(code);
+      setConfirmData(getPrefilledConfirmData(code, getEffectiveAccount()));
+    }
+  }, [petitionType]);
+
+  // Tự động đồng bộ và điền đầy đủ dữ liệu mẫu của sinh viên khi mở form
   useEffect(() => {
     if (isOpen) {
-      const acc = getEffectiveAccount();
-      const activeFaculty = getFacultyString(acc?.department || acc?.faculty || acc?.departmentName);
-      const activeMajor = acc?.major || (activeFaculty && typeof activeFaculty === 'string' && activeFaculty.startsWith('Khoa ') ? activeFaculty.replace('Khoa ', '') : activeFaculty);
-
-      setConfirmData((prev) => ({
-        ...prev,
-        fullName: acc?.name || acc?.fullName || '',
-        studentCode: acc?.code || acc?.studentCode || '',
-        faculty: activeFaculty,
-        major: activeMajor,
-        studentClass: acc?.studentClass || acc?.class || '',
-        phone: acc?.phone || '',
-        birthDate: acc?.birthDate || '',
-        gender: acc?.gender || 'Nam',
-        idCard: acc?.idCard || '',
-        idCardDate: acc?.idCardDate || '',
-        idCardPlace: acc?.idCardPlace || '',
-        permanentAddress: acc?.permanentAddress || '',
-      }));
+      setConfirmData(getPrefilledConfirmData(activeFormCode, getEffectiveAccount()));
     }
   }, [isOpen, currentAccountKey, customProfile]);
 
@@ -102,7 +89,7 @@ export default function DynamicPetitionModal({
 
   if (!isOpen || !petitionType) return null;
 
-  // Nộp qua AI Chat
+  // Nộp qua AI Chat với đầy đủ 100% dữ kiện chuẩn hóa
   const handleSubmitToAgent = () => {
     let prompt = '';
     let payload = {};
@@ -110,19 +97,19 @@ export default function DynamicPetitionModal({
     if (isConfirmForm) {
       let formDesc = 'Giấy xác nhận sinh viên';
       if (activeFormCode === 'TAX_DEDUCTION') {
-        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Giấy xác nhận giảm trừ gia cảnh thuế TNCN nộp ${confirmData.recipientAgency || 'Chi cục Thuế'}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}, Lớp: ${confirmData.studentClass}), xin cấp Giấy xác nhận giảm trừ gia cảnh thuế TNCN nộp ${confirmData.recipientAgency || 'Chi cục Thuế'}. Địa chỉ thường trú: ${confirmData.permanentAddress}; SĐT: ${confirmData.phone}; Cơ sở nhận bản cứng: ${confirmData.pickupCampus}.`;
         formDesc = 'Đơn giảm trừ gia cảnh thuế TNCN';
       } else if (activeFormCode === 'BANK_LOAN') {
-        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Giấy xác nhận vay vốn Ngân hàng CSXH theo Mẫu 01 nộp ${confirmData.recipientAgency || 'NHCSXH'}. Địa chỉ thường trú: ${confirmData.permanentAddress}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}, Lớp: ${confirmData.studentClass}), xin cấp Giấy xác nhận vay vốn Ngân hàng CSXH theo Mẫu 01 nộp ${confirmData.recipientAgency || 'NHCSXH'}. Địa chỉ thường trú: ${confirmData.permanentAddress}; CCCD: ${confirmData.idCard}; SĐT: ${confirmData.phone}; Cơ sở nhận bản cứng: ${confirmData.pickupCampus}.`;
         formDesc = 'Giấy xác nhận vay vốn NHCSXH';
       } else if (activeFormCode === 'MILITARY_DEFERMENT') {
-        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Giấy chứng nhận tạm hoãn nghĩa vụ quân sự nộp ${confirmData.recipientAgency || 'Ban Chỉ huy Quân sự'}. Địa chỉ thường trú: ${confirmData.permanentAddress}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}, Lớp: ${confirmData.studentClass}), xin cấp Giấy chứng nhận tạm hoãn nghĩa vụ quân sự nộp ${confirmData.recipientAgency || 'Ban Chỉ huy Quân sự'}. Địa chỉ thường trú: ${confirmData.permanentAddress}; SĐT: ${confirmData.phone}; CCCD: ${confirmData.idCard}; Cơ sở nhận bản cứng: ${confirmData.pickupCampus}.`;
         formDesc = 'Đơn tạm hoãn nghĩa vụ quân sự';
       } else if (activeFormCode === 'COURSE_DEBT') {
-        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}), xin cấp Đơn xác nhận sinh viên còn nợ môn để bổ sung hồ sơ và hoàn thành học phần. Danh sách môn nợ: ${confirmData.debtCourses}. Thời hạn hoàn thành: ${confirmData.completionDeadline}. Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}, Lớp: ${confirmData.studentClass}), xin cấp Đơn xác nhận sinh viên còn nợ môn để bổ sung hồ sơ và hoàn thành học phần. Danh sách môn nợ: ${confirmData.debtCourses}; Thời hạn hoàn thành: ${confirmData.completionDeadline}; Địa chỉ thường trú: ${confirmData.permanentAddress}; SĐT: ${confirmData.phone}; Cơ sở nhận bản cứng: ${confirmData.pickupCampus}.`;
         formDesc = 'Đơn xác nhận nợ môn / hoàn thành chương trình';
       } else {
-        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}, Lớp: ${confirmData.studentClass}), xin cấp Giấy xác nhận sinh viên với lý do: "${confirmData.purpose}". Nơi nhận giấy: ${confirmData.pickupCampus}.`;
+        prompt = `Em là ${confirmData.fullName} (MSSV: ${confirmData.studentCode}, Lớp: ${confirmData.studentClass}), xin cấp Giấy xác nhận sinh viên với mục đích: "${confirmData.purpose}". Nơi nộp: ${confirmData.recipientAgency || 'Cơ quan liên quan'}; SĐT: ${confirmData.phone}; Cơ sở nhận bản cứng: ${confirmData.pickupCampus}.`;
         formDesc = 'Giấy xác nhận sinh viên (mục đích chung)';
       }
 
@@ -194,12 +181,23 @@ export default function DynamicPetitionModal({
               <p className="text-[11px] text-slate-500 font-mono">Mã thủ tục: {petitionType.code}</p>
             </div>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              type="button"
+              onClick={() => setConfirmData(getPrefilledConfirmData(activeFormCode, getEffectiveAccount()))}
+              className="px-2.5 py-1 text-[11px] font-semibold text-emerald-700 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 rounded-lg flex items-center gap-1 transition-colors cursor-pointer"
+              title="Nạp lại dữ liệu mẫu đầy đủ hợp lệ cho biểu mẫu này"
+            >
+              <RotateCcw className="w-3 h-3 text-emerald-600" />
+              Điền mẫu chuẩn
+            </button>
+            <button
+              onClick={onClose}
+              className="p-1.5 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200 transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </div>
         </div>
 
         {/* Modal Body */}
@@ -233,9 +231,7 @@ export default function DynamicPetitionModal({
                         type="button"
                         onClick={() => {
                           setActiveFormCode(hf.formCode);
-                          setConfirmData((previous) => ({
-                            ...previous, recipientAgency: hf.recipientAgency, purpose: hf.purpose,
-                          }));
+                          setConfirmData(getPrefilledConfirmData(hf.formCode, getEffectiveAccount()));
                         }}
                         className={`py-2 px-2 rounded-lg text-[11px] font-semibold transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer border ${
                           isActive
@@ -447,7 +443,7 @@ export default function DynamicPetitionModal({
                   </div>
                   <div>
                     <label className="text-[11px] font-semibold text-slate-700 block mb-1">
-                      Địa chỉ thường trú (4 cấp: Số nhà/Đường, Phường/Xã, Quận/Huyện, Tỉnh/TP) :
+                      Địa chỉ thường trú theo hộ khẩu :
                       <span className="text-[10px] text-emerald-700 bg-emerald-100 px-1.5 py-0.5 rounded font-normal ml-1.5">Quy chuẩn Title Case</span>
                     </label>
                     <input
@@ -548,11 +544,11 @@ export default function DynamicPetitionModal({
                   onChange={(e) => setConfirmData({ ...confirmData, pickupCampus: e.target.value })}
                   className="w-full px-2.5 py-2 rounded border border-blue-300 bg-blue-50/40 text-blue-900 font-medium focus:border-blue-600 focus:outline-none"
                 >
-                  <option value="Trụ sở chính: phòng Công tác sinh viên (A-01.01)">
+                  <option value="Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)">
                     Trụ sở chính: Phòng Công tác Sinh viên (A-01.01) [Nhận sau 1 ngày làm việc]
                   </option>
-                  <option value="Cơ sở E: Phòng Công tác Sinh viên (E1-01.05)">
-                    Cơ sở E: Phòng Công tác Sinh viên (E1-01.05) [Nhận sau 2 ngày làm việc]
+                  <option value="Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)">
+                    Cơ sở E (Thủ Đức): Phòng Công tác Sinh viên (E1-01.05) [Nhận sau 2 ngày làm việc]
                   </option>
                 </select>
               </div>
