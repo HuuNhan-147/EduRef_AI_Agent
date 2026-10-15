@@ -5,7 +5,7 @@
 [![MLAI Hackathon 2026](https://img.shields.io/badge/MLAI%20Hackathon-2026-blueviolet?style=for-the-badge&logo=target)](https://github.com/HuuNhan-147/EduRef_AI_Agent)
 [![Track](https://img.shields.io/badge/B%E1%BA%A3ng%201-OrganizationAI-blue?style=for-the-badge)](https://github.com/HuuNhan-147/EduRef_AI_Agent)
 [![Challenge](https://img.shields.io/badge/%C4%90%E1%BB%81%20b%C3%A0i%20A-The%20Escalation%20Referee-orange?style=for-the-badge)](https://github.com/HuuNhan-147/EduRef_AI_Agent)
-[![Tests](https://img.shields.io/badge/Tests-115%2F115%20PASS%20(100%25)-success?style=for-the-badge)](https://github.com/HuuNhan-147/EduRef_AI_Agent)
+[![Tests](https://img.shields.io/badge/Tests-116%2F116%20PASS%20(100%25)-success?style=for-the-badge)](https://github.com/HuuNhan-147/EduRef_AI_Agent)
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Runtime](https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
 [![Frontend](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
@@ -26,9 +26,10 @@
 > **Hệ thống đã triển khai trực tuyến (Live Demo phục vụ Ban Giám khảo):**  
 > - **Cổng Dịch vụ Học vụ Tự hành (Frontend):** [https://eduref-ai-agent.vercel.app/](https://eduref-ai-agent.vercel.app/)  
 > - **Backend API & Health Check (Render Singapore):** [https://eduref-ai-agent-1.onrender.com/health](https://eduref-ai-agent-1.onrender.com/health)  
+> - 📘 **Runbook Vận hành & Bảng 4 ca kiểm thử BGK:** [RUNBOOK.md](RUNBOOK.md) *(Đầy đủ lệnh từ Clean Clone, Seed DB đến Test Suite & Bảng TH-01 đến TH-04)*
 > - **Hướng dẫn trải nghiệm:** Ban Giám khảo truy cập giao diện, trải nghiệm **Student Workspace** (thử nộp form hoặc chat với AI, test 6 kịch bản 1-click) hoặc tab **Verify Track A** để kiểm thử tự động 5 ca chuẩn.
 
-[Kiến trúc Hệ thống](#4-kiến-trúc-hệ-thống) • [Luồng Ra Quyết Định](#5-quy-trình-nghiệp-vụ-và-cơ-chế-trọng-tài-staruml-workflow) • [4 Trụ Cột Kỹ Thuật](#3-bốn-trụ-cột-kỹ-thuật-của-eduref-ai) • [Kịch Bản Demo BGK](#6-kịch-bản-kiểm-thử-dành-cho-ban-giám-khảo) • [Cài Đặt & Chạy Nhanh](#8-hướng-dẫn-cài-đặt-và-vận-hành) • [Đội Ngũ KAISER](#1-thông-tin-đội-thi-kaiser)
+[Bảng 4 Ca Kiểm Thử BGK](RUNBOOK.md#1-bảng-4-trường-hợp-kiểm-thử-trọng-yếu-theo-yêu-cầu-ban-giám-khảo) • [Kiến trúc Hệ thống](#4-kiến-trúc-hệ-thống) • [Luồng Ra Quyết Định](#5-quy-trình-nghiệp-vụ-và-cơ-chế-trọng-tài-staruml-workflow) • [4 Trụ Cột Kỹ Thuật](#3-bốn-trụ-cột-kỹ-thuật-của-eduref-ai) • [Runbook Vận Hành](RUNBOOK.md) • [Đội Ngũ KAISER](#1-thông-tin-đội-thi-kaiser)
 
 </div>
 
