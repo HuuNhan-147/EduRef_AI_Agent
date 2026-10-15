@@ -24,7 +24,7 @@
 > *"Tự động hóa thủ tục thường quy — Minh bạch trách nhiệm giải trình — Dừng lại chính xác khi vượt thẩm quyền."*
 
 > **Hệ thống đã triển khai trực tuyến (Live Demo phục vụ Ban Giám khảo):**  
-> - **Cổng Dịch vụ Học vụ Tự hành (Frontend):** [https://eduref-ai-agent.vercel.app/](https://edu-ref-ai-agent.vercel.app/)  
+> - **Cổng Dịch vụ Học vụ Tự hành (Frontend):** [https://eduref-ai-agent.vercel.app/](https://eduref-ai-agent.vercel.app/)  
 > - **Backend API & Health Check (Render Singapore):** [https://eduref-ai-agent-1.onrender.com/health](https://eduref-ai-agent-1.onrender.com/health)  
 > - **Hướng dẫn trải nghiệm:** Ban Giám khảo truy cập giao diện, trải nghiệm **Student Workspace** (thử nộp form hoặc chat với AI, test 6 kịch bản 1-click) hoặc tab **Verify Track A** để kiểm thử tự động 5 ca chuẩn.
 
