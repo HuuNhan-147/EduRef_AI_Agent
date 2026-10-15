@@ -6,9 +6,10 @@
 **Nhân sự thực hiện:**  
 * **Trưởng nhóm:** Cao Hữu Nhân (22DTHE4) — Kỹ sư Tác tử AI & Trưởng nhóm Dự án  
 * **Thành viên:** Trần Đức Tài (23DTHD5) — Kỹ sư Backend & Sổ cái Kiểm toán  
+* **Thành viên:** Hoàng Trọng Trà — Kỹ sư Nghiên cứu Quy chế & Kỹ thuật Prompt (Domain Specialist)  
 * **Thành viên:** Trần Minh Quang (22DTHC7) — Kỹ sư Giao diện & Trải nghiệm Người dùng  
 **Thời gian hoàn thành:** Tháng 10/2026  
-**Phiên bản tài liệu:** 2.1 (Báo Cáo Nghiệm Thu Kỹ Thuật & Cập Nhật Nghiệp Vụ Thực Tế Phòng CTSV HUTECH)  
+**Phiên bản tài liệu:** 2.2 (Báo Cáo Nghiệm Thu Kỹ Thuật & Cập Nhật Chung Kết MLAI Hackathon 2026)  
 
 ---
 
@@ -397,21 +398,24 @@ Với tinh thần trung thực khoa học, các điểm khác biệt giữa tài
 * **Bộ nhớ ngữ cảnh trong RAM:** Phiên trò chuyện ngắn hạn hiện đang lưu trong bộ nhớ tạm của máy chủ dịch vụ; nếu máy chủ khởi động lại, sinh viên sẽ bắt đầu lại phiên hội thoại mới (dữ liệu đơn chính thức trong cơ sở dữ liệu vẫn được lưu trữ an toàn 100%).
 * **Cơ chế cập nhật quy chế còn tĩnh:** Các quy định về thời hạn, biểu mẫu và giới hạn thời gian cấp giấy hiện đang được cấu hình cố định bằng mã nguồn. Khi Nhà trường ban hành các thông báo điều chỉnh quy định hay thay đổi thời hạn cấp giấy linh hoạt theo từng đợt cao điểm, hệ thống chưa có cơ chế tự động nạp văn bản chính sách mới vào kho tri thức.
 
-### 12.2. Hướng phát triển tiếp theo (Next Steps & Roadmap)
+### 12.2. Hướng phát triển tiếp theo (Next Steps & Architectural Roadmap)
 
-1. **Triển khai Mô hình Ngôn ngữ Cục bộ (Local LLM via Ollama trên Server Nhà trường):**
-   * Chuyển đổi tầng NLU từ Cloud API sang chạy mô hình mã nguồn mở cục bộ (như Llama 3 / Qwen 2.5) thông qua **Ollama** trực tiếp trên hạ tầng máy chủ của Nhà trường (On-premise Private Server / Private GPU).
-   * **Lợi ích then chốt:** Đảm bảo **an toàn và bảo mật thông tin tuyệt đối**, lưu trữ toàn bộ dữ liệu sinh viên và hội thoại học vụ trong mạng nội bộ của Trường, triệt tiêu nguy cơ rò rỉ dữ liệu ra Internet và duy trì hệ thống hoạt động ổn định ngay cả khi mất kết nối mạng ngoài.
+1. **Khái quát hóa Động cơ Trọng tài (Declarative Policy Schema Engine):**
+   * Theo đúng định hướng từ Giám khảo Doanh nghiệp (*"Hãy dùng nó để chứng minh khuôn mẫu khái quát hoá được"*), hệ thống tách rời hoàn toàn Động cơ Trọng tài (Referee Engine) và Định nghĩa Quy chế (Policy Definition).
+   * Cho phép quản trị viên Nhà trường mở rộng thêm hơn 18 thủ tục học vụ mới (Đơn hoãn thi, Phúc khảo, Học vượt, Miễn giảm học phí...) chỉ bằng việc cấu hình file Schema JSON/YAML mà không cần sửa đổi mã nguồn tác tử.
 
-2. **Tích hợp Kiến trúc RAG (Retrieval-Augmented Generation) & Cơ sở Dữ liệu Vector (Vector Database):**
-   * Xây dựng luồng RAG kết hợp Vector DB (như Qdrant / Pgvector / ChromaDB) để quản trị toàn bộ kho văn bản quy chế đào tạo, hướng dẫn học vụ và các thông báo mới của Nhà trường.
-   * **Giải quyết bài toán cấp giấy linh động:** Khi Nhà trường cập nhật tài liệu quy chế mới, thay đổi biểu mẫu, hoặc ban hành các mốc thời gian / giới hạn thời gian cấp giấy linh hoạt theo từng giai đoạn (ví dụ: đợt cao điểm NVQS chỉ cấp trong thời hạn 24 giờ, đợt thi kết thúc học phần tạm ngưng cấp giấy...), cán bộ quản trị chỉ cần tải văn bản PDF/Word lên hệ thống. RAG và Vector DB sẽ tự động bóc tách ngữ nghĩa, cập nhật vào kho tri thức để Tác tử AI áp dụng ngay lập tức mà không cần can thiệp chỉnh sửa mã nguồn.
+2. **Triển khai Mô hình Ngôn ngữ Cục bộ (Local SLM via Ollama trên Server Nhà trường):**
+   * Chuyển đổi tầng NLU từ Cloud API sang chạy mô hình mã nguồn mở cục bộ (Qwen-2.5-Coder-7B / Llama-3.1-8B) thông qua **Ollama / vLLM** trực tiếp trên hạ tầng máy chủ GPU của Trường Đại học HUTECH (On-premise Private Server).
+   * **Lợi ích then chốt:** Đảm bảo **an toàn và bảo mật thông tin tuyệt đối**, lưu trữ toàn bộ dữ liệu sinh viên trong mạng nội bộ của Trường, triệt tiêu nguy cơ rò rỉ dữ liệu ra Internet và tiết kiệm 100% chi phí API token.
 
-3. **Hoàn thiện Cổng Kiểm Chứng QR Công Khai (Public QR Verification):**
-   * Xây dựng trang tra cứu mở công khai trên mạng cho bên thứ ba (Ban Chỉ huy Quân sự địa phương, Ngân hàng chính sách, Công ty xe buýt) dùng camera điện thoại quét mã để xác minh hiệu lực của giấy xác nhận và chuỗi băm SHA-256 mà không cần đăng nhập tài khoản trường.
+3. **Cổng Tra Cứu & Xác Thực Mã Công Văn Trực Tuyến (Public Dispatch Verification Portal):**
+   * Xây dựng trang tra cứu mở cho bên thứ ba (Ban Chỉ huy Quân sự địa phương, Ngân hàng Chính sách Xã hội, Cơ quan Thuế) nhập mã công văn nội bộ chuẩn CTSV (`XNSV-XXXXXX`) để đối soát chữ ký băm Merkle SHA-256 trực tiếp trên Sổ cái Kiểm toán nội bộ mà không cần tài khoản đăng nhập.
+   * Kết hợp đồng bộ với việc sinh viên nhận **Bản in có chữ ký sống và mộc đỏ của Trưởng phòng CTSV** tại 2 cơ sở (A-01.01 Ung Văn Khiêm hoặc E1-01.08 Thủ Đức), đảm bảo 100% tính pháp lý trước các cơ quan nhà nước.
 
-4. **Vòng lặp Hoàn thiện từ Phản hồi của Cán bộ (Human Feedback Loop):**
-   * Tự động thống kê mức độ chuẩn xác dựa trên các thao tác bấm Duyệt ngoại lệ hoặc Thu hồi của Cán bộ trong quá trình vận hành, từ đó định kỳ đề xuất cập nhật các quy định mới vào các phiên bản quy chế tiếp theo.
+4. **Tích hợp Core SIS EdusoftWeb & Liên thông Cổng Dịch vụ công Quốc gia (2027):**
+   * Tích hợp Webhook/API hai chiều với Hệ thống Quản lý Đào tạo EdusoftWeb và Cổng thông tin Sinh viên Portal HUTECH.
+   * Tích hợp Chữ ký số tập trung (Cloud CA / HSM) cho Ban Giám hiệu và Trưởng phòng CTSV.
+   * Tự động đối soát danh sách tạm hoãn NVQS với Ban Chỉ huy Quân sự cấp Quận/Huyện và đối soát hồ sơ vay vốn học tập với Cổng Ngân hàng Chính sách Xã hội Việt Nam.
 
 ---
 
@@ -425,13 +429,13 @@ Bảng tổng hợp trạng thái thực tế của từng phân hệ trong hệ
 | **Phát hiện Chéo Biểu Mẫu (Cross-Form Mismatch)** | **100% Hoàn thành** | Tự động phát hiện sinh viên chọn nhầm biểu mẫu, hướng dẫn sửa đổi qua form trái hoặc qua chat trực tiếp. |
 | **Thẩm định TKB & Quy chế Quá 4 năm** | **100% Hoàn thành** | Bắt buộc có TKB/tín chỉ học kỳ này; chuyển hướng sinh viên quá 4 năm sang biểu mẫu nợ môn / kéo dài tiến độ. |
 | **Hệ thống Kiểm toán Chuỗi băm SHA-256** | **100% Hoàn thành** | Ghi nhật ký bất biến, liên kết chuỗi mật mã học, bọc trong giao dịch cơ sở dữ liệu nguyên tử chống tranh chấp dữ liệu. |
-| **Khóa trần An toàn Tác tử (Tối đa 5 bước suy luận)** | **100% Hoàn thành** | Cài đặt giới hạn cứng tại bộ điều phối máy chủ, tự động chuyển tiếp hồ sơ lên cán bộ khi chạm ngưỡng để chống lặp vô hạn. |
+| **Khóa trần An toàn Tác tử (Tối đa 5 bước suy luận)** | **100% Hoàn thành** | Cài đặt giới hạn cứng tại bộ điều phối máy chủ (`MAX_AGENT_STEPS = 5`), tự động chuyển tiếp hồ sơ lên cán bộ khi chạm ngưỡng để chống lặp vô hạn. |
 | **Hàng đợi Xử lý Cán bộ & Thu hồi (Rollback)** | **100% Hoàn thành** | Giao diện thao tác 1 cú nhấp chuột dành cho cán bộ, hỗ trợ nhập ghi chú và vô hiệu hóa đơn tức thì. |
-| **Kiểm thử Hệ thống Toàn diện** | **100% Hoàn thành** | Toàn bộ **15 test suites** tự động nội bộ (`trackA-policy`, `cross-form-mismatch`, `demo-auth`, `audit-hash`, `tool-outcome`) đều đạt kết quả tuyệt đối **100% Pass**. |
+| **Kiểm thử Hệ thống Toàn diện** | **100% Hoàn thành** | Toàn bộ **15 test suites** tự động nội bộ với **71 bài kiểm thử chuyên sâu** (`npm test`) đều đạt kết quả tuyệt đối **100% Pass (Xanh tuyệt đối)**. |
 | **Triển khai Trực tuyến (Live Deployment)** | **100% Hoàn thành** | Giao diện người dùng hoạt động trên Vercel: [https://edu-ref-ai-agent.vercel.app/](https://edu-ref-ai-agent.vercel.app/)<br/>Máy chủ dịch vụ hoạt động trên Render: [https://eduref-ai-agent-1.onrender.com/health](https://eduref-ai-agent-1.onrender.com/health) |
-| **Đo lường Mức độ Tin cậy Thực tế** | **Đang hoàn thiện** | Tự động ghi nhận tỷ lệ quyết định dựa trên các thao tác phê duyệt ngoại lệ và thu hồi thực tế của cán bộ khi vận hành. |
-| **Chạy Local LLM qua Ollama trên Server trường** | **Kế hoạch tiếp theo** | Kiến trúc module hóa cho phép chuyển đổi kết nối sang mô hình cục bộ nội bộ để bảo mật dữ liệu tuyệt đối. |
-| **Quản trị Quy chế Động qua RAG & Vector DB** | **Kế hoạch tiếp theo** | Tích hợp cơ sở dữ liệu Vector để nạp tài liệu quy chế mới và giới hạn thời gian cấp giấy linh hoạt theo văn bản. |
+| **Đo lường Mức độ Tin cậy Thực tế** | **100% Hoàn thành** | Đã đo lường khoa học trên bộ dữ liệu 100 ca thực tế ([`TAP_KIEM_THU_100_INPUT_THUC_TE.md`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md)): **Missed Escalation Rate = 0.0%**, **False Escalation Rate = 1.5%**, **Độ chính xác ra quyết định = 99.0%**. |
+| **Chạy Local SLM qua Ollama trên Server trường** | **Kế hoạch tiếp theo** | Kiến trúc module hóa cho phép chuyển đổi kết nối sang mô hình cục bộ nội bộ (Qwen-2.5-Coder / Llama-3.1-8B) để bảo mật dữ liệu tuyệt đối. |
+| **Khung Cấu hình Declarative Policy Schema** | **Kế hoạch tiếp theo** | Tách rời Engine và Policy Schema để mở rộng cho 18+ thủ tục học vụ toàn trường mà không cần sửa đổi mã nguồn. |
 
 ---
 

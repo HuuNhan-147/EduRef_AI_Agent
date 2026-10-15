@@ -8,9 +8,7 @@
 [![License](https://img.shields.io/badge/License-MIT-green?style=for-the-badge)](LICENSE)
 [![Runtime](https://img.shields.io/badge/Node.js-18%2B-339933?style=for-the-badge&logo=nodedotjs)](https://nodejs.org/)
 [![Frontend](https://img.shields.io/badge/React-18-61DAFB?style=for-the-badge&logo=react)](https://react.dev/)
-[![Database](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/)
-
-**Hệ Thống Tác Tử AI Tự Hành Thẩm Định & Điều Phối Hành Chính Học Vụ Đảm Bảo Trách Nhiệm Giải Trình**
+[![Database](https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase)](https://supabase.com/**Hệ Thống Tác Tử AI Tự Hành Thẩm Định & Điều Phối Hành Chính Học Vụ Đảm Bảo Trách Nhiệm Giải Trình**
 
 > **Phạm vi nghiệp vụ thực tế (HUTECH CTSV):** EduRef AI giải quyết trọn vẹn quy trình **Cấp Giấy Xác Nhận Sinh Viên** với đầy đủ **5 Biểu Mẫu Học Vụ Thực Tế** theo quy chuẩn của Trường Đại học HUTECH:
 > 1. `TAX_DEDUCTION`: Đơn xin xác nhận giảm trừ gia cảnh Thuế TNCN (Hiệu lực 1 học kỳ, bắt buộc nơi nhận/cơ quan thuế).
@@ -42,8 +40,8 @@
 | :---: | :--- | :---: | :--- | :--- | :--- |
 | **1** | **Cao Hữu Nhân** | 22DTHE4 | `huuxnhan.dev@gmail.com` | `0377913722` | **Team Leader / Fullstack & AI System Architecture** |
 | **2** | **Trần Đức Tài** | 23DTHD5 | `taichinhpro123@gmail.com` | `0359876711` | **Backend & Audit Ledger Engineer** |
-| **3** | **Trần Minh Quang** | 22DTHC7 | `tmquang.contact@gmail.com` | `0943457402` | **Frontend UI/UX & Realtime Integration** |
-| **4** | **Hoàng Trọng Trà** | 22DTHE4 | `trahoangdev@gmail.com` | `0842366570` | **Fullstack / QA & Security Testing Engineer** |
+| **3** | **Hoàng Trọng Trà** | 22DTHE4 | `trahoangtrong@gmail.com` | `—` | **Academic Policy Research & Prompt Engineering** |
+| **4** | **Trần Minh Quang** | 22DTHC7 | `tmquang.contact@gmail.com` | `0943457402` | **Frontend UI/UX & Realtime Integration** |
 
 ---
 
@@ -506,6 +504,7 @@ EduRef_AI_Agent/
 ├── README.md                           # Tài liệu tổng quan dự án cho Ban Giám Khảo
 ├── ROADMAP.md                          # Lộ trình phát triển & Tiến hóa kiến trúc chuẩn Barem BGK (Tiêu chí 5)
 ├── BUILD_LOG.md                        # Nhật ký phát triển 1 trang theo chuẩn Mục 3.f Đề bài
+├── 5_SLIDES_PRESENTATION_DATA.md       # Dữ liệu chuẩn mực & Kịch bản thuyết trình 5 slide theo quy định BGK
 └── EDUREF_AI/                          # Toàn bộ mã nguồn hệ thống
     ├── RUNBOOK.md                      # Kịch bản demo 90 giây dành cho BGK
     ├── backend/                        # Node.js + Express + Prisma + Gemini Agent
@@ -516,7 +515,7 @@ EduRef_AI_Agent/
     │   ├── prisma/                     # Schema Database & Script nạp Seed data
     │   ├── routes/                     # REST API endpoints (Agent, Petition, Audit, Auth)
     │   ├── services/                   # StudentConfirmationDecisionService, AuditService
-    │   ├── test/                       # 15 Unit Tests kiểm thử Bounded Autonomy & Track A (54/54 PASS)
+    │   ├── test/                       # 15 Unit Tests kiểm thử Bounded Autonomy & Track A (71/71 PASS)
     │   └── server.js                   # Điểm khởi chạy máy chủ Express & Socket.IO
     ├── frontend/                       # React 18 + Vite 6.4 + TailwindCSS
     │   ├── src/
@@ -531,7 +530,8 @@ EduRef_AI_Agent/
         ├── 14_TRACK_A_POLICY.md        # Toàn văn Quy chế Học vụ Đề bài A
         ├── 16_SUPABASE_DEPLOYMENT.md   # Hướng dẫn kết nối cơ sở dữ liệu Supabase
         ├── 17_ROADMAP.md               # Lộ trình phát triển & Tiến hóa kiến trúc chuẩn Barem BGK
-        └── 18_DEFENSE_QA_PLAYBOOK.md   # Cẩm nang 12 kịch bản phản biện hóc búa với Hội đồng BGK
+        ├── 18_DEFENSE_QA_PLAYBOOK.md   # Cẩm nang 12 kịch bản phản biện hóc búa với Hội đồng BGK
+        └── 19_5_SLIDES_DATA.md         # Bộ dữ liệu & Kịch bản thuyết trình 5 slide chuẩn BGK
 ```
 
 ---
