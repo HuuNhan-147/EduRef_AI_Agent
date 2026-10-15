@@ -84,7 +84,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       missing.push({ code: 'REQ_ID_CARD', name: 'Số CMND/CCCD', description: 'Vui lòng cung cấp số Căn cước công dân / CMND.' });
     }
 
-    // Hộ khẩu thường trú: Bắt buộc cho NVQS, Thuế (và kiểm tra 4 cấp hành chính + Title Case)
+    // Hộ khẩu thường trú: Bắt buộc cho NVQS, Thuế (chuẩn hóa Title Case, chấp nhận địa chỉ sau sáp nhập)
     const isStrictAddressForm = ['MILITARY_DEFERMENT', 'TAX_DEDUCTION'].includes(formCode);
     const rawAddress = String(inputData?.permanentAddress || inputData?.address || '').trim();
     if (isStrictAddressForm) {
@@ -92,7 +92,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
         missing.push({
           code: 'REQ_ADDRESS',
           name: 'Hộ khẩu thường trú',
-          description: 'Biểu mẫu này bắt buộc phải có địa chỉ thường trú đủ 4 cấp hành chính viết hoa đúng chuẩn (Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/TP).',
+          description: 'Biểu mẫu này bắt buộc phải có địa chỉ thường trú viết hoa đúng chuẩn Title Case (chấp nhận địa chỉ sau sáp nhập địa giới như TP. Thủ Đức, sáp nhập phường/xã, nông thôn không có số nhà).',
         });
       } else {
         const addressCheck = validatePermanentAddress(rawAddress);

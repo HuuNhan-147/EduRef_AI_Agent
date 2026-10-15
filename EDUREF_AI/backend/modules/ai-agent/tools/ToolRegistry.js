@@ -5,7 +5,7 @@ export class ToolRegistry {
       {
         name: 'process_student_confirmation',
         description:
-          'CÔNG CỤ DUYỆT VÀ CẤP GIẤY XÁC NHẬN SINH VIÊN (XNSV): Chỉ gọi khi sinh viên có nhu cầu nộp đơn hoặc cung cấp thông tin đơn. Nếu thiếu số điện thoại, thiếu cơ sở nhận hoặc địa chỉ thường trú chưa đủ 4 cấp viết hoa chuẩn, tool sẽ trả về ASK_CLARIFICATION. Bạn BẮT BUỘC phải hỏi lại sinh viên, tuyệt đối không được tự bịa tham số và không được tự nói là đơn đã duyệt!',
+          'CÔNG CỤ DUYỆT VÀ CẤP GIẤY XÁC NHẬN SINH VIÊN (XNSV): Chỉ gọi khi sinh viên có nhu cầu nộp đơn hoặc cung cấp thông tin đơn. Nếu thiếu số điện thoại, thiếu cơ sở nhận hoặc địa chỉ thường trú chưa viết hoa chuẩn Title Case (chấp nhận địa chỉ sau sáp nhập địa giới từ 2 đến 4 cấp), tool sẽ trả về ASK_CLARIFICATION. Bạn BẮT BUỘC phải hỏi lại sinh viên, tuyệt đối không được tự bịa tham số và không được tự nói là đơn đã duyệt!',
         parameters: {
           type: 'OBJECT',
           properties: {
@@ -40,7 +40,8 @@ export class ToolRegistry {
             },
             permanentAddress: {
               type: 'STRING',
-              description: 'Địa chỉ hộ khẩu thường trú 4 cấp hành chính (bắt buộc cho Tạm hoãn NVQS, Giảm thuế TNCN). Phải đủ Số nhà/đường/ấp, Phường/Xã, Quận/Huyện, Tỉnh/TP.',
+              description:
+                'Địa chỉ hộ khẩu thường trú viết hoa Title Case (bắt buộc cho Tạm hoãn NVQS, Giảm thuế TNCN). Chấp nhận địa chỉ sau sáp nhập địa giới hành chính (từ 2 đến 4 cấp, ví dụ TP. Thủ Đức, sáp nhập phường, nông thôn không có số nhà). Sinh viên chịu trách nhiệm pháp lý về tính chính xác của địa chỉ.',
             },
             debtCourses: {
               type: 'STRING',

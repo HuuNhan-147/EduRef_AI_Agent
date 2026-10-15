@@ -91,7 +91,7 @@ export function formatVietnameseAddress(address = '') {
       .split(/\s+/)
       .map((word) => {
         if (!word) return '';
-        if (/^(tp\.|q\.|p\.|x\.|tx\.|h\.|tt\.|ktx|cccd|cmnd)$/i.test(word)) return word.toUpperCase();
+        if (/^(tp\.?|q\.?|p\.?|x\.?|tx\.?|h\.?|tt\.?|ktx|cccd|cmnd)$/i.test(word)) return word.toUpperCase();
         return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase();
       })
       .join(' ');
@@ -206,19 +206,18 @@ export function calculatePickupAppointment({ pickupCampus = '', submissionDate =
 }
 
 /**
- * Kiểm tra tính đầy đủ và quy chuẩn hành chính của Địa chỉ hộ khẩu thường trú:
- * 1. Định danh cơ sở: Tên đường/số nhà HOẶC Thôn/Ấp/Khóm/Xóm/Bản/Buôn (ở nông thôn)
- * 2. Phường / Xã / Thị trấn
- * 3. Quận / Huyện / Thị xã / Thành phố thuộc tỉnh (nếu có sau sáp nhập)
- * 4. Tỉnh / Thành phố trực thuộc Trung ương
- * Kèm quy định viết hoa chữ cái đầu (Title Case) theo chỉ đạo của Thầy CTSV
+ * Chuẩn hóa và kiểm tra Địa chỉ hộ khẩu thường trú theo chuẩn văn thư hành chính:
+ * - KHÔNG ép cứng 4 cấp hành chính và KHÔNG tự ý chèn thêm tỉnh/thành phố (đây là trách nhiệm pháp lý của sinh viên,
+ *   tương thích thực tế sáp nhập địa giới hành chính như TP. Thủ Đức, sáp nhập phường/xã, nông thôn không có số nhà).
+ * - Tập trung chuẩn hóa viết hoa chữ cái đầu (Title Case) đúng quy cách văn bản của Nhà trường.
+ * - Chặn dứt khoát việc nhầm lẫn địa chỉ tạm trú / KTX / nhà trọ tại TP.HCM vào biểu mẫu NVQS/Thuế.
  */
 export function validatePermanentAddress(address = '') {
   const raw = String(address || '').trim();
   if (!raw) {
     return {
       isValid: false,
-      missingLevels: ['Thôn/Ấp/Số nhà/Đường', 'Phường/Xã/Thị trấn', 'Quận/Huyện/Thị xã/TP', 'Tỉnh/Thành phố'],
+      missingLevels: ['Địa chỉ hộ khẩu thường trú'],
       reason: 'Thiếu hoàn toàn địa chỉ hộ khẩu thường trú.',
     };
   }
@@ -235,7 +234,7 @@ export function validatePermanentAddress(address = '') {
 
   const parts = raw.split(/[,;\-]+/).map((p) => p.trim()).filter(Boolean);
 
-  // 2. CHỐT CHẶN VIẾT THƯỜNG CẨU THẢ (TITLE CASE THEO CHUẨN VĂN THƯ CỦA THẦY CTSV)
+  // 2. CHUẨN HÓA VIẾT HOA THEO CHUẨN VĂN THƯ (TITLE CASE)
   // Bắt lỗi nếu có thành phần nào viết thường toàn bộ (VD: "phạm thị tư", "ấp châu phú", "bạc liêu")
   const lowercaseParts = parts.filter((part) => {
     const words = part.split(/\s+/).filter(Boolean);
@@ -246,17 +245,13 @@ export function validatePermanentAddress(address = '') {
   const isAllLowerCase = raw === raw.toLowerCase() && raw.length > 5;
   const hasBadCasing = isAllLowerCase || lowercaseParts.length >= 2;
 
-  // 3. KIỂM TRA ĐỦ CẤP HÀNH CHÍNH (TƯƠNG THÍCH ĐỊA GIỚI SÁP NHẬP & NÔNG THÔN KHÔNG CÓ SỐ NHÀ)
-  const hasWard = /(?:phường|phuong|xã|xa|thị trấn|thi tran|p\.|x\.)\s+/i.test(raw);
-  const hasDistrict = /(?:quận|quan|huyện|huyen|thị xã|thi xa|thành phố|thanh pho|tp\.|tx\.|q\.|h\.)\s+/i.test(raw);
-  const hasProvince = /(?:tỉnh|tinh|thành phố|thanh pho|tp\.|bình dương|hồ chí minh|hà nội|đồng nai|long an|tiền giang|bến tre|cần thơ|vũng tàu|đà nẵng|bình định|quảng nam|khánh hòa|lâm đồng|tây ninh|bình phước|bạc liêu|an giang|cà mau|kiên giang|sóc trăng|trà vinh|vĩnh long|hậu gian|đắk lắk|dak lak|gia lai|kon tum|bình thuận|ninh thuận|quảng ngãi|quảng bình|quảng trị|thừa thiên huế|hà tĩnh|nghệ an|thanh hóa|ninh bình|nam định|hà nam|thái bình|hưng yên|hải dương|hải phòng|quảng ninh|bắc ninh|bắc giang|lạng sơn|cao bằng|bắc kạn|thái nguyên|tuyên quang|hà giang|yên bái|lào cai|phú thọ|vĩnh phúc|hòa bình|sơn la|điện biên|lai châu)/i.test(raw);
-
+  // 3. KHÔNG ÉP CỨNG 4 CẤP HÀNH CHÍNH & KHÔNG TỰ Ý CHÈN TỈNH/THÀNH PHỐ
+  // Sinh viên tự chịu trách nhiệm về địa chỉ đã khai báo (kể cả sau sáp nhập địa giới: ví dụ TP. Thủ Đức, sáp nhập phường/xã, nông thôn không có số nhà).
+  // Hệ thống chỉ hỗ trợ chuẩn hóa Title Case (viết hoa chữ cái đầu) theo chuẩn văn thư hành chính.
   const missingLevels = [];
-  // Cho phép nông thôn (ấp/thôn/khóm/bản/tổ...) không cần số nhà
-  if (parts.length < 2) missingLevels.push('Tên ấp/thôn/đường/khu phố');
-  if (!hasWard && parts.length < 2) missingLevels.push('Phường/Xã/Thị trấn');
-  if (!hasDistrict && parts.length < 3) missingLevels.push('Quận/Huyện/Thị xã/Thành phố thuộc tỉnh (nếu có)');
-  if (!hasProvince && parts.length < 3) missingLevels.push('Tỉnh/Thành phố');
+  if (parts.length < 2 && raw.length < 8) {
+    missingLevels.push('Chi tiết địa chỉ thường trú (ghi rõ tên đường/thôn/ấp/xã/phường/địa phương)');
+  }
 
   const formattedAddress = formatVietnameseAddress(raw);
 
@@ -265,7 +260,7 @@ export function validatePermanentAddress(address = '') {
     if (hasBadCasing) {
       failureReason = `Địa chỉ thường trú viết chữ thường, chưa viết hoa chữ cái đầu theo chuẩn văn thư hành chính. Hệ thống gợi ý định dạng lại là: "${formattedAddress}".`;
     } else {
-      failureReason = `Địa chỉ hộ khẩu chưa đủ cấp hành chính (thiếu hoặc chưa ghi rõ: ${missingLevels.join(', ')}).`;
+      failureReason = `Địa chỉ hộ khẩu quá ngắn hoặc chưa rõ ràng (cần ghi rõ: ${missingLevels.join(', ')}).`;
     }
 
     return {
@@ -410,7 +405,7 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
     case 'MILITARY_DEFERMENT':
       return [
         '1. Họ và tên, MSSV, Ngày sinh, Khoa',
-        '2. Địa chỉ hộ khẩu thường trú (đủ 4 cấp hành chính: Số nhà/đường hoặc Thôn/Ấp, Phường/Xã, Quận/Huyện, Tỉnh/TP và viết hoa chữ cái đầu: VD "475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh" hoặc "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu")',
+        '2. Địa chỉ hộ khẩu thường trú (từ 2 đến 4 cấp hành chính Title Case, chấp nhận địa chỉ sau sáp nhập: VD "475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh" hoặc "Phường An Phú, TP. Thủ Đức" hoặc "Ấp Châu Phú, Xã Hòa Bình, Tỉnh Bạc Liêu")',
         '3. Số điện thoại liên hệ',
         '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.05',
       ].join('\n');
@@ -427,7 +422,7 @@ export function getFormFieldsGuide(formCode = 'GENERAL_CONFIRMATION') {
     case 'TAX_DEDUCTION':
       return [
         '1. Họ tên, MSSV, Ngày sinh, Khoa',
-        '2. Địa chỉ hộ khẩu thường trú (đủ 4 cấp hành chính)',
+        '2. Địa chỉ hộ khẩu thường trú (từ 2 đến 4 cấp hành chính, chấp nhận địa chỉ sau sáp nhập)',
         '3. Số điện thoại liên hệ',
         '4. Cơ sở nhận bản cứng: Trụ sở chính (A-01.01) hoặc Cơ sở E1-01.05',
       ].join('\n');
@@ -863,7 +858,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
         decision: TRACK_A_DECISION.ASK_CLARIFICATION,
         rule: 'REQ_PERMANENT_ADDRESS_REQUIRED',
         reason: `Biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ hộ khẩu thường trú.`,
-        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ thường trú (Số nhà/đường hoặc Thôn/Ấp, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố) và viết hoa đúng chuẩn (Ví dụ: "475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh" hoặc "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu"). Bạn vui lòng cung cấp địa chỉ hộ khẩu thường trú nhé!`,
+        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý biểu mẫu "${targetForm.name}" bắt buộc phải có địa chỉ thường trú viết hoa đúng chuẩn văn thư (chấp nhận địa chỉ sau sáp nhập địa giới như "Phường An Phú, TP. Thủ Đức", "Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh" hoặc "Ấp Châu Phú, Xã Hòa Bình, Tỉnh Bạc Liêu"). Bạn vui lòng cung cấp địa chỉ hộ khẩu thường trú nhé!`,
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
       };
     }
@@ -894,7 +889,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
         decision: TRACK_A_DECISION.ASK_CLARIFICATION,
         rule: 'REQ_PERMANENT_ADDRESS_STANDARD',
         reason: `Địa chỉ hộ khẩu chưa đạt chuẩn: ${addressCheck.reason}`,
-        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý: ${addressCheck.reason}\n\nBạn vui lòng điều chỉnh lại địa chỉ ghi rõ các cấp hành chính (Ví dụ: "${addressCheck.autoFormatted || 'Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu'}") để được cấp giấy hợp lệ nhé!`,
+        actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý: ${addressCheck.reason}\n\nBạn vui lòng xác nhận hoặc gửi lại địa chỉ viết hoa đúng chuẩn văn thư (Ví dụ: "${addressCheck.autoFormatted || 'Phường An Phú, TP. Thủ Đức'}") để được cấp giấy hợp lệ nhé!`,
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
       };
     }

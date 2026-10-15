@@ -230,7 +230,7 @@ class AcademicWorkflowService {
             status: 'WAITING_STUDENT',
             classification: 'UNKNOWN_FACT',
             uncertaintyType: 'UNKNOWN_FACT',
-            actionableQuestion: 'Dạ Thầy cô Phòng CTSV lưu ý biểu mẫu này bắt buộc phải có địa chỉ thường trú đầy đủ 4 cấp hành chính (Số nhà/đường, Phường/Xã, Quận/Huyện, Tỉnh/Thành phố) và viết hoa đúng chuẩn (Ví dụ: "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu"). Bạn vui lòng cung cấp địa chỉ hộ khẩu thường trú nhé!',
+            actionableQuestion: 'Dạ Thầy cô Phòng CTSV lưu ý biểu mẫu này bắt buộc phải có địa chỉ thường trú viết hoa đúng chuẩn văn thư (chấp nhận địa chỉ sau sáp nhập địa giới như "Phường An Phú, TP. Thủ Đức", "Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh" hoặc địa chỉ nông thôn "Ấp Châu Phú, Xã Hòa Bình, Tỉnh Bạc Liêu"). Bạn vui lòng cung cấp địa chỉ hộ khẩu thường trú nhé!',
             message: 'Thiếu thông tin địa chỉ hộ khẩu thường trú bắt buộc.',
           };
         }
@@ -243,7 +243,7 @@ class AcademicWorkflowService {
             status: 'WAITING_STUDENT',
             classification: 'UNKNOWN_FACT',
             uncertaintyType: 'UNKNOWN_FACT',
-            actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý: ${addressCheck.reason}\n\nBạn vui lòng điều chỉnh lại địa chỉ ghi rõ đủ 4 cấp hành chính và viết hoa chữ cái đầu (Ví dụ: "Ấp Châu Phú, Xã Hòa Bình, Huyện Hòa Bình, Tỉnh Bạc Liêu") để được cấp giấy hợp lệ nhé!`,
+            actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý: ${addressCheck.reason}\n\nBạn vui lòng xác nhận hoặc gửi lại địa chỉ viết hoa đúng chuẩn văn thư (Ví dụ: "${addressCheck.autoFormatted || 'Phường An Phú, TP. Thủ Đức'}") để được cấp giấy hợp lệ nhé!`,
             message: addressCheck.reason,
           };
         }
