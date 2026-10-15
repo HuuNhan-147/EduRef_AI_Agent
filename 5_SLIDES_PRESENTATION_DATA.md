@@ -26,31 +26,33 @@
 ## 📽️ SLIDE 1: VẤN ĐỀ HIỆN TRẠNG — NGHỊCH LÝ THẨM ĐỊNH HỌC VỤ & KHOẢNG TRỐNG THỰC TẾ
 
 ### 1. Thông Điệp Cốt Lõi (Punchline)
-> *"Tại các trường đại học, 70% thủ tục học vụ là thường quy hợp lệ nhưng cán bộ vẫn mất 2 – 5 ngày đối soát thủ công trên 3 hệ thống rời rạc. Áp dụng AI tự do thì đối mặt rủi ro ảo giác và sai phạm pháp lý nghĩa vụ quân sự. Lời giải không phải là một Chatbot tán gẫu, mà là một Trọng tài Học vụ Số biết dừng đúng ranh giới."*
+> *"Tại các trường đại học, 70% thủ tục học vụ là thường quy hợp lệ nhưng cán bộ vẫn mất từ 24h (ngày thường) đến 3 – 5 ngày (đợt cao điểm hoặc dính T7, CN) để đối soát thủ công trên 3 hệ thống rời rạc. Sinh viên bức xúc trên Confessions vì chờ đợi lâu và khi bị từ chối lại không rõ lý do. Áp dụng AI tự do thì đối mặt rủi ro ảo giác và sai phạm pháp lý nghĩa vụ quân sự. Lời giải là một Trọng tài Học vụ Số biết dừng đúng ranh giới."*
 
 ### 2. Nội Dung Trình Chiếu Trên Slide (On-Slide Content)
 
 * **Card 1: Quy mô & Áp lực Thực tế tại Đại học HUTECH**
   - **Chính xác 36.994 biểu mẫu được sinh viên submit trong 1 năm học** (kết quả truy vấn cơ sở dữ liệu thực tế do Cán bộ Tiếp nhận & Xử lý Hồ sơ cung cấp sau 3 năm quản trị, chiếm lưu lượng hành chính lớn nhất toàn trường).
   - Đợt cao điểm gọi quân dịch (tháng 9 – 11) hoặc đợt vay vốn ngân hàng chính sách: Hàng ngàn đơn dồn ứ, hàng đợi tê liệt.
-* **Card 2: Nghịch lý Thẩm định Học vụ (The Verification Dilemma)**
+* **Card 2: Nghịch lý Thẩm định Học vụ & Áp lực Thời gian**
+  - *Thời gian xử lý thực tế:* Ngày thường giải quyết trong **24 giờ**, nhưng đợt cao điểm kéo dài **3 ngày** và lên đến **5 ngày nếu dính Thứ Bảy, Chủ Nhật** (do các phòng ban nghỉ cuối tuần).
   - *Nếu nới lỏng để duyệt nhanh:* Nguy cơ cấp khống giấy tạm hoãn Nghĩa vụ Quân sự (NVQS), bỏ lọt sinh viên nợ học phí hoặc đã thôi học (`DROPPED`). Nhà trường chịu trách nhiệm pháp lý trước Ban Chỉ huy Quân sự quận/huyện.
-  - *Nếu siết chặt kiểm tra thủ công:* Cán bộ phải mở 3 phần mềm (CSDL Đào tạo, Cổng Tài chính, Sổ công văn CTSV) để đối soát từng sinh viên $\rightarrow$ Thời gian chờ kéo dài từ **2 đến 5 ngày làm việc**.
-* **Card 3: Ba Khoảng trống Lớn Không Thể Giải Quyết Bằng Chatbot Thông Thường**
-  - *Khoảng trống 1 (Dữ liệu phân mảnh):* Sinh viên chọn nhầm biểu mẫu (xin NVQS nhưng nộp nhầm Form Thuế) hoặc thiếu trường pháp lý 4 cấp.
-  - *Khoảng trống 2 (Ảo giác & Prompt Injection):* Chatbot tự do dễ bị sinh viên lách luật bằng duyệt miệng (*"Thầy Trưởng phòng đã đồng ý qua điện thoại"*).
-  - *Khoảng trống 3 (Trách nhiệm giải trình):* Chatbot đen (Black-box) không có dấu vết pháp lý, không thể dùng làm bằng chứng đối soát khi có tranh chấp.
+  - *Nếu siết chặt kiểm tra thủ công:* Cán bộ phải mở 3 phần mềm (CSDL Đào tạo, Cổng Tài chính, Sổ công văn CTSV) để đối soát từng sinh viên $\rightarrow$ Gây áp lực nghẽn cổ chai rất lớn.
+* **Card 3: Nỗi đau Sinh viên & Khoảng trống của Chatbot Thông Thường**
+  - *Tiếng nói thực tế từ HUTECH Confessions:* Sinh viên thường xuyên than phiền về việc nộp đơn chờ đợi lâu; đặc biệt khi bị từ chối thì hệ thống chỉ báo cụt lủn *"Không hợp lệ / Đã trả hồ sơ"* mà **hoàn toàn không nêu rõ lý do vì sao bị từ chối** hay sai sót ở điểm nào, khiến sinh viên hoang mang và vẫn phải lên phòng CTSV xếp hàng hỏi lại.
+  - *Ảo giác & Ép quyền:* Chatbot tự do dễ bị sinh viên lách luật bằng duyệt miệng (*"Thầy Trưởng phòng đã đồng ý qua điện thoại"*), thiếu trách nhiệm giải trình và không thể dùng làm bằng chứng đối soát pháp lý.
 
 ### 3. Căn Cứ & Bằng Chứng Xác Thực (Evidence Source)
 * **Khảo sát nhân sự thực tế:** 
-  - ThS. **Đỗ Trần Thành** — Phó Trưởng phòng Phòng Công tác Sinh viên (CTSV), Giám đốc Trung tâm Hỗ trợ Sinh viên HUTECH: *"Mỗi tờ giấy xác nhận tốn của cán bộ từ 3 - 5 phút đối soát, cao điểm cả ngàn đơn dồn về gây áp lực nghẽn cổ chai rất lớn. 5 biểu mẫu có yêu cầu hoàn toàn khác nhau, nếu AI gộp chung form thì Cán bộ vẫn phải in lại từ đầu."*
+  - ThS. **Đỗ Trần Thành** — Phó Trưởng phòng Phòng Công tác Sinh viên (CTSV), Giám đốc Trung tâm Hỗ trợ Sinh viên HUTECH: *"Quy trình xử lý ngày thường giải quyết trong vòng 24h. Nhưng vào đợt cao điểm đơn dồn cả ngàn hồ sơ thì phải mất 3 ngày, nếu vướng thứ 7, Chủ Nhật thì kéo dài thành 5 ngày. Mỗi tờ giấy tốn của cán bộ từ 3 - 5 phút đối soát, 5 biểu mẫu yêu cầu khác nhau, nếu AI gộp chung form thì Cán bộ vẫn phải in lại từ đầu."*
   - Thầy **Lê Trung Hiếu** — Trợ lý Trưởng phòng Phòng Đào tạo HUTECH, Phụ trách Quản lý Hệ thống Học vụ Điện tử: *"Sinh viên nộp đơn sai form và thiếu dữ kiện chiếm gần 30% nguyên nhân trả hồ sơ. Thủ tục Xét tốt nghiệp dính tới văn bằng quốc gia phải cắt bỏ khỏi phạm vi tự động hóa để tránh rủi ro pháp lý."*
   - Anh **Trần Tấn Đạt** — Cán bộ Bộ phận Tiếp nhận & Xử lý Hồ sơ Học vụ HUTECH (3 năm quản trị): *"Thực tế hệ thống tiếp nhận chính xác 36.994 biểu mẫu/năm. Đơn NVQS cần format chuẩn 4 cấp hành chính và phải tính niên khóa chính xác từ 2 số đầu MSSV để chặn sinh viên quá hạn 4 năm."*
+* **Ghi nhận phản ánh từ HUTECH Confessions:** 
+  - Nhiều bài đăng của sinh viên phản ánh tình trạng nộp đơn chờ đợi lâu trong các đợt cao điểm NVQS/vay vốn và bức xúc vì khi bị trả hồ sơ lại không được giải thích rõ ràng lý do sai sót (ví dụ: bị trả đơn mà không biết sai ở đâu, lên quầy hỏi mới biết do ghi thiếu tên Phường/Xã mới sáp nhập).
 * **Tài liệu căn cứ:** [`proposal.md`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/proposal.md) (Mục 1) và [`ROADMAP.md`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/ROADMAP.md) (Phần III).
 
 ### 4. Kịch Bản Thuyết Trình Chi Tiết (Speaker Notes — 45 Giây)
-> *"Kính thưa Ban Giám khảo, tại các trường đại học quy mô lớn như HUTECH với hơn 40.000 sinh viên, công tác hành chính học vụ luôn đứng trước một nghịch lý lớn: Hơn 70% đơn từ là thường quy hợp lệ, nhưng cán bộ vẫn phải mất từ 2 đến 5 ngày để mở thủ công từng phần mềm đối soát nợ học phí và tiến độ đào tạo. Đặc biệt với Giấy xác nhận tạm hoãn Nghĩa vụ Quân sự — một văn bản có giá trị pháp lý gửi trực tiếp tới Ban Chỉ huy Quân sự địa phương — nếu nới lỏng quy trình sẽ dẫn đến rủi ro pháp lý nghiêm trọng; còn nếu siết chặt thì hàng ngàn sinh viên bị chậm trễ hồ sơ.*
-> *Nếu chỉ đưa các mô hình LLM thông thường vào trả lời, hệ thống sẽ dễ dàng bị ảo tưởng hoặc bị sinh viên ép quyền duyệt miệng. Đó chính là lý do đội thi KAISER xây dựng EduRef AI — một hệ thống Trọng tài Học vụ Số vận hành theo triết lý Bounded Autonomy: Tự động hóa ca chuẩn trong 1 giây, và kiên quyết dừng lại chính xác khi vượt thẩm quyền."*
+> *"Kính thưa Ban Giám khảo, tại các trường đại học quy mô lớn như HUTECH với hơn 40.000 sinh viên, công tác hành chính học vụ luôn đứng trước một nghịch lý lớn: Hơn 70% đơn từ là thường quy hợp lệ, nhưng thời gian xử lý ngày thường mất 24h, và đợt cao điểm có thể kéo dài từ 3 đến 5 ngày nếu vướng cuối tuần thứ Bảy, Chủ Nhật. Trên các trang diễn đàn và HUTECH Confessions, sinh viên thường xuyên than phiền vì phải chờ đợi lâu, và bức xúc nhất là khi bị từ chối thì hệ thống chỉ báo cụt lủn mà không hề giải thích lý do vì sao bị sai.*
+> *Đặc biệt với Giấy xác nhận tạm hoãn Nghĩa vụ Quân sự gửi Ban Chỉ huy Quân sự địa phương, nếu nới lỏng quy trình sẽ gây hậu quả pháp lý nghiêm trọng; còn nếu siết chặt thì cán bộ quá tải và sinh viên bị trễ hạn. Nếu chỉ dùng Chatbot thông thường thì dễ bị ảo giác hoặc bị sinh viên ép quyền duyệt miệng. Đó chính là lý do EduRef AI ra đời: Tự động phê duyệt ca chuẩn trong 1 giây kèm giải thích minh bạch, và kiên quyết dừng lại chuyển tiếp chính xác khi vượt thẩm quyền."*
 
 ---
 
