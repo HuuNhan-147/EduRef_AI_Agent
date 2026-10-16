@@ -144,22 +144,22 @@ test('TC-08: Thiếu dữ liệu TKB/tín chỉ -> Không tự gán 15 tín ch�
     hasSchedule: null,
     enrolledCredits: null,
   };
-  // Khi không cần gấp -> Reject vì chưa có TKB kỳ này
+  // Thiếu dữ kiện không đồng nghĩa đã xác nhận không có TKB
   const resNormal = evaluateStudentConfirmation({
     student: studentNoData,
     inputData: { formCode: 'GENERAL_CONFIRMATION', purpose: 'Làm vé xe buýt', phone: '0901234567' },
   });
-  assert.equal(resNormal.decision, TRACK_A_DECISION.AUTO_REJECT);
-  assert.equal(resNormal.rule, 'POL_NO_ACTIVE_SCHEDULE_OR_CREDITS');
+  assert.equal(resNormal.decision, TRACK_A_DECISION.ASK_CLARIFICATION);
+  assert.equal(resNormal.rule, 'UNKNOWN_ACADEMIC_RECORD');
 
-  // Khi có lý do cần gấp -> Escalate lên cán bộ
+  // Lý do cần gấp không được biến dữ kiện chưa biết thành dữ kiện đã xác nhận
   const resUrgent = evaluateStudentConfirmation({
     student: studentNoData,
     inputData: { formCode: 'GENERAL_CONFIRMATION', purpose: 'Làm vé xe buýt', phone: '0901234567', urgentReason: 'Em cần gấp nộp cơ quan' },
   });
-  assert.equal(resUrgent.decision, TRACK_A_DECISION.ESCALATE_STAFF);
-  assert.equal(resUrgent.rule, 'POL_NO_SCHEDULE_BUT_URGENT_ESCALATE');
-  console.log('  ✅ TC-08: Thiếu TKB không tự suy diễn: thường -> Reject, gấp -> Escalate [PASS]');
+  assert.equal(resUrgent.decision, TRACK_A_DECISION.ASK_CLARIFICATION);
+  assert.equal(resUrgent.rule, 'UNKNOWN_ACADEMIC_RECORD');
+  console.log('  ✅ TC-08: Thiếu TKB không tự suy diễn: thường/gấp -> Hỏi xác nhận dữ kiện học vụ [PASS]');
 });
 
 // 9. TC-09: Khóa <= 4 năm (2023) chờ tốt nghiệp

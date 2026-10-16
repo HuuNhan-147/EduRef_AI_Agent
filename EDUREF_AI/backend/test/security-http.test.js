@@ -330,20 +330,36 @@ test('POST /petitions/:id/documents: fileUrl nguy hiểm bị thay bằng đư�
   }
 });
 
-test('GET /petitions: limit không hợp lệ về 50, trần 200; status dạng object bị bỏ qua', async () => {
+test('GET /petitions: rejects invalid status, bounds page size and filters before pagination', async () => {
   const seen = [];
   const original = prisma.studentRequest.findMany;
   prisma.studentRequest.findMany = async (a) => { seen.push(a); return []; };
   try {
-    await call('GET', '/api/petitions?status[not]=APPROVED&limit=abc', { auth: student });
+    const invalid = await call('GET', '/api/petitions?status[not]=APPROVED&limit=abc', { auth: student });
+    assert.equal(invalid.status, 400);
+    await call('GET', '/api/petitions?limit=abc', { auth: student });
     await call('GET', '/api/petitions?limit=99999', { auth: student });
     assert.equal(seen[0].where.status, undefined);
-    assert.equal(seen[0].take, 50);
-    assert.equal(seen[1].take, 200);
+    assert.equal(seen[0].take, 51); // One extra row tells the client whether there is another page.
+    assert.equal(seen[1].take, 201);
     assert.equal(seen[1].where.studentId, 'sid-1', 'sinh viên luôn bị lọc theo chính mình');
+    await call('GET', '/api/petitions?status=ESCALATED&page=2&limit=50&q=An', { auth: staff });
+    assert.equal(seen[2].where.status, 'ESCALATED');
+    assert.equal(seen[2].skip, 50);
+    assert.ok(seen[2].where.OR.length);
   } finally {
     prisma.studentRequest.findMany = original;
   }
+});
+
+test('General Verify is reachable in one request and requires a valid session', async () => {
+  const original = verifyTools.run_general_verify;
+  verifyTools.run_general_verify = async () => ({ success: true, totalCases: 4, passedCases: 4, allPassed: true });
+  try {
+    assert.notEqual((await call('POST', '/api/agent/verify-general')).status, 200);
+    const result = await call('POST', '/api/agent/verify-general', { auth: staff });
+    assert.equal(result.status, 200); assert.equal(result.json.totalCases, 4);
+  } finally { verifyTools.run_general_verify = original; }
 });
 
 // ---------------------------------------------------------------------------

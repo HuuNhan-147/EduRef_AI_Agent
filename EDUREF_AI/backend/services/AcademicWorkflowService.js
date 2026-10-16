@@ -1,8 +1,9 @@
 import prisma from '../config/prisma.js';
+import { stripServerAuthoritativeFields } from './ClientInputGuard.js';
 import { publicErrorMessage } from './ErrorShield.js';
 import AuditLogService from './AuditLogService.js';
 import { getStudentFullProfile } from '../config/studentRegistry.js';
-import { evaluateStudentConfirmation, detectFormIntent, detectCrossFormMismatch, validatePermanentAddress, TRACK_A_DECISION } from "./StudentConfirmationDecisionService.js";
+import { evaluateStudentConfirmation, detectFormIntent } from "./StudentConfirmationDecisionService.js";
 
 class AcademicWorkflowService {
   /**
@@ -23,6 +24,7 @@ class AcademicWorkflowService {
     const rawHistory = await prisma.studentRequest.findMany({
       where: {
         studentId: resolvedId,
+        verificationRunId: null,
         requestType: { code: 'STUDENT_CONFIRMATION' },
         status: { in: ['APPROVED', 'COMPLETED', 'ESCALATED'] },
       },
@@ -44,323 +46,29 @@ class AcademicWorkflowService {
   /**
    * ⚡ FAST-PATH MASTER TOOL: Xử lý trọn gói quy trình Cấp Giấy Xác Nhận Sinh Viên trong 1 bước duy nhất (5 Biểu Mẫu Chuẩn HUTECH)
    */
-  static async processStudentConfirmation({
-    studentCode,
-    formCode = null,
-    purpose = '',
-    pickupCampus = '',
-    permanentAddress = null,
-    debtCourses = null,
-    phone = null,
-    idCard = null,
-    studentClass = null,
-    reissueReason = null,
-    existingApprovedCount = null,
-    isAddressConfirmed = false,
-    inputData = {},
-    conversationHistory = [],
-    sessionId = null,
-  }) {
+  static async processStudentConfirmation({ studentCode, formCode = null, purpose = '',
+    pickupCampus = '', permanentAddress = null, debtCourses = null, phone = null,
+    idCard = null, studentClass = null, inputData = {}, conversationHistory = [], sessionId = null }) {
     try {
-      const finalPurpose = String(purpose || inputData?.purpose || inputData?.reason || '').trim();
-      const detectedForm = detectFormIntent(finalPurpose);
-      const activeFormCode = formCode || inputData?.formCode || (detectedForm ? detectedForm.code : 'GENERAL_CONFIRMATION');
-
-      // 0. NẠP HỒ SƠ SINH VIÊN TỪ DATABASE NGAY TỪ ĐẦU (SINGLE SOURCE OF TRUTH)
-      let studentRec = null;
-      try {
-        studentRec = await prisma.student.findUnique({
-          where: { studentCode: String(studentCode).trim() },
-          include: { department: true },
-        });
-      } catch (_e) {
-        // Fallback cho môi trường test memory
-        studentRec = inputData?.student || null;
-      }
-
-      // 0.1. CHỐT CHẶN BẢO LƯU / THÔI HỌC (SƠ ĐỒ .MDJ: REJECT NGAY LẬP TỨC - KHÔNG BYPASS BẤT KỲ LÝ DO NÀO)
-      if (studentRec?.status === 'SUSPENDED') {
-        return {
-          success: true,
-          decision: TRACK_A_DECISION.AUTO_REJECT,
-          status: 'REJECTED',
-          classification: 'ROUTINE_POLICY_DENY',
-          formCode: activeFormCode,
-          rule: 'POL_SUSPENDED_STUDENT_DENY',
-          message: 'Theo quy chế đào tạo của Nhà trường, sinh viên đang trong thời gian bảo lưu kết quả học tập không đủ điều kiện cấp Giấy xác nhận sinh viên hay Biểu mẫu nợ môn. Yêu cầu bị từ chối và không được bypass vì bất kỳ lý do nào. Vui lòng gặp trực tiếp Phòng Công tác Sinh viên (A-01.01) để được hướng dẫn thêm.',
-          actionableQuestion: 'Theo quy chế đào tạo, sinh viên đang trong thời gian bảo lưu kết quả học tập không đủ điều kiện cấp giấy xác nhận. Vui lòng liên hệ trực tiếp Phòng Công tác Sinh viên (A-01.01).',
-        };
-      }
-
-      if (studentRec?.status === 'DROPPED') {
-        return {
-          success: true,
-          decision: TRACK_A_DECISION.AUTO_REJECT,
-          status: 'REJECTED',
-          classification: 'ROUTINE_POLICY_DENY',
-          formCode: activeFormCode,
-          rule: 'POL_DROPPED_STUDENT_DENY',
-          message: 'Theo quy chế đào tạo của Nhà trường, sinh viên đã thôi học / xóa tên không thuộc diện cấp Giấy xác nhận sinh viên. Yêu cầu bị từ chối và không được bypass vì bất kỳ lý do nào.',
-          actionableQuestion: 'Theo quy chế đào tạo, sinh viên đã thôi học không thuộc diện cấp giấy xác nhận.',
-        };
-      }
-
-      // 1. Kiểm tra bắt buộc: Mục đích sử dụng giấy xác nhận
-      if (!finalPurpose) {
-        return {
-          success: true,
-          decision: 'ASK_CLARIFICATION',
-          status: 'WAITING_STUDENT',
-          classification: 'UNKNOWN_FACT',
-          uncertaintyType: 'UNKNOWN_FACT',
-          actionableQuestion:
-            'Bạn cần cấp giấy xác nhận sinh viên cho mục đích nào:\n' +
-            '1. Tạm hoãn nghĩa vụ quân sự\n' +
-            '2. Vay vốn ngân hàng chính sách xã hội (Mẫu 01)\n' +
-            '3. Giảm trừ thuế thu nhập cá nhân\n' +
-            '4. Biểu mẫu nợ môn / Tiếp tục học tập\n' +
-            '5. Xác nhận sinh viên chung: vé xe buýt, học bổng, visa, việc làm...?\n\n' +
-            '👉 Bạn có thể bấm chọn mục tương ứng ở danh mục bên tay trái hoặc nhắn trực tiếp cho mình nhé!',
-          message: 'Vui lòng cung cấp mục đích sử dụng Giấy xác nhận sinh viên.',
-        };
-      }
-
-      // 1.1. CHỐT CHẶN PHÁT HIỆN LỆCH BIỂU MẪU (CROSS-FORM MISMATCH CẢ ĐƠN LƯỢT VÀ ĐA LƯỢT HỘI THOẠI)
-      // Truyền đúng hồ sơ studentRec để không nhầm sinh viên bảo lưu/thôi học sang nợ môn
-      const mismatch = detectCrossFormMismatch({
-        currentFormCode: activeFormCode,
-        text: finalPurpose,
-        student: studentRec || { studentCode: String(studentCode).trim() },
-        inputData: { ...inputData, purpose: finalPurpose, formCode: activeFormCode },
-        conversationHistory,
-        sessionId,
-      });
-
-      if (mismatch.isMismatch) {
-        return {
-          success: true,
-          decision: 'ASK_CLARIFICATION',
-          status: 'WAITING_STUDENT',
-          classification: 'UNKNOWN_FACT',
-          uncertaintyType: 'UNKNOWN_FACT',
-          actionableQuestion: mismatch.guidanceMessage,
-          message: mismatch.reason,
-          formCode: activeFormCode,
-        };
-      }
-
-      // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY & KẾ THỪA THÔNG MINH (SMART PREFILL) KHI CẤP LẦN 2
-      let historyRequests = [];
-      if (studentRec?.id) {
-        try {
-          historyRequests = await AcademicWorkflowService.loadApprovalHistory({ studentId: studentRec.id });
-        } catch (_e) {
-          historyRequests = inputData?.historyRequests || [];
-        }
-      } else {
-        historyRequests = inputData?.historyRequests || [];
-      }
-
-      // Tìm đơn đã duyệt gần nhất của cùng biểu mẫu này để kế thừa dữ liệu
-      // Tìm đơn đã duyệt gần nhất của cùng biểu mẫu này để kiểm tra hạn ngạch cấp lại
-      const previousApproved = historyRequests.find(
-        (r) => ['APPROVED', 'COMPLETED'].includes(r.status) &&
-               (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === activeFormCode
-      );
-
-      // 2. Kiểm tra cơ sở nhận giấy (ZERO-TOLERANCE GUARD - CẤM KẾ THỪA TỪ ĐƠN CŨ, CẤM DEFAULT)
-      const campusRaw = String(
-        pickupCampus || inputData?.pickupCampus || inputData?.campus || ''
-      ).trim();
-
-      const isThuDuc = /thủ đức|thu duc|e1/i.test(campusRaw);
-      const isSaiGon = /sài gòn|sai gon|a-01|điện biên phủ|ung văn khiêm|trụ sở/i.test(campusRaw);
-
-      if (!campusRaw || (!isThuDuc && !isSaiGon)) {
-        return {
-          success: true,
-          decision: 'ASK_CLARIFICATION',
-          status: 'WAITING_STUDENT',
-          classification: 'UNKNOWN_FACT',
-          uncertaintyType: 'UNKNOWN_FACT',
-          actionableQuestion:
-            'Để Nhà trường chuẩn bị bản cứng có chữ ký sống và mộc đỏ của Phòng CTSV, bạn vui lòng chọn 1 trong 2 cơ sở sau để nhận giấy nhé:\n' +
-            '1. 🏢 Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01) [Nhận sau 1 ngày làm việc]\n' +
-            '2. 🏢 Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05) [Nhận sau 2 ngày làm việc]',
-          message: 'Dạ, hệ thống đã tiếp nhận yêu cầu xin cấp Giấy xác nhận sinh viên của bạn. Vui lòng chọn cơ sở nhận giấy bản cứng.',
-        };
-      }
-
-      const normalizedCampus = isThuDuc
-        ? 'Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)'
-        : 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
-
-      // 1.3. SINGLE SOURCE OF TRUTH: Chỉ lấy thông tin định danh tĩnh (MSSV, Họ tên, Ngày sinh, Khoa, Ngành)
-      const fullProfile = getStudentFullProfile(studentCode, studentRec || inputData);
-
-      // CÁC TRƯỜNG DỮ LIỆU ĐƠN: TUYỆT ĐỐI KHÔNG KẾ THỪA TỪ ĐƠN CŨ, KHÔNG FALLBACK TỪ FULLPROFILE
-      const resolvedAddress = permanentAddress || inputData?.permanentAddress || inputData?.address || null;
-      const resolvedRecipientAgency = inputData?.recipientAgency || null;
-      const resolvedDebtCourses = debtCourses || inputData?.debtCourses || null;
-      const resolvedPhone = phone || inputData?.phone || null;
-      const resolvedIdCard = idCard || inputData?.idCard || fullProfile.idCard;
-      const resolvedStudentClass = studentClass || inputData?.studentClass || inputData?.class || fullProfile.studentClass;
-
-      // 2.1. Kiểm tra bắt buộc: Số điện thoại liên lạc hợp lệ (10 số)
-      const phoneClean = String(resolvedPhone || '').replace(/[\s\.\-\+]/g, '');
-      const isValidPhone = /^(?:0|\+84)(?:3|5|7|8|9)\d{8}$/.test(phoneClean);
-      if (!isValidPhone) {
-        return {
-          success: true,
-          decision: 'ASK_CLARIFICATION',
-          status: 'WAITING_STUDENT',
-          classification: 'UNKNOWN_FACT',
-          uncertaintyType: 'UNKNOWN_FACT',
-          actionableQuestion: 'Để Nhà trường có thể liên hệ thông báo khi bản cứng được ký mộc, bạn vui lòng cung cấp số điện thoại di động chính xác (10 chữ số, ví dụ: 0901234567) nhé!',
-          message: resolvedPhone ? 'Số điện thoại không đúng chuẩn di động Việt Nam (10 chữ số).' : 'Vui lòng cung cấp số điện thoại liên lạc.',
-        };
-      }
-
-      // 2.2. Kiểm tra bắt buộc: Địa chỉ thường trú 4 cấp Title Case cho Biểu mẫu NVQS & Giảm thuế
-      if (['MILITARY_DEFERMENT', 'TAX_DEDUCTION'].includes(activeFormCode)) {
-        if (!resolvedAddress) {
-          return {
-            success: true,
-            decision: 'ASK_CLARIFICATION',
-            status: 'WAITING_STUDENT',
-            classification: 'UNKNOWN_FACT',
-            uncertaintyType: 'UNKNOWN_FACT',
-            actionableQuestion: 'Dạ Thầy cô Phòng CTSV lưu ý biểu mẫu này bắt buộc phải có địa chỉ thường trú viết hoa đúng chuẩn văn thư (chấp nhận địa chỉ sau sáp nhập địa giới như "Phường An Phú, TP. Thủ Đức", "Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh" hoặc địa chỉ nông thôn "Ấp Châu Phú, Xã Hòa Bình, Tỉnh Bạc Liêu"). Bạn vui lòng cung cấp địa chỉ hộ khẩu thường trú nhé!',
-            message: 'Thiếu thông tin địa chỉ hộ khẩu thường trú bắt buộc.',
-          };
-        }
-
-        const addressCheck = validatePermanentAddress(resolvedAddress);
-        if (!addressCheck.isValid) {
-          return {
-            success: true,
-            decision: 'ASK_CLARIFICATION',
-            status: 'WAITING_STUDENT',
-            classification: 'UNKNOWN_FACT',
-            uncertaintyType: 'UNKNOWN_FACT',
-            actionableQuestion: `Dạ Thầy cô Phòng CTSV lưu ý: ${addressCheck.reason}\n\nBạn vui lòng xác nhận hoặc gửi lại địa chỉ viết hoa đúng chuẩn văn thư (Ví dụ: "${addressCheck.autoFormatted || 'Phường An Phú, TP. Thủ Đức'}") để được cấp giấy hợp lệ nhé!`,
-            message: addressCheck.reason,
-          };
-        }
-
-        // 6.1. RIÊNG ĐỐI VỚI BIỂU MẪU TẠM HOÃN NGHĨA VỤ QUÂN SỰ (MILITARY_DEFERMENT):
-        // Hệ thống sau khi nhận/định dạng địa chỉ BẮT BUỘC phải dừng lại hỏi xác nhận và cảnh báo trách nhiệm pháp lý với BCH Quân sự địa phương!
-        if (activeFormCode === 'MILITARY_DEFERMENT') {
-          const isConfirmed = Boolean(isAddressConfirmed || inputData?.isAddressConfirmed);
-          if (!isConfirmed) {
-            return {
-              success: true,
-              decision: 'ASK_CLARIFICATION',
-              status: 'WAITING_STUDENT',
-              classification: 'UNKNOWN_FACT',
-              uncertaintyType: 'UNKNOWN_FACT',
-              rule: 'CONFIRM_MILITARY_ADDRESS_RESPONSIBILITY',
-              actionableQuestion:
-                `Dạ hệ thống đã ghi nhận địa chỉ hộ khẩu thường trú của bạn theo chuẩn văn thư hành chính là:\n` +
-                `🏠 **${resolvedAddress}**\n\n` +
-                `⚠️ **CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ (BCH QUÂN SỰ ĐỊA PHƯƠNG):**\n` +
-                `Giấy chứng nhận Tạm hoãn NVQS sẽ được nộp trực tiếp về Ban Chỉ huy Quân sự địa phương nơi bạn đăng ký hộ khẩu thường trú. Sinh viên phải **hoàn toàn chịu trách nhiệm trước pháp luật** về tính chính xác của địa chỉ khai báo (đặc biệt lưu ý tên xã/phường/thị trấn sau các đợt sáp nhập, sắp xếp đơn vị hành chính để tránh bị địa phương từ chối hồ sơ).\n\n` +
-                `Bạn vui lòng đối chiếu kỹ với CCCD/Sổ hộ khẩu và xác nhận lại giúp mình:\n` +
-                `👉 Nếu địa chỉ trên đã chính xác: Bạn chỉ cần nhắn **"Xác nhận đúng"** (kèm theo cơ sở nhận giấy bản cứng: A-01.01 Sài Gòn hoặc E1-01.05 Thủ Đức nếu chưa chọn) để mình hoàn tất duyệt và cấp mã hồ sơ ngay nhé!\n` +
-                `👉 Nếu cần điều chỉnh: Bạn nhắn lại địa chỉ chính xác để mình cập nhật nhé!`,
-              message: 'Địa chỉ thường trú phục vụ Giấy tạm hoãn Nghĩa vụ Quân sự bắt buộc phải được sinh viên xác nhận và cam kết chịu trách nhiệm pháp lý trước khi phê duyệt.',
-              formCode: activeFormCode,
-            };
-          }
-        }
-      }
-
-      // 1.2. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY LẦN 2 (REISSUE GUARD) THEO HỌC KỲ HIỆN TẠI
-      const ONE_SEMESTER_MS = 150 * 24 * 60 * 60 * 1000;
-      const currentSemesterApprovedCount = historyRequests.filter((r) => {
-        const isSameForm = (r.inputData?.formCode || 'GENERAL_CONFIRMATION') === activeFormCode;
-        const isApprovedStatus = ['APPROVED', 'COMPLETED', 'ESCALATED'].includes(r.status);
-        if (!isSameForm || !isApprovedStatus) return false;
-        if (r.createdAt) {
-          const diffMs = Date.now() - new Date(r.createdAt).getTime();
-          return diffMs <= ONE_SEMESTER_MS;
-        }
-        return true;
-      }).length;
-
-      const effectiveApprovedCount = existingApprovedCount !== null && existingApprovedCount !== undefined
-        ? Number(existingApprovedCount)
-        : (inputData?.existingApprovedCount !== undefined
-            ? Number(inputData.existingApprovedCount)
-            : currentSemesterApprovedCount);
-
-      const isReissueCase = effectiveApprovedCount >= 1;
-      const finalReissueReason = String(reissueReason || inputData?.reissueReason || inputData?.repeatReason || inputData?.explanation || '').trim();
-
-      if (isReissueCase && !finalReissueReason) {
-        return {
-          success: true,
-          decision: 'ASK_CLARIFICATION',
-          status: 'WAITING_STUDENT',
-          classification: 'UNKNOWN_FACT',
-          uncertaintyType: 'UNKNOWN_FACT',
-          actionableQuestion:
-            `Dạ hệ thống ghi nhận bạn đã được cấp Giấy xác nhận cho biểu mẫu này trong học kỳ này rồi. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu. Để xin cấp lại lần 2, bạn vui lòng cung cấp lý do chính đáng (ví dụ: bị mất giấy, bị rách, nộp bổ sung cho cơ quan thứ 2...) để Cán bộ Phòng CTSV/PĐT xem xét nhé!`,
-          message: 'Xin cấp lại lần 2 bắt buộc phải giải trình lý do chính đáng.',
-          formCode: activeFormCode,
-        };
-      }
-
+      const finalPurpose = String(purpose || inputData.purpose || inputData.reason || '').trim();
+      const detected = detectFormIntent(finalPurpose);
       const payload = {
-        // Hồ sơ nhân thân chuẩn hóa cố định (Single Source of Truth)
-        fullName: inputData?.fullName || fullProfile.fullName,
-        studentCode: String(studentCode || fullProfile.studentCode).trim(),
-        birthDate: inputData?.birthDate || fullProfile.birthDate,
-        gender: inputData?.gender || fullProfile.gender,
-        studentClass: resolvedStudentClass,
-        faculty: inputData?.faculty || fullProfile.faculty,
-        major: inputData?.major || fullProfile.major,
-        phone: resolvedPhone,
-        idCard: resolvedIdCard,
-        idCardDate: inputData?.idCardDate || fullProfile.idCardDate,
-        idCardPlace: inputData?.idCardPlace || fullProfile.idCardPlace,
-        permanentAddress: resolvedAddress,
-        recipientAgency: resolvedRecipientAgency,
-        pickupCampus: normalizedCampus,
-        debtCourses: resolvedDebtCourses,
         ...inputData,
-        isAddressConfirmed: Boolean(isAddressConfirmed || inputData?.isAddressConfirmed),
-        formCode: activeFormCode,
+        formCode: formCode || inputData.formCode || detected?.code || 'GENERAL_CONFIRMATION',
         purpose: finalPurpose,
-        historyRequests,
-        existingApprovedCount: effectiveApprovedCount,
-        isReissue: isReissueCase,
-        reissueReason: finalReissueReason,
-        originalRequestId: previousApproved?.id || null,
-        originalRequestCode: previousApproved?.requestCode || null,
-        originalApprovedAt: previousApproved?.createdAt || null,
-        conversationHistory,
-        sessionId,
+        phone: phone || inputData.phone || null,
+        pickupCampus: pickupCampus || inputData.pickupCampus || null,
+        permanentAddress: permanentAddress || inputData.permanentAddress || null,
+        debtCourses: debtCourses || inputData.debtCourses || null,
+        idCard: idCard || inputData.idCard || null,
+        studentClass: studentClass || inputData.studentClass || null,
+        conversationHistory, sessionId,
       };
-
-      // ⚡ GỌI TRỰC TIẾP QUA PETITION WORKFLOW CORE DUY NHẤT (SINGLE SOURCE OF TRUTH)
-      const { default: petitionWorkflowCore } = await import('../modules/petition-core/PetitionWorkflowCore.js');
-      const coreResult = await petitionWorkflowCore.processPetitionWorkflow({
-        studentCode: String(studentCode).trim(),
-        requestTypeCode: 'STUDENT_CONFIRMATION',
-        inputData: payload,
-        forceNewRequest: true,
-        actorType: 'AI_AGENT',
-      });
-
-      return {
-        ...coreResult,
-        formCode: activeFormCode,
-        actionableQuestion: coreResult.question || coreResult.actionableQuestion || coreResult.contextCapsule?.actionableQuestion,
-      };
-    } catch (err) {
-      console.error('❌ [processStudentConfirmation] Lỗi:', err);
-      return { success: false, error: publicErrorMessage(err) };
+      const { default: core } = await import('../modules/petition-core/PetitionWorkflowCore.js');
+      return await core.processPetitionWorkflow({ studentCode: String(studentCode).trim(),
+        requestTypeCode: 'STUDENT_CONFIRMATION', inputData: payload, forceNewRequest: true });
+    } catch (error) {
+      return { success: false, error: publicErrorMessage(error) };
     }
   }
 
@@ -450,117 +158,123 @@ class AcademicWorkflowService {
    */
   static async createRequest({ studentCode, requestTypeCode, purpose = null, inputData = {} }) {
     try {
-      // Tìm sinh viên
-      const student = await prisma.student.findUnique({
-        where: { studentCode: String(studentCode).trim() },
-      });
-      if (!student) throw new Error(`Sinh viên [${studentCode}] không tồn tại.`);
+      return await AuditLogService.runWorkflowTransaction(async (db) => {
+        inputData = stripServerAuthoritativeFields(inputData);
+        // Tìm sinh viên
+        const student = await db.student.findUnique({
+          where: { studentCode: String(studentCode).trim() },
+        });
+        if (!student) throw new Error(`Sinh viên [${studentCode}] không tồn tại.`);
 
-      // Tìm loại thủ tục
-      const requestType = await prisma.requestType.findUnique({
-        where: { code: requestTypeCode },
-      });
-      if (!requestType) throw new Error(`Loại thủ tục [${requestTypeCode}] không hợp lệ.`);
+        // Tìm loại thủ tục
+        const requestType = await db.requestType.findUnique({
+          where: { code: requestTypeCode },
+        });
+        if (!requestType) throw new Error(`Loại thủ tục [${requestTypeCode}] không hợp lệ.`);
 
-      const fullProfile = getStudentFullProfile(studentCode, student);
-      const finalInputData = {
-        fullName: inputData?.fullName || fullProfile.fullName,
-        studentCode: String(studentCode || fullProfile.studentCode).trim(),
-        birthDate: inputData?.birthDate || fullProfile.birthDate,
-        gender: inputData?.gender || fullProfile.gender,
-        studentClass: inputData?.studentClass || fullProfile.studentClass,
-        faculty: inputData?.faculty || fullProfile.faculty,
-        major: inputData?.major || fullProfile.major,
-        phone: inputData?.phone || fullProfile.phone,
-        idCard: inputData?.idCard || fullProfile.idCard,
-        idCardDate: inputData?.idCardDate || fullProfile.idCardDate,
-        idCardPlace: inputData?.idCardPlace || fullProfile.idCardPlace,
-        permanentAddress: inputData?.permanentAddress || fullProfile.permanentAddress,
-        pickupCampus: inputData?.pickupCampus || null,
-        ...inputData,
-        purpose: purpose || inputData.purpose || null,
-      };
+        const fullProfile = getStudentFullProfile(studentCode, student);
+        const finalInputData = {
+          fullName: inputData?.fullName || fullProfile.fullName,
+          studentCode: String(studentCode || fullProfile.studentCode).trim(),
+          birthDate: inputData?.birthDate || fullProfile.birthDate,
+          gender: inputData?.gender || fullProfile.gender,
+          studentClass: inputData?.studentClass || fullProfile.studentClass,
+          faculty: inputData?.faculty || fullProfile.faculty,
+          major: inputData?.major || fullProfile.major,
+          phone: inputData?.phone || null,
+          idCard: inputData?.idCard || fullProfile.idCard,
+          idCardDate: inputData?.idCardDate || fullProfile.idCardDate,
+          idCardPlace: inputData?.idCardPlace || fullProfile.idCardPlace,
+          permanentAddress: inputData?.permanentAddress || null,
+          pickupCampus: inputData?.pickupCampus || null,
+          ...inputData,
+          purpose: purpose || inputData.purpose || null,
+          formCode: inputData.formCode || detectFormIntent(purpose || inputData.purpose || '')?.code || 'GENERAL_CONFIRMATION',
+        };
 
-      // Duplicate Guard: Chặn tạo đơn mới nếu đã có đơn đang xử lý cùng loại
-      const existingRequest = await prisma.studentRequest.findFirst({
-        where: {
-          studentId: student.id,
-          requestTypeId: requestType.id,
-          status: { in: ['PENDING', 'PROCESSING', 'WAITING_STUDENT', 'ESCALATED'] },
-        },
-        orderBy: { createdAt: 'desc' },
-      });
-      if (existingRequest) {
-        const refreshedRequest = await prisma.studentRequest.update({
-          where: { id: existingRequest.id },
+        // Duplicate Guard: Chặn tạo đơn mới nếu đã có đơn đang xử lý cùng loại
+        const existingRequest = await db.studentRequest.findFirst({
+          where: {
+            studentId: student.id,
+            requestTypeId: requestType.id,
+            status: { in: ['PENDING', 'WAITING_STUDENT'] },
+            verificationRunId: null,
+            inputData: { path: ['formCode'], equals: finalInputData.formCode },
+          },
+          orderBy: { createdAt: 'desc' },
+        });
+        if (existingRequest) {
+          const refreshedRequest = await db.studentRequest.update({
+            where: { id: existingRequest.id },
+            data: {
+              inputData: finalInputData,
+              status: 'PENDING',
+              decision: 'PENDING_EVALUATION',
+              escalationReason: null,
+            },
+          });
+
+          await AuditLogService.recordLog({
+            requestId: existingRequest.id,
+            actorType: 'AI_AGENT',
+            action: 'REFRESH_ACTIVE_REQUEST_INPUT',
+            decision: 'PENDING',
+            reason: 'Cập nhật dữ liệu mới nhất vào hồ sơ đang xử lý thay vì dùng lại đầu vào cũ',
+            inputSnapshot: finalInputData,
+          });
+
+          return {
+            success: true,
+            requestId: refreshedRequest.id,
+            requestCode: refreshedRequest.requestCode,
+            requestType: requestType.code,
+            requestTypeName: requestType.name,
+            status: refreshedRequest.status,
+            isDuplicate: true,
+            message: `Đã cập nhật dữ liệu mới nhất và tiếp tục xử lý đơn [${refreshedRequest.requestCode}].`,
+          };
+        }
+
+        const randomSuffix = Math.floor(100000 + Math.random() * 900000);
+        const requestCode = `XNSV-${randomSuffix}`;
+
+        const newRequest = await db.studentRequest.create({
           data: {
-            inputData: finalInputData,
+            requestCode,
+            studentId: student.id,
+            requestTypeId: requestType.id,
             status: 'PENDING',
+            inputData: finalInputData,
             decision: 'PENDING_EVALUATION',
-            escalationReason: null,
+          },
+          include: {
+            student: true,
+            requestType: true,
           },
         });
 
+        // Tự động ghi vết Audit
         await AuditLogService.recordLog({
-          requestId: existingRequest.id,
+          requestId: newRequest.id,
           actorType: 'AI_AGENT',
-          action: 'REFRESH_ACTIVE_REQUEST_INPUT',
+          action: 'CREATE_REQUEST',
           decision: 'PENDING',
-          reason: 'Cập nhật dữ liệu mới nhất vào hồ sơ đang xử lý thay vì dùng lại đầu vào cũ',
+          reason: 'Tác tử khởi tạo hồ sơ đơn mới',
           inputSnapshot: finalInputData,
         });
 
         return {
           success: true,
-          requestId: refreshedRequest.id,
-          requestCode: refreshedRequest.requestCode,
+          requestId: newRequest.id,
+          requestCode: newRequest.requestCode,
           requestType: requestType.code,
           requestTypeName: requestType.name,
-          status: refreshedRequest.status,
-          isDuplicate: true,
-          message: `Đã cập nhật dữ liệu mới nhất và tiếp tục xử lý đơn [${refreshedRequest.requestCode}].`,
-        };
-      }
-
-      const randomSuffix = Math.floor(100000 + Math.random() * 900000);
-      const requestCode = `XNSV-${randomSuffix}`;
-
-      const newRequest = await prisma.studentRequest.create({
-        data: {
-          requestCode,
           studentId: student.id,
-          requestTypeId: requestType.id,
-          status: 'PENDING',
-          inputData: finalInputData,
-          decision: 'PENDING_EVALUATION',
-        },
-        include: {
-          student: true,
-          requestType: true,
-        },
+          studentCode: student.studentCode,
+          studentName: student.fullName,
+          status: newRequest.status,
+        };
       });
-
-      // Tự động ghi vết Audit
-      await AuditLogService.recordLog({
-        requestId: newRequest.id,
-        actorType: 'AI_AGENT',
-        action: 'CREATE_REQUEST',
-        decision: 'PENDING',
-        reason: 'Tác tử khởi tạo hồ sơ đơn mới',
-        inputSnapshot: finalInputData,
-      });
-
-      return {
-        success: true,
-        requestId: newRequest.id,
-        requestCode: newRequest.requestCode,
-        requestType: requestType.code,
-        requestTypeName: requestType.name,
-        studentId: student.id,
-        studentCode: student.studentCode,
-        studentName: student.fullName,
-        status: newRequest.status,
-      };
     } catch (error) {
       return { success: false, error: publicErrorMessage(error) };
     }
@@ -641,11 +355,16 @@ class AcademicWorkflowService {
         include: {
           requestType: { include: { requirements: true } },
           documents: true,
+          student: true,
         },
       });
 
       if (!request) return { complete: false, error: 'Không tìm thấy đơn.' };
 
+      if (request.requestType.code === 'STUDENT_CONFIRMATION') {
+        const { studentConfirmationHandler } = await import('../modules/petition-core/handlers/StudentConfirmationHandler.js');
+        return studentConfirmationHandler.validateRequirements(request, request.inputData || {}, request.documents || []);
+      }
       const inputData = request.inputData || {};
       const requirements = request.requestType.requirements;
       const passed = [];
@@ -669,7 +388,7 @@ class AcademicWorkflowService {
         } else if (req.code === 'REQ_EXPLANATION') {
           isSatisfied = Boolean(inputData.explanation && String(inputData.explanation).trim().length > 0);
         } else {
-          isSatisfied = true; // Các requirement tùy chọn khác
+          isSatisfied = false; // Unknown required fields must be implemented before approval
         }
 
         if (isSatisfied) {
@@ -904,67 +623,14 @@ class AcademicWorkflowService {
         where: { OR: [{ id: requestId }, { requestCode: requestId }] },
         include: { student: true, requestType: true },
       });
-
-      if (!request) throw new Error('Không tìm thấy hồ sơ đơn.');
-
-      // State Guard: Chặn phê duyệt lại đơn đã xử lý xong
-      if (['APPROVED', 'REJECTED', 'CANCELLED'].includes(request.status)) {
-        throw new Error(`Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể xử lý lại.`);
+      if (!request) return { success: false, error: 'Không tìm thấy hồ sơ đơn.' };
+      if (!['PENDING', 'PROCESSING', 'WAITING_STUDENT'].includes(request.status)) {
+        return { success: false, error: 'Hồ sơ đã chuyển cán bộ hoặc đã kết thúc; tác tử không được tự quyết định lại.' };
       }
-
-      const beforeState = { status: request.status, qrCodeUrl: request.qrCodeUrl };
-
-      // Backend an toàn tự động re-check trước khi mutation
-      const reqCheck = await this.checkRequirements(request.id);
-      if (!reqCheck.complete) {
-        throw new Error(`Không thể duyệt đơn: Còn thiếu thông tin [${reqCheck.missing.map((m) => m.name).join(', ')}]`);
-      }
-
-      const policyCheck = await this.evaluatePolicy(request.id);
-      if (policyCheck.decision !== 'PASS') {
-        throw new Error(`Không thể duyệt đơn: Vi phạm quy chế đào tạo`);
-      }
-
-      const authCheck = await this.checkAuthority({ requestId: request.id });
-      if (!authCheck.allowed) {
-        throw new Error(`Không thể duyệt đơn: Vượt thẩm quyền của Tác tử AI`);
-      }
-
-      // Bản cứng có chữ ký sống và mộc đỏ do Nhà trường cấp, không sinh mã QR bên thứ ba
-      // Ghi log Audit với chữ ký SHA-256
-      const auditLog = await AuditLogService.recordLogWithMutation({
-        requestId: request.id,
-        actorType: 'AI_AGENT',
-        action: 'PROCESS_REQUEST_AUTO_APPROVE',
-        decision: 'APPROVED',
-        reason: 'Tác tử tự động phê duyệt thành công sau khi vượt qua tất cả các chốt chặn',
-        inputSnapshot: request.inputData,
-        beforeState,
-        afterState: { status: 'APPROVED', qrCodeUrl: null },
-      }, async (tx, log) => {
-        await tx.studentRequest.update({
-          where: { id: request.id },
-          data: {
-            status: 'APPROVED',
-            decision: 'ROUTINE_AUTO_APPROVED',
-            qrCodeUrl: null,
-            sha256Proof: log.sha256Hash,
-          },
-        });
-      });
-
-      return {
-        success: true,
-        status: 'APPROVED',
-        decision: 'AUTO_APPROVED',
-        requestCode: request.requestCode,
-        studentName: request.student.fullName,
-        studentCode: request.student.studentCode,
-        requestTypeName: request.requestType.name,
-        qrCodeUrl: null,
-        sha256Proof: auditLog?.sha256Hash,
-        message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công. Bạn vui lòng mang thẻ sinh viên đến ${request.inputData?.pickupCampus || 'Phòng CTSV'} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường trong giờ hành chính nhé!`,
-      };
+      const { default: core } = await import('../modules/petition-core/PetitionWorkflowCore.js');
+      return await core.processPetitionWorkflow({ studentCode: request.student.studentCode,
+        requestTypeCode: request.requestType.code, inputData: request.inputData,
+        existingRequestId: request.id });
     } catch (error) {
       return { success: false, error: publicErrorMessage(error) };
     }
@@ -975,42 +641,46 @@ class AcademicWorkflowService {
    */
   static async askStudent({ requestId, question }) {
     try {
-      const request = await prisma.studentRequest.findFirst({
-        where: { OR: [{ id: requestId }, { requestCode: requestId }] },
-      });
-
-      if (!request) return { success: false, error: 'Không tìm thấy đơn.' };
-
-      // State Guard: đơn đã có kết luận cuối không được kéo ngược về WAITING_STUDENT
-      if (['APPROVED', 'REJECTED', 'CANCELLED'].includes(request.status)) {
-        return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể yêu cầu bổ sung.` };
-      }
-
-      await AuditLogService.recordLogWithMutation({
-        requestId: request.id,
-        actorType: 'AI_AGENT',
-        action: 'ASK_STUDENT',
-        decision: 'ASK_CLARIFICATION',
-        reason: question,
-        inputSnapshot: { question },
-      }, async (tx) => {
-        await tx.studentRequest.update({
-          where: { id: request.id },
-          data: {
-            status: 'WAITING_STUDENT',
-            decision: 'ASK_CLARIFICATION',
-            escalationReason: question,
-          },
+      return await AuditLogService.runWorkflowTransaction(async (db) => {
+        const request = await db.studentRequest.findFirst({
+          where: { OR: [{ id: requestId }, { requestCode: requestId }] },
         });
-      });
 
-      return {
-        success: true,
-        status: 'WAITING_STUDENT',
-        decision: 'ASK_CLARIFICATION',
-        question,
-        message: question,
-      };
+        if (!request) return { success: false, error: 'Không tìm thấy đơn.' };
+
+        // State Guard: đơn đã có kết luận cuối không được kéo ngược về WAITING_STUDENT
+        if (['APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED', 'ESCALATED'].includes(request.status)) {
+          return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể yêu cầu bổ sung.` };
+        }
+
+        await AuditLogService.recordLogWithMutation({
+          requestId: request.id,
+          actorType: 'AI_AGENT',
+          action: 'ASK_STUDENT',
+          decision: 'ASK_CLARIFICATION',
+          reason: question,
+          inputSnapshot: { question },
+        }, async (tx) => {
+          await tx.studentRequest.update({
+            where: { id: request.id },
+            data: {
+              status: 'WAITING_STUDENT',
+              decision: 'ASK_CLARIFICATION',
+              escalationReason: question,
+            },
+          });
+        });
+
+        return {
+          success: true,
+          status: 'WAITING_STUDENT',
+          requestId: request.id,
+          requestCode: request.requestCode,
+          decision: 'ASK_CLARIFICATION',
+          question,
+          message: question,
+        };
+      });
     } catch (error) {
       return { success: false, error: publicErrorMessage(error) };
     }
@@ -1021,58 +691,68 @@ class AcademicWorkflowService {
    */
   static async escalateRequest({ requestId, reason, actionableQuestion, requiredRole = 'STAFF' }) {
     try {
-      const request = await prisma.studentRequest.findFirst({
-        where: { OR: [{ id: requestId }, { requestCode: requestId }] },
-        include: { student: true, requestType: true },
-      });
-
-      if (!request) return { success: false, error: 'Không tìm thấy đơn.' };
-
-      // State Guard: đơn đã có kết luận cuối không được chuyển ngược về ESCALATED
-      if (['APPROVED', 'REJECTED', 'CANCELLED'].includes(request.status)) {
-        return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể chuyển tiếp.` };
-      }
-
-      const contextCapsule = {
-        requestCode: request.requestCode,
-        studentCode: request.student.studentCode,
-        studentName: request.student.fullName,
-        requestTypeName: request.requestType.name,
-        reason,
-        actionableQuestion,
-        requiredRole,
-        escalatedAt: new Date().toISOString(),
-      };
-
-      await AuditLogService.recordLogWithMutation({
-        requestId: request.id,
-        actorType: 'AI_AGENT',
-        action: 'ESCALATE_REQUEST',
-        decision: 'ESCALATED_PENDING',
-        reason,
-        inputSnapshot: contextCapsule,
-      }, async (tx) => {
-        await tx.studentRequest.update({
-          where: { id: request.id },
-          data: {
-            status: 'ESCALATED',
-            decision: 'ESCALATED_PENDING',
-            escalationReason: reason,
-            contextCapsule,
-          },
+      return await AuditLogService.runWorkflowTransaction(async (db) => {
+        const request = await db.studentRequest.findFirst({
+          where: { OR: [{ id: requestId }, { requestCode: requestId }] },
+          include: { student: true, requestType: true },
         });
-      });
 
-      return {
-        success: true,
-        status: 'ESCALATED',
-        decision: 'ESCALATED_PENDING',
-        requestCode: request.requestCode,
-        requiredRole,
-        actionableQuestion,
-        contextCapsule,
-        message: `Hồ sơ [${request.requestCode}] đã được chuyển tiếp lên ${requiredRole === 'DEAN' ? 'Trưởng phòng Đào tạo' : 'Chuyên viên PĐT'}. ${actionableQuestion}`,
-      };
+        if (!request) return { success: false, error: 'Không tìm thấy đơn.' };
+
+        // State Guard: đơn đã có kết luận cuối không được chuyển ngược về ESCALATED
+        if (['APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'].includes(request.status)) {
+          return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể chuyển tiếp.` };
+        }
+
+        if (request.status === 'ESCALATED') {
+          return { success: true, requestId: request.id, requestCode: request.requestCode,
+            status: request.status, decision: request.decision || 'ESCALATED_PENDING',
+            contextCapsule: request.contextCapsule, actionableQuestion: request.contextCapsule?.actionableQuestion,
+            message: 'Hồ sơ đã nằm trong hàng đợi cán bộ; giữ nguyên thông tin chuyển tiếp.' };
+        }
+
+        const contextCapsule = {
+          requestCode: request.requestCode,
+          studentCode: request.student.studentCode,
+          studentName: request.student.fullName,
+          requestTypeName: request.requestType.name,
+          reason,
+          actionableQuestion,
+          requiredRole,
+          escalatedAt: new Date().toISOString(),
+        };
+
+        await AuditLogService.recordLogWithMutation({
+          requestId: request.id,
+          actorType: 'AI_AGENT',
+          action: 'ESCALATE_REQUEST',
+          decision: 'ESCALATED_PENDING',
+          reason,
+          inputSnapshot: contextCapsule,
+        }, async (tx) => {
+          await tx.studentRequest.update({
+            where: { id: request.id },
+            data: {
+              status: 'ESCALATED',
+              decision: 'ESCALATED_PENDING',
+              escalationReason: reason,
+              contextCapsule,
+            },
+          });
+        });
+
+        return {
+          success: true,
+          status: 'ESCALATED',
+          requestId: request.id,
+          decision: 'ESCALATED_PENDING',
+          requestCode: request.requestCode,
+          requiredRole,
+          actionableQuestion,
+          contextCapsule,
+          message: `Hồ sơ [${request.requestCode}] đã được chuyển tiếp lên ${requiredRole === 'DEAN' ? 'Trưởng phòng Đào tạo' : 'Chuyên viên PĐT'}. ${actionableQuestion}`,
+        };
+      });
     } catch (error) {
       return { success: false, error: publicErrorMessage(error) };
     }

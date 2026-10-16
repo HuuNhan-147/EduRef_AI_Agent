@@ -5,6 +5,7 @@ import { respondServerError } from '../services/ErrorShield.js';
 import { stripServerAuthoritativeFields, sanitizeDocumentUrl } from '../services/ClientInputGuard.js';
 import { isDemoRoleSwitchEnabled } from '../controllers/authController.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
+import Sprint2Service from '../services/Sprint2Service.js';
 
 const router = express.Router();
 
@@ -23,14 +24,26 @@ const clampLimit = (value, fallback = 50, max = 200) => {
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { status, limit = 50 } = req.query;
+    const { status, limit = 50, q = '' } = req.query;
+    const page = clampLimit(req.query.page, 1, 100000);
+    const pageSize = clampLimit(limit);
     const where = {};
-    if (status && typeof status === 'string') where.status = status;
+    if (status && !['PENDING', 'PROCESSING', 'WAITING_STUDENT', 'APPROVED', 'ESCALATED', 'REJECTED', 'COMPLETED', 'CANCELLED'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Trạng thái hồ sơ không hợp lệ.' });
+    }
+    if (status) where.status = status;
     if (req.user?.role === 'STUDENT') where.studentId = req.user.id;
+    const query = String(q).trim().slice(0, 100);
+    if (query) where.OR = [
+      { requestCode: { contains: query, mode: 'insensitive' } },
+      { student: { fullName: { contains: query, mode: 'insensitive' } } },
+      { student: { studentCode: { contains: query, mode: 'insensitive' } } },
+    ];
 
     const petitions = await prisma.studentRequest.findMany({
       where,
-      take: clampLimit(limit),
+      take: pageSize + 1,
+      skip: (page - 1) * pageSize,
       orderBy: { createdAt: 'desc' },
       include: {
         student: {
@@ -63,7 +76,8 @@ router.get('/', authenticateToken, async (req, res) => {
       },
     });
 
-    res.json({ success: true, total: petitions.length, data: petitions });
+    res.json({ success: true, total: Math.min(petitions.length, pageSize), page,
+      hasMore: petitions.length > pageSize, data: petitions.slice(0, pageSize) });
   } catch (error) {
     respondServerError(req, res, error);
   }
@@ -205,16 +219,18 @@ router.get('/students', authenticateToken, requireStaffOrDean, async (req, res) 
  */
 router.get('/stats/metrics', authenticateToken, requireStaffOrDean, async (req, res) => {
   try {
-    const totalRequests = await prisma.studentRequest.count();
-    const approvedRequests = await prisma.studentRequest.count({ where: { status: 'APPROVED' } });
-    const escalatedRequests = await prisma.studentRequest.count({ where: { status: 'ESCALATED' } });
-    const waitingRequests = await prisma.studentRequest.count({ where: { status: 'WAITING_STUDENT' } });
-    const rejectedRequests = await prisma.studentRequest.count({ where: { status: 'REJECTED' } });
-    const cancelledRequests = await prisma.studentRequest.count({ where: { status: 'CANCELLED' } });
+    const business = { verificationRunId: null };
+    const totalRequests = await prisma.studentRequest.count({ where: business });
+    const approvedRequests = await prisma.studentRequest.count({ where: { ...business, status: 'APPROVED' } });
+    const escalatedRequests = await prisma.studentRequest.count({ where: { ...business, status: 'ESCALATED' } });
+    const waitingRequests = await prisma.studentRequest.count({ where: { ...business, status: 'WAITING_STUDENT' } });
+    const rejectedRequests = await prisma.studentRequest.count({ where: { ...business, status: 'REJECTED' } });
+    const cancelledRequests = await prisma.studentRequest.count({ where: { ...business, status: 'CANCELLED' } });
+    const measurement = await Sprint2Service.currentMeasurement();
 
     const automationRate = totalRequests > 0 ? ((approvedRequests / totalRequests) * 100).toFixed(1) : null;
     const processingTime = await prisma.auditLog.aggregate({
-      where: { decisionTimeMs: { not: null } },
+      where: { decisionTimeMs: { not: null }, request: { verificationRunId: null } },
       _avg: { decisionTimeMs: true },
     });
 
@@ -228,12 +244,10 @@ router.get('/stats/metrics', authenticateToken, requireStaffOrDean, async (req, 
         rejected: rejectedRequests,
         cancelled: cancelledRequests,
         metrics: {
-          routineAutomationRate: automationRate === null ? null : `${automationRate}%`,
-          missedEscalationRate: null,
-          falseEscalationRate: null,
+          ...measurement,
+          operationalApprovalShare: automationRate === null ? null : `${automationRate}%`,
           avgProcessingTimeMs: processingTime._avg.decisionTimeMs,
-          measurementStatus: 'PARTIAL',
-          note: 'Missed/false escalation cần tập dữ liệu độc lập có nhãn; hệ thống không công bố số giả khi chưa đo.',
+          note: measurement.note || 'Tỷ lệ từ replay độc lập đã khóa, không phải chất lượng LLM end-to-end. Approval share vận hành không phải routine automation rate.',
         },
       },
     });

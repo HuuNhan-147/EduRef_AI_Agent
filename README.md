@@ -1,5 +1,7 @@
 # EduRef AI — Autonomous Academic Petition & Escalation Referee
 
+> **Cập nhật local 16/10/2026 — nhánh `fix/track-vng-compliance`:** đã thêm runtime threshold có version từ feedback, replay trước/sau và phê duyệt riêng. Quy trình/trọng số cần nhóm nghiệp vụ chấp thuận; chưa kích hoạt trên DB chung hoặc deploy. Bảng 100 ca chưa xác minh độc lập, hai tỷ lệ missed/false giữ **null/PARTIAL — Chưa đo**. [Runbook Sprint 2](EDUREF_AI/docs/SPRINT2_FEEDBACK_RUNBOOK.md) · [Dữ liệu cần bổ sung](docs/datasets/SPRINT2_ANNOTATION_GUIDE.md).
+
 <div align="center">
 
 [![MLAI Hackathon 2026](https://img.shields.io/badge/MLAI%20Hackathon-2026-blueviolet?style=for-the-badge&logo=target)](https://github.com/HuuNhan-147/EduRef_AI_Agent)

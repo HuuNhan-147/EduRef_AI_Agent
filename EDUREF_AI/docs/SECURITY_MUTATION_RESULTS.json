@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-16T09:18:35.722Z",
+  "generatedAt": "2026-10-16T10:41:25.992Z",
   "scope": "Targeted security regression mutations; not exhaustive mutation coverage",
   "testFiles": [
     "test/security-agent-tools.test.js",
@@ -13,7 +13,7 @@
       "file": "services/ClientInputGuard.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "AgentOrchestrator: inputData của client và của LLM bị lọc khóa máy chủ; MSSV khóa theo phiên đăng nhập",
         "policy: submissionDate do client gửi bị loại nên không né được điều hướng nợ môn",
@@ -29,7 +29,7 @@
       "file": "services/ClientInputGuard.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "sanitizeDocumentUrl: chặn javascript:/data:/file:/ftp:/protocol-relative, cho phép https và /đường-dẫn",
         "POST /petitions/:id/documents: fileUrl nguy hiểm bị thay bằng đường dẫn kho mặc định"
@@ -41,7 +41,7 @@
       "file": "modules/ai-agent/memory/sessionScope.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "scopeSessionId: tách người dùng, idempotent, giữ nguyên khi không có chủ"
       ],
@@ -52,7 +52,7 @@
       "file": "config/jwtSecret.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "jwtSecret: nhận diện khóa mẫu công khai, quá ngắn, rỗng; chấp nhận khóa mạnh"
       ],
@@ -63,10 +63,11 @@
       "file": "services/ErrorShield.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 50,
       "failedTests": [
         "ErrorShield.isInternalError: phân loại lỗi nội bộ và lỗi nghiệp vụ",
-        "ErrorShield.publicErrorMessage: che lỗi nội bộ (kèm mã tham chiếu), giữ thông báo nghiệp vụ"
+        "ErrorShield.publicErrorMessage: che lỗi nội bộ (kèm mã tham chiếu), giữ thông báo nghiệp vụ",
+        "test\\\\security-gemini-stream.test.js"
       ],
       "error": null
     },
@@ -75,11 +76,12 @@
       "file": "services/ErrorShield.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 50,
       "failedTests": [
         "AgentOrchestrator: lỗi nội bộ không lộ ra reply, có mã tham chiếu",
         "AcademicWorkflowService: lỗi Prisma bị che, kết quả tool vẫn đúng hình dạng",
-        "ErrorShield.publicErrorMessage: che lỗi nội bộ (kèm mã tham chiếu), giữ thông báo nghiệp vụ"
+        "ErrorShield.publicErrorMessage: che lỗi nội bộ (kèm mã tham chiếu), giữ thông báo nghiệp vụ",
+        "test\\\\security-gemini-stream.test.js"
       ],
       "error": null
     },
@@ -88,7 +90,7 @@
       "file": "services/ErrorShield.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "lỗi 500: không lộ error.message (Prisma, mật khẩu, host), có errorId, vẫn success:false + error là chuỗi"
       ],
@@ -99,7 +101,7 @@
       "file": "middlewares/rateLimit.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "ToolResolver: run_verify_90s qua LLM bị giới hạn 3 lần/10 phút mỗi người dùng",
         "rateLimit: cho phép tới max rồi chặn kèm retryAfter; khóa độc lập nhau",
@@ -113,11 +115,12 @@
       "file": "middlewares/rateLimit.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "ToolResolver: run_verify_90s qua LLM bị giới hạn 3 lần/10 phút mỗi người dùng",
         "rateLimit: cho phép tới max rồi chặn kèm retryAfter; khóa độc lập nhau",
         "/audit/verify-chain: bị rate limit sau 6 lần/phút",
+        "General Verify is reachable in one request and requires a valid session",
         "auth routes: request thứ 61 trong 1 phút từ cùng IP -> 429 kèm Retry-After; IP khác không bị ảnh hưởng"
       ],
       "error": null
@@ -127,7 +130,7 @@
       "file": "modules/ai-agent/memory/ConversationMemory.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "ConversationMemory: giới hạn 200 tin/phiên, dọn phiên hết hạn, timer không giữ tiến trình sống"
       ],
@@ -138,7 +141,7 @@
       "file": "modules/ai-agent/memory/ConversationMemory.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "ConversationMemory: giới hạn 200 tin/phiên, dọn phiên hết hạn, timer không giữ tiến trình sống"
       ],
@@ -149,7 +152,7 @@
       "file": "modules/ai-agent/core/AgentTerminalLogger.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "AgentTerminalLogger: log có chủ chỉ phát cho phòng của chủ + staff, log hệ thống phát chung"
       ],
@@ -160,7 +163,7 @@
       "file": "modules/ai-agent/core/AgentTerminalLogger.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "AgentTerminalLogger.getRecentLogs: sinh viên chỉ thấy log của mình + hệ thống, staff thấy tất cả",
         "/agent/terminal-logs: sinh viên chỉ thấy log của mình + hệ thống; staff thấy tất cả"
@@ -172,7 +175,7 @@
       "file": "modules/ai-agent/tools/ToolResolver.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "ToolResolver.denyIfNotOwner: sinh viên không thao tác được trên hồ sơ của người khác"
       ],
@@ -183,7 +186,7 @@
       "file": "modules/ai-agent/tools/ToolResolver.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "ToolResolver: run_verify_90s qua LLM bị giới hạn 3 lần/10 phút mỗi người dùng"
       ],
@@ -194,7 +197,7 @@
       "file": "services/AcademicWorkflowService.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "escalateRequest / askStudent: từ chối khi đơn đã APPROVED/REJECTED/CANCELLED, không ghi audit"
       ],
@@ -205,7 +208,7 @@
       "file": "services/AcademicWorkflowService.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "escalateRequest / askStudent: từ chối khi đơn đã APPROVED/REJECTED/CANCELLED, không ghi audit"
       ],
@@ -216,7 +219,7 @@
       "file": "services/AcademicWorkflowService.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "staffDecision: thua race (updateMany count=0) -> thất bại, rollback, không ghi audit",
         "staff_confirm_request: thua race -> thất bại; ghi đúng actorType/staffName khi thành công"
@@ -228,7 +231,7 @@
       "file": "modules/ai-agent/tools/actions/petitionTools.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "staff_confirm_request: thua race -> thất bại; ghi đúng actorType/staffName khi thành công"
       ],
@@ -239,7 +242,7 @@
       "file": "services/AcademicWorkflowService.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "loadApprovalHistory: chỉ lấy đơn APPROVED/COMPLETED/ESCALATED của đúng sinh viên và rút gọn inputData"
       ],
@@ -250,7 +253,7 @@
       "file": "modules/ai-agent/core/AgentOrchestrator.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "AgentOrchestrator: inputData của client và của LLM bị lọc khóa máy chủ; MSSV khóa theo phiên đăng nhập"
       ],
@@ -261,7 +264,7 @@
       "file": "modules/ai-agent/core/AgentOrchestrator.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "AgentOrchestrator: inputData của client và của LLM bị lọc khóa máy chủ; MSSV khóa theo phiên đăng nhập"
       ],
@@ -272,9 +275,10 @@
       "file": "modules/ai-agent/core/AgentOrchestrator.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 50,
       "failedTests": [
-        "AgentOrchestrator: inputData của client và của LLM bị lọc khóa máy chủ; MSSV khóa theo phiên đăng nhập"
+        "AgentOrchestrator: inputData của client và của LLM bị lọc khóa máy chủ; MSSV khóa theo phiên đăng nhập",
+        "test\\\\security-gemini-stream.test.js"
       ],
       "error": null
     },
@@ -283,7 +287,7 @@
       "file": "services/CertificateVisionService.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "CertificateVisionService: Gemini trả rỗng -> yêu cầu cán bộ thẩm định, không trả undefined"
       ],
@@ -294,7 +298,7 @@
       "file": "routes/agentRoutes.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "verify-custom-prompt: sinh viên nhắm hồ sơ thật của người khác -> 403"
       ],
@@ -305,7 +309,7 @@
       "file": "routes/agentRoutes.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "/agent/chat: STUDENT không đóng vai sinh viên khác qua body.studentCode"
       ],
@@ -316,7 +320,7 @@
       "file": "routes/agentRoutes.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "/agent/chat: tin nhắn quá 4000 ký tự bị từ chối"
       ],
@@ -327,7 +331,7 @@
       "file": "services/AuditLogService.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "/audit/logs: STUDENT chỉ thấy log hồ sơ của mình, limit bị chặn trần 200"
       ],
@@ -338,7 +342,7 @@
       "file": "routes/auditRoutes.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "/audit/logs: STUDENT chỉ thấy log hồ sơ của mình, limit bị chặn trần 200"
       ],
@@ -349,7 +353,7 @@
       "file": "controllers/authController.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "chế độ demo TẮT: login MSSV, custom-student, reset-test, demo-accounts đều bị 403"
       ],
@@ -360,7 +364,7 @@
       "file": "controllers/authController.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "login username/password: mật khẩu mặc định seed bị từ chối khi tắt demo, vẫn dùng được khi bật demo"
       ],
@@ -371,7 +375,7 @@
       "file": "controllers/authController.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "demo-accounts: chỉ liệt kê hồ sơ benchmark, không liệt kê hồ sơ do người dùng tự tạo"
       ],
@@ -382,7 +386,7 @@
       "file": "routes/petitionRoutes.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "POST /petitions: loại submissionDate/existingApprovedCount của client, dùng lịch sử từ DB, MSSV từ JWT, không điền SĐT/địa chỉ mặc định"
       ],
@@ -393,7 +397,7 @@
       "file": "routes/petitionRoutes.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "POST /petitions/:id/resume: additionalData bị lọc khóa do máy chủ tính"
       ],
@@ -404,9 +408,9 @@
       "file": "routes/petitionRoutes.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
-        "GET /petitions: limit không hợp lệ về 50, trần 200; status dạng object bị bỏ qua"
+        "GET /petitions: rejects invalid status, bounds page size and filters before pagination"
       ],
       "error": null
     },
@@ -415,7 +419,7 @@
       "file": "modules/ai-agent/llm/GeminiStreamClient.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "stream im lặng sau chunk đầu -> ESTREAMTIMEOUT nhanh, stream bị huỷ, lỗi an toàn để hiển thị"
       ],
@@ -426,7 +430,7 @@
       "file": "modules/ai-agent/llm/GeminiStreamClient.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "stream nhỏ giọt mãi không dừng -> bị chặn bởi trần tổng thời lượng"
       ],
@@ -437,7 +441,7 @@
       "file": "modules/ai-agent/llm/GeminiStreamClient.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "stream bị đóng giữa chừng không có end -> ESTREAMCLOSED (trước đây treo vĩnh viễn)"
       ],
@@ -448,7 +452,7 @@
       "file": "modules/ai-agent/llm/GeminiStreamClient.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 52,
+      "tests": 53,
       "failedTests": [
         "người dùng bấm Dừng giữa chừng -> isAborted, giữ phần text đã nhận, timer không bắn lỗi muộn"
       ],
@@ -457,11 +461,11 @@
   ],
   "baseline": {
     "exitCode": 0,
-    "tests": 52
+    "tests": 53
   },
   "restoredBaseline": {
     "exitCode": 0,
-    "tests": 52
+    "tests": 53
   },
   "killed": 39,
   "total": 39,

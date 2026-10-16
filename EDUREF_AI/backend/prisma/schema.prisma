@@ -167,6 +167,10 @@ model StudentRequest {
   requestType       RequestType       @relation(fields: [requestTypeId], references: [id])
   status            RequestStatus     @default(PENDING)
   inputData         Json              // JSONB lưu các trường dữ liệu linh hoạt
+  verificationRunId String?           // Server-owned synthetic verification run, excluded from real quota
+  verificationCaseId String?
+  thresholdAssessment Json?         // Server-owned threshold/version/evidence snapshot
+  evaluationSnapshot Json?          // Original facts/history at the latest AI decision, never reconstructed later
   decision          String?           // ROUTINE_AUTO_APPROVE, ASK_CLARIFICATION, ESCALATE_STAFF, REJECTED
   escalationReason  String?           // Lý do gắn cờ chuyển tiếp
   contextCapsule    Json?             // Tóm tắt sự vụ, chỉ số rủi ro, câu hỏi hành động cho người duyệt
@@ -178,6 +182,7 @@ model StudentRequest {
   auditLogs         AuditLog[]
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+  @@index([studentId, requestTypeId, verificationRunId, status])
 }
 
 // 9. RequestDocuments (Chứng từ đính kèm)
@@ -217,4 +222,84 @@ model AuditLog {
   previousHash     String?         // Mã băm của bản ghi trước đó
   decisionTimeMs   Int?            // Thời gian xử lý tính bằng mili-giây
   createdAt        DateTime        @default(now())
+}
+
+model EscalationThresholdPolicy {
+  id                      String   @id @default(cuid())
+  version                 String   @unique
+  minEvidenceScore        Int
+  scorerVersion           String
+  status                  String   @default("DRAFT")
+  parentPolicyId          String
+  createdById             String
+  reason                  String
+  feedbackIds             Json
+  calibrationFingerprints Json
+  calibrationReport       Json
+  approvedById            String?
+  approvalNote            String?
+  approvalReportId        String?
+  activatedAt             DateTime?
+  createdAt               DateTime @default(now())
+  @@index([status])
+}
+
+model EscalationFeedback {
+  id                     String   @id @default(cuid())
+  requestId              String
+  reviewerId             String
+  reviewerName           String
+  observedDecision       String
+  expectedDecision       String
+  expectedClassification String
+  reason                 String
+  evidenceRef            String
+  snapshot               Json
+  fingerprint            String
+  thresholdAssessment    Json?
+  createdAt              DateTime @default(now())
+  @@unique([requestId, reviewerId])
+}
+
+model EscalationEvaluationDataset {
+  id                      String    @id @default(cuid())
+  name                    String
+  version                 String
+  sourceRef               String
+  sourceSha256            String
+  origin                  String
+  referenceDate           String
+  policyAuthorIds         Json
+  independenceDeclaration String
+  cases                   Json
+  status                  String    @default("DRAFT")
+  contentHash             String?
+  createdById             String
+  frozenById              String?
+  freezeNote              String?
+  frozenAt                DateTime?
+  createdAt               DateTime  @default(now())
+  @@unique([name, version])
+}
+
+model EscalationEvaluationReport {
+  id                  String   @id @default(cuid())
+  datasetId           String
+  datasetHash         String
+  baselinePolicyId    String
+  candidatePolicyId   String
+  baselinePolicyHash  String
+  candidatePolicyHash String
+  protocolVersion     String
+  replayVersion       String
+  runtimeCodeHash     String
+  policyVersion       String
+  scorerVersion       String
+  eligible            Boolean
+  comparison          Json
+  reportHash          String
+  createdById         String
+  createdAt           DateTime @default(now())
+  @@index([candidatePolicyId, createdAt])
+  @@index([datasetId])
 }

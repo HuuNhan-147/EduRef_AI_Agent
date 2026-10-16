@@ -5,6 +5,7 @@ export default function AgentProgress({
   isActive = false,
   durationMs = null,
   activeStep = 1,
+  checks = {},
   onStop = null,
 }) {
   const [expanded, setExpanded] = useState(true);
@@ -66,7 +67,7 @@ export default function AgentProgress({
       {expanded && (
         <div className="p-3 bg-white space-y-2">
           {steps.map((st) => {
-            const isDone = !isActive || activeStep > st.id;
+            const isDone = checks[['requirementsCheck', 'policiesCheck', 'authorityCheck'][st.id - 1]] === 'PASSED';
             const isCurrent = isActive && activeStep === st.id;
             return (
               <div

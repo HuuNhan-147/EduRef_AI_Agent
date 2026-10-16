@@ -9,6 +9,8 @@ import { checkCohortOverdueStatus } from '../services/StudentConfirmationDecisio
 import { RESERVED_BENCHMARK_STUDENT_CODES } from '../controllers/authController.js';
 import { scopeSessionId } from '../modules/ai-agent/memory/sessionScope.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
+import { stripServerAuthoritativeFields } from '../services/ClientInputGuard.js';
+import { getStudentFullProfile } from '../config/studentRegistry.js';
 
 const router = express.Router();
 
@@ -30,26 +32,26 @@ router.get('/models', (req, res) => {
 
     const formatGeminiMeta = (id) => {
       if (id === 'gemini-4-argon') return { name: 'Gemini 4 Argon', shortName: '4 Argon', badge: 'Next-Gen 4.0', speed: 'Thế hệ 4', provider: 'gemini' };
-      if (id === 'gemini-3.8-flash') return { name: 'Gemini 3.8 Flash', shortName: '3.8 Flash', badge: 'Mới 3.8', speed: '~1.5s', provider: 'gemini' };
-      if (id === 'gemini-3.7-flash') return { name: 'Gemini 3.7 Flash', shortName: '3.7 Flash', badge: '3.7 Flash', speed: '~1.8s', provider: 'gemini' };
-      if (id === 'gemini-3.5-flash-lite') return { name: 'Gemini 3.5 Flash Lite', shortName: '3.5 Flash Lite', badge: 'Chính xác cao', speed: '~2.5s', provider: 'gemini' };
-      if (id === 'gemini-3.1-flash-lite') return { name: 'Gemini 3.1 Flash Lite', shortName: '3.1 Flash Lite', badge: '⚡ Siêu tốc (Khuyên dùng)', speed: '~1.0s', recommended: true, provider: 'gemini' };
-      if (id === 'gemini-2.5-flash') return { name: 'Gemini 2.5 Flash', shortName: '2.5 Flash', badge: 'Chuẩn', speed: '~2.0s', provider: 'gemini' };
-      if (id === 'gemini-flash-lite-latest') return { name: 'Gemini Flash-Lite Latest', shortName: 'Flash-Lite', badge: 'Dự phòng', speed: '~2.0s', provider: 'gemini' };
+      if (id === 'gemini-3.8-flash') return { name: 'Gemini 3.8 Flash', shortName: '3.8 Flash', badge: 'Mới 3.8', speed: 'Đo theo lượt', provider: 'gemini' };
+      if (id === 'gemini-3.7-flash') return { name: 'Gemini 3.7 Flash', shortName: '3.7 Flash', badge: '3.7 Flash', speed: 'Đo theo lượt', provider: 'gemini' };
+      if (id === 'gemini-3.5-flash-lite') return { name: 'Gemini 3.5 Flash Lite', shortName: '3.5 Flash Lite', badge: 'Chính xác cao', speed: 'Đo theo lượt', provider: 'gemini' };
+      if (id === 'gemini-3.1-flash-lite') return { name: 'Gemini 3.1 Flash Lite', shortName: '3.1 Flash Lite', badge: '⚡ Siêu tốc (Khuyên dùng)', speed: 'Đo theo lượt', recommended: true, provider: 'gemini' };
+      if (id === 'gemini-2.5-flash') return { name: 'Gemini 2.5 Flash', shortName: '2.5 Flash', badge: 'Chuẩn', speed: 'Đo theo lượt', provider: 'gemini' };
+      if (id === 'gemini-flash-lite-latest') return { name: 'Gemini Flash-Lite Latest', shortName: 'Flash-Lite', badge: 'Dự phòng', speed: 'Đo theo lượt', provider: 'gemini' };
 
       const clean = id.replace(/^gemini-/, '').replace(/-/g, ' ');
       return { name: `Gemini ${clean}`, shortName: clean, badge: 'Google Gemini', speed: 'Tốc độ cao', provider: 'gemini' };
     };
 
     const formatOpenAIMeta = (id) => {
-      if (id === 'gpt-6.1-sol') return { name: 'GPT-6.1 Sol', shortName: '6.1 Sol', badge: '👑 Flagship Reasoning', speed: '~1.8s', provider: 'openai' };
-      if (id === 'gpt-5.6-sol') return { name: 'GPT-5.6 Sol', shortName: '5.6 Sol', badge: '⚖️ Thẩm tra Đối chứng', speed: '~2.2s', provider: 'openai' };
-      if (id === 'gpt-5.5') return { name: 'GPT-5.5', shortName: '5.5 Workhorse', badge: '🧠 Đa nhiệm Workflow', speed: '~2.0s', provider: 'openai' };
-      if (id === 'gpt-5.4-mini') return { name: 'GPT-5.4 Mini', shortName: '5.4 Mini', badge: '⚡ Thông minh & Tiết kiệm', speed: '~1.2s', provider: 'openai' };
-      if (id === 'gpt-4.1') return { name: 'GPT-4.1', shortName: '4.1 Policy', badge: '📜 Tuân thủ Quy chế', speed: '~2.0s', provider: 'openai' };
-      if (id === 'gpt-4.1-mini') return { name: 'GPT-4.1 Mini', shortName: '4.1 Mini', badge: '🛡️ Chuẩn xác & Dự phòng', speed: '~1.3s', provider: 'openai' };
-      if (id === 'gpt-4o-mini') return { name: 'GPT-4o Mini', shortName: '4o Mini', badge: '🚀 Siêu tốc & Kinh tế', speed: '~1.0s', provider: 'openai' };
-      if (id === 'gpt-4o') return { name: 'GPT-4o', shortName: '4o Omnipresent', badge: 'Trí tuệ cao cấp', speed: '~1.8s', provider: 'openai' };
+      if (id === 'gpt-6.1-sol') return { name: 'GPT-6.1 Sol', shortName: '6.1 Sol', badge: '👑 Flagship Reasoning', speed: 'Đo theo lượt', provider: 'openai' };
+      if (id === 'gpt-5.6-sol') return { name: 'GPT-5.6 Sol', shortName: '5.6 Sol', badge: '⚖️ Thẩm tra Đối chứng', speed: 'Đo theo lượt', provider: 'openai' };
+      if (id === 'gpt-5.5') return { name: 'GPT-5.5', shortName: '5.5 Workhorse', badge: '🧠 Đa nhiệm Workflow', speed: 'Đo theo lượt', provider: 'openai' };
+      if (id === 'gpt-5.4-mini') return { name: 'GPT-5.4 Mini', shortName: '5.4 Mini', badge: '⚡ Thông minh & Tiết kiệm', speed: 'Đo theo lượt', provider: 'openai' };
+      if (id === 'gpt-4.1') return { name: 'GPT-4.1', shortName: '4.1 Policy', badge: '📜 Tuân thủ Quy chế', speed: 'Đo theo lượt', provider: 'openai' };
+      if (id === 'gpt-4.1-mini') return { name: 'GPT-4.1 Mini', shortName: '4.1 Mini', badge: '🛡️ Chuẩn xác & Dự phòng', speed: 'Đo theo lượt', provider: 'openai' };
+      if (id === 'gpt-4o-mini') return { name: 'GPT-4o Mini', shortName: '4o Mini', badge: '🚀 Siêu tốc & Kinh tế', speed: 'Đo theo lượt', provider: 'openai' };
+      if (id === 'gpt-4o') return { name: 'GPT-4o', shortName: '4o Omnipresent', badge: 'Trí tuệ cao cấp', speed: 'Đo theo lượt', provider: 'openai' };
 
       return { name: `OpenAI ${id}`, shortName: id, badge: 'OpenAI GPT', speed: 'Tốc độ cao', provider: 'openai' };
     };
@@ -127,8 +129,8 @@ router.post('/chat', authenticateToken, chatLimiter, async (req, res) => {
         });
         if (student) {
           const cohortStatus = checkCohortOverdueStatus(student);
-          const hasActiveSched = student.status === 'ACTIVE';
-          const credits = !hasActiveSched ? 0 : (cohortStatus.hasDebtCourses ? 3 : 15);
+          const academicProfile = getStudentFullProfile(student.studentCode, student);
+          const credits = academicProfile.enrolledCredits;
 
           let admYear = Number(student.admissionYear || 0);
           if (!admYear && student.studentCode) {
@@ -150,7 +152,7 @@ router.post('/chat', authenticateToken, chatLimiter, async (req, res) => {
             tuitionDebt: Number(student.tuitionDebt),
             gpa: Number(student.gpa),
             admissionYear: admYear,
-            hasSchedule: hasActiveSched,
+            hasSchedule: credits === null ? null : credits > 0,
             enrolledCredits: credits,
             isOverdueCohort: cohortStatus.isOverdue,
             role: 'STUDENT',
@@ -189,6 +191,11 @@ router.post('/verify-90s', authenticateToken, verifyLimiter, async (req, res) =>
   } catch (error) {
     respondServerError(req, res, error);
   }
+});
+
+router.post('/verify-general', authenticateToken, verifyLimiter, async (req, res) => {
+  try { res.json(await verifyTools.run_general_verify()); }
+  catch (error) { respondServerError(req, res, error); }
 });
 
 
@@ -231,7 +238,7 @@ router.post('/verify-custom-prompt', authenticateToken, verifyLimiter, async (re
       studentCode = requested;
     }
 
-    const result = await verifyTools.run_custom_prompt({ prompt, studentCode });
+    const result = await verifyTools.run_custom_prompt({ prompt, studentCode, inputData: stripServerAuthoritativeFields(req.body.inputData) });
     res.json(result);
   } catch (error) {
     respondServerError(req, res, error);

@@ -13,7 +13,12 @@ const FIELDS = [
 const PROFILE_FIELDS = [
   ['fullName', 'Họ và tên'], ['birthDate', 'Ngày sinh (DD/MM/YYYY)'],
   ['gender', 'Giới tính'], ['studentClass', 'Lớp sinh hoạt'],
+  ['idCardDate', 'Ngày cấp CCCD/CMND'], ['idCardPlace', 'Nơi cấp CCCD/CMND'],
+  ['major', 'Ngành học'], ['faculty', 'Khoa'],
 ];
+const LOAN_FIELDS = [['orphanStatus', 'Tình trạng mồ côi'],
+  ['loanFormCount', 'Số lần được cấp giấy vay vốn'], ['loanGrantedCount', 'Số lần đã vay vốn'],
+  ['lastLoanAmount', 'Số tiền vay lần gần nhất (đồng)']];
 
 export default function PetitionSupplementForm({ requestId, question, onSubmitted }) {
   const [values, setValues] = useState({});
@@ -70,6 +75,19 @@ export default function PetitionSupplementForm({ requestId, question, onSubmitte
             onChange={(event) => update('isAddressConfirmed', event.target.checked)} />
           Tôi xác nhận địa chỉ thường trú đã cung cấp là chính xác và chịu trách nhiệm về thông tin này.
         </label>
+        <details className="sm:col-span-2 text-xs text-slate-700">
+          <summary className="cursor-pointer">Bổ sung thông tin vay vốn khi hồ sơ yêu cầu</summary>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">
+            {LOAN_FIELDS.map(([key, label]) => (
+              <label key={key} className="space-y-1">
+                <span>{label}</span>
+                <input value={values[key] ?? ''} onChange={(event) => update(key, event.target.value)}
+                  type={key === 'orphanStatus' ? 'text' : 'number'} min={0}
+                  className="w-full rounded-lg border border-slate-300 p-2 bg-white" />
+              </label>
+            ))}
+          </div>
+        </details>
         <details className="sm:col-span-2 text-xs text-slate-700">
           <summary className="cursor-pointer">Bổ sung nhân thân khi hồ sơ yêu cầu</summary>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-3">

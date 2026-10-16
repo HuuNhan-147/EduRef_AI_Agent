@@ -105,6 +105,8 @@ export default function VerifyHarnessPage() {
   const [customStudentCode, setCustomStudentCode] = useState('2380600001');
   const [customResult, setCustomResult] = useState(null);
   const [isCustomRunning, setIsCustomRunning] = useState(false);
+  const [customPhone, setCustomPhone] = useState('0901234568');
+  const [customCampus, setCustomCampus] = useState('Sai Gon Campus');
 
   const containerRef = useRef(null);
 
@@ -122,15 +124,16 @@ export default function VerifyHarnessPage() {
 
   const distributionLabel = useMemo(() => {
     if (!run) return 'Tiêu chuẩn đề bài: 3 AUTO (60%) · 2 ESCALATE (40%)';
-    return `AUTO=${run.autoCount} · ESCALATE=${run.escalationCount} (Đạt chuẩn 100%)`;
+    return `AUTO=${run.autoCount} · ESCALATE=${run.escalationCount} · ${run.allPassed ? 'Đạt bộ ca đã chạy' : 'Có ca chưa đạt'}`;
   }, [run]);
 
-  const runSuite = async () => {
+  const runSuite = async (mode = 'TRACK_A_ESCALATION') => {
     setIsRunning(true);
     setError('');
     try {
-      const response = await api.post('/agent/verify-90s');
+      const response = await api.post(mode === 'GENERAL' ? '/agent/verify-general' : '/agent/verify-90s');
       setRun(response.data);
+      setSelectedId(response.data.results?.[0]?.id || 'A-01');
     } catch (requestError) {
       setError(requestError.response?.data?.error || requestError.message);
     } finally {
@@ -148,6 +151,7 @@ export default function VerifyHarnessPage() {
       const response = await api.post('/agent/verify-custom-prompt', {
         prompt: promptToSend,
         studentCode: studentCodeToSend,
+        inputData: { phone: customPhone, pickupCampus: customCampus },
       });
       setCustomResult(response.data);
     } catch (requestError) {
@@ -183,22 +187,23 @@ export default function VerifyHarnessPage() {
                   Verify Harness — VNG Track A (OrganizationAI)
                 </h1>
                 <p className="text-xs text-slate-500">
-                  Thẩm định tự hành 5 ca chuẩn mực theo yêu cầu Ban Giám Khảo · 1 click duy nhất · Kết quả thật, timestamp thật, mã băm SHA-256 thật.
+                  Chạy bộ 4 ca chung hoặc 5 ca đề A. Dữ liệu tổng hợp; mỗi lần chạy tạo hồ sơ kiểm thử và audit riêng, không thay đổi hạn mức hồ sơ thường.
                 </p>
               </div>
             </div>
 
             {/* Nút bấm Kích hoạt Thẩm định 1-Click duy nhất */}
             <div className="flex items-center gap-2">
+              <button type="button" onClick={() => runSuite('GENERAL')} disabled={isRunning} className="rounded-lg border border-blue-700 px-3 py-2.5 text-xs font-bold text-blue-800 disabled:opacity-50">Verify chung · 4 ca</button>
               <button
-                onClick={runSuite}
+                onClick={() => runSuite('TRACK_A_ESCALATION')}
                 disabled={isRunning}
                 className="flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 px-5 py-2.5 text-xs font-bold text-white shadow-md disabled:opacity-50 cursor-pointer transition-all"
               >
                 {isRunning ? (
                   <>
                     <RotateCw className="h-4 w-4 animate-spin" />
-                    <span>Đang thẩm định 5 ca…</span>
+                    <span>Đang chạy kiểm thử…</span>
                   </>
                 ) : (
                   <>
@@ -213,13 +218,13 @@ export default function VerifyHarnessPage() {
           {/* 4 Thẻ chỉ số tổng kết theo tiêu chuẩn BTC */}
           <div className="mt-4 grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
-              <div className="text-[10px] font-bold uppercase text-slate-500">Tỷ lệ chính xác (Accuracy)</div>
+              <div className="text-[10px] font-bold uppercase text-slate-500">Kết quả bộ ca chuẩn</div>
               <div className="mt-1 font-mono text-sm font-bold text-emerald-700">
                 {run ? `${run.passedCases}/${run.totalCases} PASS (${passRate}%)` : 'Chưa thực thi'}
               </div>
             </div>
             <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
-              <div className="text-[10px] font-bold uppercase text-slate-500">Phân bố quyết định (3 Auto : 2 Escalate)</div>
+              <div className="text-[10px] font-bold uppercase text-slate-500">Phân bố quyết định {run?.mode === 'GENERAL' ? '(Bộ 4 ca chung)' : '(3 Auto : 2 Escalate)'}</div>
               <div className="mt-1 font-mono text-xs font-bold text-blue-800">
                 {distributionLabel}
               </div>
@@ -251,10 +256,10 @@ export default function VerifyHarnessPage() {
             <div className="flex items-center justify-between border-b border-slate-200 p-3 bg-slate-50">
               <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-800">
                 <FileText className="h-4 w-4 text-blue-700" />
-                Ma trận kiểm thử chuẩn mực Track A (5 kịch bản VNG)
+                {run?.mode === 'GENERAL' ? 'Verify chung: Routine · Hỏi bổ sung · Từ chối · Chuyển tiếp' : 'Ma trận kiểm thử đề A: 5 ca'}
               </div>
               <span className="text-xs font-mono text-slate-500">
-                Policy: {run?.policyVersion || 'STUDENT_CONFIRMATION_V1.0.0'}
+                Policy: {run?.policyVersion || 'Chưa chạy'}
               </span>
             </div>
 
@@ -397,6 +402,11 @@ export default function VerifyHarnessPage() {
                 </div>
               </div>
 
+              <div className="mb-2 grid grid-cols-2 gap-2 text-xs">
+                <label>SĐT thử nghiệm<input aria-label="Số điện thoại kiểm thử" className="mt-1 w-full rounded border p-2" value={customPhone} onChange={(event) => setCustomPhone(event.target.value)} /></label>
+                <label>Cơ sở nhận<input aria-label="Cơ sở nhận kiểm thử" className="mt-1 w-full rounded border p-2" value={customCampus} onChange={(event) => setCustomCampus(event.target.value)} /></label>
+              </div>
+              <p className="mb-2 text-[11px] text-slate-500">Các dữ kiện trên được gửi cùng prompt. Xóa trường để kiểm tra thiếu thông tin; backend không tự điền.</p>
               <textarea
                 value={customPrompt}
                 onChange={(event) => setCustomPrompt(event.target.value)}

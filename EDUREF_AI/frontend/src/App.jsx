@@ -4,6 +4,7 @@ import StudentWorkspacePage from './pages/StudentWorkspacePage';
 import StaffEscalationPage from './pages/StaffEscalationPage';
 import VerifyHarnessPage from './pages/VerifyHarnessPage';
 import AuditExplorerPage from './pages/AuditExplorerPage';
+import Sprint2Page from './pages/Sprint2Page';
 import MyPetitionsPage from './pages/MyPetitionsPage';
 import DynamicPetitionModal from './components/forms/DynamicPetitionModal';
 import WelcomeOnboardingModal from './components/common/WelcomeOnboardingModal';
@@ -266,6 +267,7 @@ export default function App() {
           {/* 1. Trang Trợ lý AI Sinh viên: Giữ nguyên trạng thái (Keep-Alive) để không bị mất chat/terminal khi đổi vai trò hoặc chuyển tab */}
           <div className={`flex-1 h-full overflow-hidden ${activeTab === 'STUDENT_ASSISTANT' ? 'flex' : 'hidden'}`}>
             <StudentWorkspacePage
+              key={currentAccountKey === 'CUSTOM_STUDENT' ? customProfile?.code || currentAccountKey : currentAccountKey}
               currentAccountKey={currentAccountKey}
               customProfile={customProfile}
               onOpenDynamicForm={handleOpenDynamicForm}
@@ -301,6 +303,9 @@ export default function App() {
             <div className="flex-1 h-full overflow-y-auto w-full">
               <AuditExplorerPage />
             </div>
+          )}
+          {activeTab === 'SPRINT_2' && (
+            <Sprint2Page key={currentAccountKey} currentAccountKey={currentAccountKey} />
           )}
         </main>
       </div>

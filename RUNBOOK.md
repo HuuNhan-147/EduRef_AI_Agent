@@ -3,7 +3,7 @@
 Tài liệu này phục vụ Ban Giám khảo Vòng Chung kết và việc tái lập kết quả độc lập (reproducibility), bao gồm:
 1. **Bảng 4 trường hợp kiểm thử trọng yếu** (chuẩn 3 cột: Dữ liệu đầu vào, Hành vi kỳ vọng, Cách thực thi; đầy đủ 4 nhóm quyết định `ROUTINE`, `ASK`, `REJECT`, `ESCALATE`).
 2. **Kịch bản chấm nhanh 90 giây trên Live Deployment** (không cần cài đặt môi trường).
-3. **Hướng dẫn vận hành (Runbook)** chi tiết từ khi clone mã nguồn sạch (`git clone ...`) đến khi hệ thống hoạt động hoàn chỉnh (Backend, Frontend, Seed DB, Test Suite 116 tests).
+3. **Hướng dẫn vận hành (Runbook)** chi tiết từ khi clone mã nguồn sạch (`git clone ...`) đến khi hệ thống hoạt động hoàn chỉnh (Backend, Frontend, Seed DB và kiểm thử cô lập).
 
 ---
 
@@ -78,7 +78,19 @@ Copy-Item .env.example .env
 npx prisma validate
 npm run db:status
 npm run db:deploy
+npm run db:generate
 ```
+
+Với bản sửa Track A/Sprint 2, kiểm tra đúng DB đích và sao lưu trước khi deploy. Prisma áp dụng các migration còn thiếu theo thứ tự; không dùng `db push` hoặc reset DB chung.
+
+| Migration | Thay đổi |
+|---|---|
+| `20261016000100_track_a_compliance` | Thêm tám trường Student: birthDate, gender, studentClass, major, idCard, idCardDate, idCardPlace, permanentAddress; thêm verificationRunId/verificationCaseId và index StudentRequest để tách hồ sơ Verify. |
+| `20261016000200_sprint2_feedback_threshold` | Thêm evaluationSnapshot/thresholdAssessment vào StudentRequest và bốn bảng threshold policy, feedback, evaluation dataset/report; chỉ cho một ACTIVE threshold. |
+
+Backend/frontend cần cùng phiên bản. Nếu generate báo EPERM do Prisma engine DLL đang được giữ, dừng đúng backend của nhóm, generate lại rồi khởi động lại. Không sửa migration đã áp dụng. Xem [runbook Sprint 2](EDUREF_AI/docs/SPRINT2_FEEDBACK_RUNBOOK.md) để thu feedback, khóa dataset và phê duyệt threshold.
+
+Đợt kiểm chứng local ngày 16/10 chưa apply hai migration trên DB chung hoặc xác minh advisory lock liên tiến trình trên PostgreSQL disposable. Workflow/audit dùng khóa chung nên tuần tự hóa quyết định; cần kiểm tra tải/timeout trên môi trường phù hợp trước vận hành mở rộng. Sau deploy, kiểm tra cả hai bộ Verify, ca mới, chat model thật, HITL và audit theo [hướng dẫn kiểm chứng](EDUREF_AI/docs/08_VERIFY.md).
 
 Chỉ khi Supabase project là database demo mới/trống, nạp dữ liệu mẫu benchmark:
 
@@ -125,7 +137,7 @@ Mở `http://localhost:5173`. Trang phải tự khởi tạo phiên sinh viên d
 5. Nhập ca mới: “Em cần giấy xác nhận để bảo lãnh hợp đồng thuê nhà”. Kỳ vọng `OUTSIDE_POLICY`, `ESCALATE_TO_STAFF` và một câu hỏi cán bộ có thể trả lời trực tiếp.
 6. Dùng role switch chuyển sang cán bộ (`staff_pdt@edu.vn`) để kiểm tra hàng đợi escalation và quyết định HITL.
 
-## 7. Kiểm tra regression trước khi nộp (Test Suite 116 tests)
+## 7. Kiểm tra regression trước khi triển khai
 
 ```bash
 cd EDUREF_AI/backend

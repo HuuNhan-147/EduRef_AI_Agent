@@ -17,11 +17,26 @@ process.env.JWT_SECRET = 'security-test-secret-0123456789abcdef0123456789abcdef'
 process.env.DOTENV_CONFIG_PATH = fileURLToPath(new URL('./.no-app-env', import.meta.url));
 process.env.GEMINI_API_KEY = 'test-key-not-real';
 process.env.GEMINI_API_KEYS = 'test-key-not-real';
+process.env.OPENAI_API_KEY = 'test-key-not-real';
+process.env.OPENAI_API_KEYS = 'test-key-not-real';
 process.env.NODE_ENV = 'test';
 process.env.ALLOW_DEMO_ROLE_SWITCH = 'true';
 
 export const TEST_JWT_SECRET = process.env.JWT_SECRET;
 export const BLACKHOLE_DATABASE_URL = BLACKHOLE_DB;
+
+// Compose partial in-memory models with already stubbed Prisma models. Any
+// unstubbed database operation still hits the blackhole, never the demo DB.
+export function transactionClient(client, overrides = {}) {
+  return new Proxy({ $executeRaw: async () => 0, ...overrides }, {
+    get(target, key) {
+      if (!(key in target)) return client[key];
+      const value = target[key];
+      return value && typeof value === 'object' && client[key]
+        ? new Proxy(value, { get: (model, method) => model[method] ?? client[key][method] }) : value;
+    },
+  });
+}
 
 /** Thay thế tạm một phương thức và trả hàm khôi phục. */
 export function stub(target, key, impl) {

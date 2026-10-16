@@ -1,4 +1,5 @@
 import crypto from 'crypto';
+import { AsyncLocalStorage } from 'node:async_hooks';
 import { publicErrorMessage } from './ErrorShield.js';
 import prisma from '../config/prisma.js';
 
@@ -43,18 +44,26 @@ class AuditLogService {
   // Hàng đợi tuần tự hóa (Sequential Mutex Queue) để triệt tiêu Race Condition đứt chuỗi băm
   static _writeQueue = Promise.resolve();
   static _lastTimestampMs = 0;
+  static _transactionContext = new AsyncLocalStorage();
+
+  // The database lock also serializes decisions across multiple server processes.
+  // Hold it from the fresh policy reads through the business mutation and audit commit.
+  static async runWorkflowTransaction(operation) {
+    const active = this._transactionContext.getStore();
+    if (active) return operation(active);
+    const task = this._writeQueue.then(() => prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(147160026)`;
+      return this._transactionContext.run(tx, () => operation(tx));
+    }, { maxWait: 15000, timeout: 30000 }));
+    this._writeQueue = task.catch(() => {});
+    return task;
+  }
 
   /**
    * Ghi nhận một sự kiện kiểm toán có mã băm nối tiếp vào Database (Đảm bảo an toàn luồng)
    */
   static async recordLog(params) {
-    const writeTask = this._writeQueue.then(() => this._executeRecordLog(params));
-    // Giữ queue hoạt động sau lỗi, nhưng trả lỗi về đúng caller để không thể
-    // công bố một quyết định đã được audit khi bản ghi thực tế không tồn tại.
-    this._writeQueue = writeTask.catch((error) => {
-      console.error('❌ [AuditLogService] Lỗi hàng đợi ghi log:', error);
-    });
-    return writeTask;
+    return this.runWorkflowTransaction((tx) => this._executeRecordLog(params, tx));
   }
 
   /**
@@ -63,23 +72,11 @@ class AuditLogService {
    * bằng chứng không thể lệch nhau khi một trong hai thao tác thất bại.
    */
   static async recordLogWithMutation(params, mutation) {
-    const writeTask = this._writeQueue.then(() =>
-      prisma.$transaction(
-        async (tx) => {
-          const auditLog = await this._executeRecordLog(params, tx);
-          await mutation(tx, auditLog);
-          return auditLog;
-        },
-        {
-          maxWait: 15000,
-          timeout: 30000,
-        }
-      )
-    );
-    this._writeQueue = writeTask.catch((error) => {
-      console.error('❌ [AuditLogService] Lỗi transaction audit/mutation:', error);
+    return this.runWorkflowTransaction(async (tx) => {
+      const auditLog = await this._executeRecordLog(params, tx);
+      await mutation(tx, auditLog);
+      return auditLog;
     });
-    return writeTask;
   }
 
   /**
