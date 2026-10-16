@@ -238,23 +238,23 @@ export function getStudentFullProfile(studentCode, fallbackUser = null) {
   return {
     studentCode: code || base.studentCode || '',
     fullName: fallbackUser?.fullName || fallbackUser?.name || base.fullName || 'Sinh viên',
-    birthDate: fallbackUser?.birthDate || base.birthDate || '26/07/2003',
-    gender: fallbackUser?.gender || base.gender || 'Nam',
-    studentClass: fallbackUser?.studentClass || fallbackUser?.class || base.studentClass || '22DTHE4',
+    birthDate: fallbackUser?.birthDate || base.birthDate || null,
+    gender: fallbackUser?.gender || base.gender || null,
+    studentClass: fallbackUser?.studentClass || fallbackUser?.class || base.studentClass || null,
     faculty:
       (typeof fallbackUser?.faculty === 'string' ? fallbackUser.faculty : fallbackUser?.faculty?.name) ||
       (typeof fallbackUser?.department === 'string' ? fallbackUser.department : fallbackUser?.department?.name) ||
       base.faculty ||
-      'Khoa Công Nghệ Thông Tin',
-    major: fallbackUser?.major || base.major || 'Công nghệ thông tin',
-    phone: fallbackUser?.phone || base.phone || '0377913722',
-    idCard: fallbackUser?.idCard || fallbackUser?.idCardNumber || fallbackUser?.citizenId || base.idCard || '079203001234',
-    idCardDate: fallbackUser?.idCardDate || fallbackUser?.issueDate || base.idCardDate || '10/05/2021',
-    idCardPlace: fallbackUser?.idCardPlace || fallbackUser?.issuePlace || base.idCardPlace || 'Cục Cảnh sát QLHC về TTXH',
-    permanentAddress: fallbackUser?.permanentAddress || fallbackUser?.address || base.permanentAddress || '180 Ung Văn Khiêm, Phường 25, Quận Bình Thạnh, TP. Hồ Chí Minh',
-    status: fallbackUser?.status || base.status || 'ACTIVE',
-    admissionYear: fallbackUser?.admissionYear || base.admissionYear || 2022,
-    enrolledCredits: fallbackUser?.enrolledCredits ?? base.enrolledCredits ?? 15,
+      null,
+    major: fallbackUser?.major || base.major || null,
+    phone: fallbackUser?.phone || base.phone || null,
+    idCard: fallbackUser?.idCard || fallbackUser?.idCardNumber || fallbackUser?.citizenId || base.idCard || null,
+    idCardDate: fallbackUser?.idCardDate || fallbackUser?.issueDate || base.idCardDate || null,
+    idCardPlace: fallbackUser?.idCardPlace || fallbackUser?.issuePlace || base.idCardPlace || null,
+    permanentAddress: fallbackUser?.permanentAddress || fallbackUser?.address || base.permanentAddress || null,
+    status: fallbackUser?.status || base.status || null,
+    admissionYear: fallbackUser?.admissionYear || base.admissionYear || null,
+    enrolledCredits: fallbackUser?.enrolledCredits ?? base.enrolledCredits ?? null,
   };
 }
 
