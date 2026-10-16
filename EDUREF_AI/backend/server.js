@@ -253,6 +253,7 @@ io.on('connection', (socket) => {
         onChunk: (chunk) => {
           if (!controller.signal.aborted) {
             socket.emit('agent_response_chunk', {
+              clientRequestId: data.clientRequestId,
               sessionId,
               chunk,
             });
@@ -262,6 +263,7 @@ io.on('connection', (socket) => {
 
       // Bắn kết quả hoàn chỉnh về client
       socket.emit('agent_response_end', {
+        clientRequestId: data.clientRequestId,
         sessionId,
         reply: result.reply,
         decision: result.decision,
@@ -269,11 +271,13 @@ io.on('connection', (socket) => {
         totalDuration: result.totalDuration,
         modelUsed: result.modelUsed,
         isAborted: result.isAborted || false,
+        executionEvidence: result.executionEvidence || [],
       });
     } catch (err) {
       if (controller.signal.aborted || err.name === 'AbortError' || err.name === 'CanceledError') {
         console.log(`⏹ [Socket.IO] Đã ngắt tiến trình Agent cho phiên: ${targetSession} theo yêu cầu người dùng.`);
         socket.emit('agent_response_end', {
+          clientRequestId: data.clientRequestId,
           sessionId,
           reply: '*(Đã dừng xử lý theo yêu cầu của bạn)*',
           decision: 'USER_ABORTED',
@@ -284,12 +288,13 @@ io.on('connection', (socket) => {
 
       console.error('❌ [Socket.IO] Lỗi khi xử lý tin nhắn:', err);
       socket.emit('agent_error', {
+        clientRequestId: data.clientRequestId,
         sessionId,
         error: publicErrorMessage(err, `Socket client_send_message (${sessionId})`),
       });
     } finally {
-      activeAgentSessions.delete(sessionKey);
-      activeAgentSessions.delete(socket.id);
+      if (activeAgentSessions.get(sessionKey) === controller) activeAgentSessions.delete(sessionKey);
+      if (activeAgentSessions.get(socket.id) === controller) activeAgentSessions.delete(socket.id);
     }
   });
 
@@ -298,7 +303,7 @@ io.on('connection', (socket) => {
     const { sessionId: stopSessionId } = data || {};
     const targetSession = stopSessionId || `sess_${socket.id}`;
     const sessionKey = `${socket.id}:${targetSession}`;
-    const controller = activeAgentSessions.get(sessionKey) || activeAgentSessions.get(socket.id);
+    const controller = activeAgentSessions.get(sessionKey) || (!stopSessionId ? activeAgentSessions.get(socket.id) : null);
     if (controller) {
       console.log(`⏹ [Socket.IO] Nhận lệnh dừng tác tử từ Client: ${targetSession}`);
       controller.abort();
