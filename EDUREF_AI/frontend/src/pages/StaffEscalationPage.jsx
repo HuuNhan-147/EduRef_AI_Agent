@@ -4,6 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { AlertOctagon, CheckCircle2, XCircle, RotateCcw, User, FileText, ShieldCheck, AlertTriangle, ExternalLink, Info, Award, GraduationCap, Building, Eye, X, Search, ChevronLeft } from "lucide-react";
 import api from "../services/api";
+import EscalationFeedbackForm from '../components/forms/EscalationFeedbackForm';
 
 export default function StaffEscalationPage() {
   const [petitions, setPetitions] = useState([]);
@@ -517,6 +518,7 @@ export default function StaffEscalationPage() {
             </div>
 
             {/* Khối Context Capsule: Tóm tắt sự vụ & lý do vượt quyền */}
+            {!detailLoading && !selectedPetition.verificationRunId && <EscalationFeedbackForm key={selectedPetition.id} requestId={selectedPetition.id} />}
             <div className="p-5 rounded-xl bg-white border border-indigo-200 shadow-xs space-y-4">
               <div className="flex items-center justify-between pb-3 border-b border-indigo-100">
                 <div className="flex items-center gap-2">

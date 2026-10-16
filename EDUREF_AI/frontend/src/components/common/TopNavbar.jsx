@@ -44,6 +44,7 @@ export default function TopNavbar({
   ];
 
   const staffNavItems = [
+    { id: 'SPRINT_2', label: 'Sprint 2', icon: CheckCircle },
     {
       id: 'VERIFY_HARNESS',
       label: 'Verify Đề A',
