@@ -26,3 +26,12 @@ test('supplement does not turn another clarification or rejection into an approv
   assert.equal(supplementDecisionState({ success: true }).status, 'PROCESSING');
   assert.equal(supplementDecisionState({ status: 'ESCALATED', decision: 'ESCALATE_TO_STAFF' }).authorityCheck, 'ESCALATED');
 });
+
+test('loan and missing identity supplements preserve explicit zero without filling blanks', () => {
+  assert.deepEqual(buildSupplementInput({ orphanStatus: 'Không', loanFormCount: 0,
+    loanGrantedCount: '0', lastLoanAmount: '0', idCardDate: '', major: 'Công nghệ thông tin',
+    idCardPlace: ' Cơ quan cấp ', existingApprovedCount: 0 }), {
+    idCardPlace: 'Cơ quan cấp', major: 'Công nghệ thông tin', orphanStatus: 'Không',
+    loanFormCount: '0', loanGrantedCount: '0', lastLoanAmount: '0',
+  });
+});

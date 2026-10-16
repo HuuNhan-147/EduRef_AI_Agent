@@ -12,6 +12,7 @@ import getSocket from '../services/socket';
 
 import PetitionSupplementForm from '../components/forms/PetitionSupplementForm';
 import { supplementDecisionState } from '../config/petitionSupplement';
+import { completeAgentMessage, agentDecisionState, matchesAgentResponse } from '../config/agentOutcome';
 
 import { CONFIRMATION_FORMS } from '../config/confirmationForms';
 
@@ -30,7 +31,7 @@ export const AI_MODELS = [
     id: 'gpt-4o-mini',
     name: 'GPT-4o Mini',
     shortName: '4o Mini',
-    speed: '~1.0s',
+    speed: 'Đo theo lượt',
     badge: '🚀 Siêu tốc & Kinh tế',
     badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     description: 'Mô hình OpenAI siêu tốc ~1s, chi phí cực thấp, gọi Tool nghiệp vụ rất nhạy.',
@@ -40,7 +41,7 @@ export const AI_MODELS = [
     id: 'gpt-6.1-sol',
     name: 'GPT-6.1 Sol',
     shortName: '6.1 Sol',
-    speed: '~1.8s',
+    speed: 'Đo theo lượt',
     badge: '👑 Flagship Reasoning',
     badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
     description: 'Khả năng suy luận quy chế sâu nhất, gọi Tool qua Responses API chuẩn xác.',
@@ -50,10 +51,10 @@ export const AI_MODELS = [
     id: 'gemini-3.1-flash-lite',
     name: 'Gemini 3.1 Flash Lite',
     shortName: '3.1 Flash Lite',
-    speed: '~1.0s',
-    badge: '⚡ Siêu tốc (Khuyên dùng)',
+    speed: 'Đo theo lượt',
+    badge: '⚡ Mặc định',
     badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
-    description: 'Tốc độ phản hồi cực nhanh ~1s, tối ưu xử lý và thẩm định biểu mẫu học vụ.',
+    description: 'Thời gian phản hồi thực tế được hiển thị sau mỗi lượt xử lý.',
     recommended: true,
     provider: 'gemini',
   },
@@ -185,39 +186,6 @@ export default function StudentWorkspacePage({
     }
   }, [messages, currentAccount.code]);
 
-  // Xử lý đổi tài khoản: TUYỆT ĐỐI KHÔNG XÓA TIN NHẮN khi đổi sang Thầy (STAFF/DEAN)
-  const prevCodeRef = useRef(currentAccount.code);
-  useEffect(() => {
-    // Nếu chuyển sang góc nhìn Thầy / Cán bộ -> Giữ nguyên 100% cuộc trò chuyện
-    if (currentAccount.type !== 'STUDENT') return;
-
-    if (prevCodeRef.current !== currentAccount.code) {
-      prevCodeRef.current = currentAccount.code;
-      // Cấp mới sessionId gắn chặt với MSSV của tài khoản hiện tại để tách biệt bộ nhớ ReAct
-      setSessionId(`sess_${currentAccount.code}_${Date.now()}`);
-      // Nạp lại hội thoại của sinh viên này nếu từng có
-      try {
-        const cached = sessionStorage.getItem(`eduref_messages_${currentAccount.code}`);
-        if (cached) {
-          const parsed = JSON.parse(cached);
-          if (Array.isArray(parsed) && parsed.length > 0) {
-            setMessages(parsed);
-            return;
-          }
-        }
-      } catch (e) {}
-
-      setMessages([
-        {
-          id: `welcome_${Date.now()}`,
-          sender: 'agent',
-          text: `Chào bạn **${currentAccount.name}** nhé! 👋\n\nMình là **EduRef AI** — Trợ lý học vụ số của trường.\n\nMình có thể hỗ trợ bạn cấp **Giấy xác nhận sinh viên** siêu tốc (để vay vốn ngân hàng, tạm hoãn NVQS, làm vé xe buýt, bổ sung hồ sơ học bổng, xin visa...) hoặc giải đáp các thắc mắc về quy chế đào tạo.\n\nHôm nay bạn cần mình hỗ trợ thủ tục gì nè?`,
-          timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-        },
-      ]);
-    }
-  }, [currentAccountKey, currentAccount.code, currentAccount.type, currentAccount.name]);
-
   const [inputMessage, setInputMessage] = useState('');
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionId, setSessionId] = useState(() => `sess_${currentAccount.code || 'student'}_${Date.now()}`);
@@ -270,10 +238,15 @@ export default function StudentWorkspacePage({
   const [copiedSha, setCopiedSha] = useState(false);
   const startTimeRef = useRef(null);
   const timerIntervalRef = useRef(null);
+  const httpAbortRef = useRef(null);
+  const activeRequestRef = useRef(null);
 
   useEffect(() => {
     return () => {
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current);
+      httpAbortRef.current?.abort();
+      if (activeRequestRef.current) getSocket()?.emit('client_stop_generation', { sessionId: activeRequestRef.current.sessionId });
+      activeRequestRef.current = null;
     };
   }, []);
   
@@ -322,6 +295,7 @@ export default function StudentWorkspacePage({
   useEffect(() => {
     // 1. Nhận text streaming chunk
     const handleChunk = (data) => {
+      if (!matchesAgentResponse(activeRequestRef.current, data)) return;
       setMessages((prev) => {
         const lastMsg = prev[prev.length - 1];
         if (lastMsg && lastMsg.sender === 'agent' && lastMsg.isStreaming) {
@@ -346,6 +320,7 @@ export default function StudentWorkspacePage({
 
     // 2. Nhận kết thúc phản hồi kèm quyết định hoàn chỉnh
     const handleEnd = (data) => {
+      if (!matchesAgentResponse(activeRequestRef.current, data)) return;
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
@@ -357,60 +332,32 @@ export default function StudentWorkspacePage({
         setLastModelUsed(data.modelUsed);
       }
 
-      setMessages((prev) => {
-        const lastMsg = prev[prev.length - 1];
-        if (lastMsg && lastMsg.sender === 'agent') {
-          return [
-            ...prev.slice(0, -1),
-            {
-              ...lastMsg,
-              text: data.reply || lastMsg.text,
-              isStreaming: false,
-              toolResult: data.toolResult,
-              decision: data.decision,
-              durationMs: measuredDuration,
-              modelUsed: data.modelUsed,
-            },
-          ];
-        }
-        return prev;
-      });
-
-      // Cập nhật Decision Summary ở Cột 3
-      if (data.toolResult) {
-        const tr = data.toolResult;
-        setActiveDecision({
-          status: tr.decision || (tr.success ? 'APPROVED' : 'REJECTED'),
-          requirementsCheck: tr.missing ? 'FAILED' : 'PASSED',
-          policiesCheck: tr.decision === 'REJECTED_POLICY' ? 'FAILED' : 'PASSED',
-          authorityCheck: tr.decision === 'ESCALATE_TO_STAFF' ? 'ESCALATED' : 'PASSED',
-          finalDecision: tr.decision || 'DONE',
-          reason: tr.message || tr.reason || '',
-          requestCode: tr.requestCode || null,
-          qrCodeUrl: tr.qrCodeUrl || null,
-          sha256Proof: tr.sha256Proof || null,
-          missingFields: tr.missing || [],
-          requestId: tr.requestId || null,
-        });
-      }
+      setMessages((prev) => completeAgentMessage(prev, data, measuredDuration));
+      setActiveDecision(agentDecisionState(data));
+      activeRequestRef.current = null;
     };
 
     const handleStopped = () => {
+      // A delayed stop acknowledgement must not stop a newer request's UI.
+      if (activeRequestRef.current) return;
       if (timerIntervalRef.current) {
         clearInterval(timerIntervalRef.current);
         timerIntervalRef.current = null;
       }
       setIsProcessing(false);
     };
+    const handleError = (data) => handleEnd({ ...data, reply: data.error || data.message || 'Không thể hoàn tất yêu cầu.', decision: 'ERROR' });
 
     socket.on('agent_response_chunk', handleChunk);
     socket.on('agent_response_end', handleEnd);
     socket.on('agent_stopped', handleStopped);
+    socket.on('agent_error', handleError);
 
     return () => {
       socket.off('agent_response_chunk', handleChunk);
       socket.off('agent_response_end', handleEnd);
       socket.off('agent_stopped', handleStopped);
+      socket.off('agent_error', handleError);
     };
   }, [socket]);
 
@@ -423,11 +370,15 @@ export default function StudentWorkspacePage({
       timerIntervalRef.current = null;
     }
 
+    httpAbortRef.current?.abort();
+    activeRequestRef.current = null;
     if (socket && socket.connected) {
       socket.emit('client_stop_generation', { sessionId });
     }
 
     setIsProcessing(false);
+    setActiveDecision((previous) => previous.status === 'PROCESSING'
+      ? { ...previous, status: 'IDLE', reason: 'Đã dừng sinh phản hồi. Hồ sơ đã lưu cần được kiểm tra trong Đơn của tôi.' } : previous);
 
     setMessages((prev) => {
       const lastMsg = prev[prev.length - 1];
@@ -462,8 +413,11 @@ export default function StudentWorkspacePage({
 
   // Gửi tin nhắn
   const handleSendMessage = async (textToSend = null, extraContext = {}) => {
+    if (activeRequestRef.current) return;
     const text = textToSend || inputMessage;
     if (!text || String(text).trim().length === 0) return;
+    const clientRequestId = crypto.randomUUID();
+    activeRequestRef.current = { clientRequestId, sessionId };
 
     const userMsg = {
       id: `user_${Date.now()}`,
@@ -486,13 +440,7 @@ export default function StudentWorkspacePage({
       if (startTimeRef.current) {
         const currentElapsed = Math.round(performance.now() - startTimeRef.current);
         setElapsedMs(currentElapsed);
-        if (currentElapsed > 600) {
-          setActiveStep(3);
-        } else if (currentElapsed > 250) {
-          setActiveStep(2);
-        } else {
-          setActiveStep(1);
-        }
+
       }
     }, 40);
 
@@ -507,6 +455,7 @@ export default function StudentWorkspacePage({
 
     const payload = {
       message: text,
+      clientRequestId,
       studentCode: currentAccount.code,
       model: selectedModel,
       requestedModel: selectedModel,
@@ -543,7 +492,9 @@ export default function StudentWorkspacePage({
       socket.emit('client_send_message', payload);
     } else {
       try {
-        const res = await api.post('/agent/chat', payload);
+        httpAbortRef.current = new AbortController();
+        const res = await api.post('/agent/chat', payload, { signal: httpAbortRef.current.signal });
+        if (!matchesAgentResponse(activeRequestRef.current, { clientRequestId, sessionId })) return;
         if (timerIntervalRef.current) {
           clearInterval(timerIntervalRef.current);
           timerIntervalRef.current = null;
@@ -551,20 +502,11 @@ export default function StudentWorkspacePage({
         if (res.data?.success) {
           const result = res.data.data;
           const measuredDuration = result.totalDuration || (startTimeRef.current ? Math.round(performance.now() - startTimeRef.current) : elapsedMs);
-          setMessages((prev) => [
-            ...prev,
-            {
-              id: `agent_${Date.now()}`,
-              sender: 'agent',
-              text: result.reply,
-              toolResult: result.toolResult,
-              decision: result.decision,
-              durationMs: measuredDuration,
-              timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }),
-            },
-          ]);
+          setMessages((prev) => completeAgentMessage(prev, result, measuredDuration));
+          setActiveDecision(agentDecisionState(result));
         }
       } catch (err) {
+        if (err.code === 'ERR_CANCELED' || err.name === 'AbortError') return;
         if (timerIntervalRef.current) {
           clearInterval(timerIntervalRef.current);
           timerIntervalRef.current = null;
@@ -579,7 +521,10 @@ export default function StudentWorkspacePage({
           },
         ]);
       } finally {
-        setIsProcessing(false);
+        if (activeRequestRef.current?.clientRequestId === clientRequestId) {
+          activeRequestRef.current = null;
+          setIsProcessing(false);
+        }
       }
     }
   };
@@ -910,7 +855,7 @@ export default function StudentWorkspacePage({
                     <div className="mt-3 pt-2.5 border-t border-slate-200/80">
                       <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-600 font-medium">
                         <span className="w-2 h-2 rounded-full bg-[#0B3B82]"></span>
-                        Đã thực thi thẩm định quy chế học vụ
+                        Kết quả công cụ: {msg.toolResult.decision || 'Tra cứu thông tin'}
                       </div>
                       
                       {/* Thẻ kết quả chứng thực số nếu đơn được duyệt */}
@@ -921,16 +866,16 @@ export default function StudentWorkspacePage({
                           </div>
                           <div className="min-w-0 flex-1">
                             <div className="text-xs font-bold text-emerald-950 flex items-center gap-1.5">
-                              <span>MÃ CÔNG VĂN:</span>
+                              <span>MÃ HỒ SƠ:</span>
                               <span className="font-mono bg-emerald-100/80 px-1.5 py-0.5 rounded text-emerald-900 border border-emerald-300/60">
                                 {msg.toolResult.requestCode}
                               </span>
                             </div>
                             <div className="text-[11px] text-emerald-800 mt-1 font-medium">
-                              Đã cấp mã công văn & ghi nhận hồ sơ CTSV
+                              Đã lưu kết quả thẩm định trong hệ thống demo
                             </div>
                             <div className="text-[10px] text-emerald-700/90 mt-0.5">
-                              📍 Nhận bản cứng có mộc đỏ & chữ ký sống tại Phòng CTSV (A-01.01 hoặc E1-01.05)
+                              📍 Lịch nhận dự kiến; việc phát hành bản cứng cần đơn vị phụ trách xác nhận.
                             </div>
                             {msg.toolResult.sha256Proof && (
                               <div className="text-[9px] font-mono text-emerald-800/60 truncate mt-1">
@@ -941,6 +886,16 @@ export default function StudentWorkspacePage({
                         </div>
                       )}
                     </div>
+                  )}
+
+                  {msg.executionEvidence?.length > 0 && (
+                    <details className="mt-2 rounded border border-slate-200 p-2 text-[11px]">
+                      <summary className="cursor-pointer font-semibold">Hành động đã thực thi ({msg.executionEvidence.length})</summary>
+                      {msg.executionEvidence.map((event, index) => (
+                        <p key={index} className="mt-1 break-words font-mono">{event.toolName} · {event.durationMs} ms · {event.decision || 'Tra cứu'} {event.requestCode || ''}</p>
+                      ))}
+                      {msg.toolResult?.requestId && <button type="button" className="mt-2 text-blue-700 underline" onClick={() => onSwitchTab?.('MY_PETITIONS')}>Xem hồ sơ đã lưu</button>}
+                    </details>
                   )}
 
                   {/* DraftReviewCard nếu tin nhắn trả về có bản nháp */}
@@ -957,7 +912,7 @@ export default function StudentWorkspacePage({
                     {!isUser && msg.durationMs && (
                       <span className="inline-flex items-center gap-1 font-mono text-[10px] font-semibold text-[#0B3B82] bg-blue-50 px-2 py-0.5 rounded border border-blue-200 shadow-2xs">
                         <Clock className="w-2.5 h-2.5 text-[#0B3B82]" />
-                        {msg.durationMs}ms · 3-Gate Verified
+                        {msg.durationMs}ms · {msg.toolResult?.requestId ? `Hồ sơ ${msg.toolResult.requestCode || msg.toolResult.requestId}` : 'Phản hồi AI'}
                       </span>
                     )}
                   </div>
@@ -972,6 +927,7 @@ export default function StudentWorkspacePage({
               isActive={true}
               durationMs={elapsedMs}
               activeStep={activeStep}
+              checks={activeDecision}
               onStop={handleStopGeneration}
             />
           )}
@@ -1005,7 +961,7 @@ export default function StudentWorkspacePage({
                   {modelsList.find((m) => m.id === selectedModel)?.shortName || modelsList.find((m) => m.id === selectedModel)?.name || selectedModel}
                 </span>
                 <span className="text-[9px] px-1 py-0.2 rounded bg-blue-100 text-[#0B3B82] font-mono font-medium">
-                  {modelsList.find((m) => m.id === selectedModel)?.speed || '~1s'}
+                  {modelsList.find((m) => m.id === selectedModel)?.speed || 'Đo theo lượt'}
                 </span>
                 <ChevronDown className={`w-2.5 h-2.5 text-slate-400 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
