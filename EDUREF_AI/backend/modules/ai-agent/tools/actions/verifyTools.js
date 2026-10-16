@@ -1,12 +1,13 @@
 import { petitionWorkflowCore } from '../../../petition-core/PetitionWorkflowCore.js';
+import { randomUUID } from 'node:crypto';
+import prisma from '../../../../config/prisma.js';
 import { publicErrorMessage } from '../../../../services/ErrorShield.js';
 import { agentTerminalLogger } from '../../core/AgentTerminalLogger.js';
-import { TRACK_A_VERIFY_CASES } from '../../../../fixtures/trackAVerifyCases.js';
+import { TRACK_A_VERIFY_CASES, GENERAL_VERIFY_CASES } from '../../../../fixtures/trackAVerifyCases.js';
 import {
   inferStudentConfirmationInput,
   STUDENT_CONFIRMATION_POLICY_VERSION,
 } from '../../../../services/StudentConfirmationDecisionService.js';
-import { getStudentFullProfile } from '../../../../config/studentRegistry.js';
 
 function toPublicCase(testCase) {
   return {
@@ -29,6 +30,7 @@ const sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function executeSuite({ mode, cases }) {
   const startedAt = new Date();
+  const verificationRunId = randomUUID();
   const results = [];
 
   agentTerminalLogger.log({
@@ -57,6 +59,8 @@ async function executeSuite({ mode, cases }) {
         inputData: testCase.inputData,
         forceNewRequest: true,
         actorType: 'AI_AGENT',
+        verificationContext: { runId: verificationRunId, caseId: testCase.id,
+          student: testCase.student, existingApprovedCount: testCase.inputData?.existingApprovedCount || 0 },
       });
       const durationMs = Date.now() - caseStartMs;
       const actionableQuestion =
@@ -64,14 +68,20 @@ async function executeSuite({ mode, cases }) {
       const decisionMatched = response.decision === testCase.expectedDecision;
       const questionRequired = testCase.expectedDecision.startsWith('ESCALATE_')
         || testCase.expectedDecision === 'ASK_CLARIFICATION';
-      const passed = decisionMatched && (!questionRequired || Boolean(actionableQuestion));
+      const stored = response.requestId ? await prisma.studentRequest.findUnique({ where: { id: response.requestId } }) : null;
+      const audit = response.requestId ? await prisma.auditLog.findFirst({ where: { requestId: response.requestId }, orderBy: { createdAt: 'desc' } }) : null;
+      const expectedStatus = { AUTO_APPROVED: 'APPROVED', ASK_CLARIFICATION: 'WAITING_STUDENT', REJECTED_POLICY: 'REJECTED', ESCALATE_TO_STAFF: 'ESCALATED' }[testCase.expectedDecision];
+      const classificationMatched = response.classification === testCase.category;
+      const persistenceMatched = stored?.status === expectedStatus && stored?.verificationRunId === verificationRunId;
+      const passed = decisionMatched && classificationMatched && persistenceMatched && Boolean(audit?.sha256Hash)
+        && (!questionRequired || (typeof actionableQuestion === 'string' && actionableQuestion.trim().length >= 15));
 
       // Bắn log chi tiết từng chốt nghiệp vụ cho BGK theo dõi
       if (response.decision === 'AUTO_APPROVED') {
         agentTerminalLogger.log({
           step: 'CHỐT 1-2',
           type: 'TOOL_RESULT',
-          text: `  🔍 [${testCase.id}] Chốt 1 (Dữ kiện) & Chốt 2 (Quy chế): ĐẠT. Sinh viên ACTIVE, không nợ học phí.`,
+          text: `  🔍 [${testCase.id}] Core trả AUTO_APPROVED; dữ kiện và policy đạt cho hồ sơ [${response.requestCode}].`,
         });
         agentTerminalLogger.log({
           step: 'CHỐT 3',
@@ -81,13 +91,13 @@ async function executeSuite({ mode, cases }) {
         agentTerminalLogger.log({
           step: 'DECISION',
           type: 'DECISION',
-          text: `  🟢 [${testCase.id}] AUTO_APPROVED | Đơn [${response.requestCode}] (${durationMs}ms) | SHA-256: ${response.sha256Proof?.slice(0, 16) || 'valid'}...`,
+          text: `  🟢 [${testCase.id}] AUTO_APPROVED | Đơn [${response.requestCode}] (${durationMs}ms) | SHA-256: ${audit?.sha256Hash?.slice(0, 16) || 'CHƯA CÓ AUDIT'}`,
         });
       } else if (response.decision === 'ASK_CLARIFICATION') {
         agentTerminalLogger.log({
           step: 'CHỐT 1',
           type: 'TOOL_CALL',
-          text: `  🟡 [${testCase.id}] Chốt 1 (Dữ kiện): Thiếu mục đích sử dụng (UNKNOWN_FACT). Dừng tự động hóa.`,
+          text: `  🟡 [${testCase.id}] Core yêu cầu làm rõ [${response.classification}]: ${response.reason || actionableQuestion}`,
         });
         agentTerminalLogger.log({
           step: 'DECISION',
@@ -106,9 +116,7 @@ async function executeSuite({ mode, cases }) {
           text: `  🔴 [${testCase.id}] REJECTED_POLICY (${durationMs}ms) -> Từ chối tự động dứt khoát: ${response.reason || response.message}`,
         });
       } else if (response.decision?.startsWith('ESCALATE_')) {
-        const catName = testCase.category === 'BEYOND_AUTHORITY'
-          ? 'BEYOND_AUTHORITY (Vượt thẩm quyền do phê duyệt miệng)'
-          : 'OUTSIDE_POLICY (Mục đích ngoài danh mục chính sách)';
+        const catName = response.classification;
         agentTerminalLogger.log({
           step: 'CHỐT 3',
           type: 'TOOL_CALL',
@@ -129,13 +137,15 @@ async function executeSuite({ mode, cases }) {
         classification: response.classification || response.uncertaintyType || null,
         uncertaintyType: response.uncertaintyType || null,
         passed,
+        classificationMatched, persistenceMatched,
         durationMs,
         startedAt: caseStartedAt.toISOString(),
         completedAt: new Date().toISOString(),
         requestCode: response.requestCode || null,
+        requestId: response.requestId || null,
         actionableQuestion,
         message: response.message || response.reason || '',
-        sha256Proof: response.sha256Proof || null,
+        sha256Proof: audit?.sha256Hash || null,
       });
     } catch (error) {
       agentTerminalLogger.log({
@@ -173,6 +183,8 @@ async function executeSuite({ mode, cases }) {
   return {
     success: true,
     mode,
+    verificationRunId,
+    dataSource: 'SYNTHETIC_BENCHMARK',
     policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
     startedAt: startedAt.toISOString(),
     completedAt: completedAt.toISOString(),
@@ -190,6 +202,9 @@ async function executeSuite({ mode, cases }) {
 }
 
 export const verifyTools = {
+  async run_general_verify() {
+    return executeSuite({ mode: 'GENERAL', cases: GENERAL_VERIFY_CASES });
+  },
   async run_verify_90s() {
     return executeSuite({ mode: 'TRACK_A_ESCALATION', cases: TRACK_A_VERIFY_CASES });
   },
@@ -204,6 +219,7 @@ export const verifyTools = {
         documents,
         forceNewRequest: true,
         actorType: 'AI_AGENT',
+        verificationContext: { runId: randomUUID(), caseId: 'CUSTOM' },
       });
       return {
         success: true,
@@ -223,22 +239,13 @@ export const verifyTools = {
     }
   },
 
-  async run_custom_prompt({ prompt, studentCode = null }) {
+  async run_custom_prompt({ prompt, studentCode = null, inputData: explicitInput = {} }) {
     // Không nhận nhầm SĐT (bắt đầu bằng 03, 05, 07, 08, 09) làm MSSV
     const explicitCodeMatch = String(prompt || '').match(/(?:mssv|mã sv|mã số sinh viên|sv)[\s:]*([0-9]{7,10})/i);
     const fallbackCodeMatch = String(prompt || '').match(/\b(?:1[0-9]|2[0-9])[0-9]{5,8}\b/);
     const codeFromPrompt = explicitCodeMatch ? explicitCodeMatch[1] : fallbackCodeMatch?.[0];
     const resolvedStudentCode = studentCode || codeFromPrompt || '2380600001';
-    const inputData = inferStudentConfirmationInput(prompt);
-
-    // Kế thừa thông tin liên lạc mặc định từ hồ sơ nếu Giám khảo không nhập trong câu prompt tự do
-    const profile = getStudentFullProfile(resolvedStudentCode);
-    if (!inputData.phone && profile?.phone) {
-      inputData.phone = profile.phone;
-    }
-    if (!inputData.pickupCampus) {
-      inputData.pickupCampus = 'Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)';
-    }
+    const inputData = { ...explicitInput, ...Object.fromEntries(Object.entries(inferStudentConfirmationInput(prompt)).filter(([, value]) => value !== null && value !== undefined)) };
 
     agentTerminalLogger.log({
       step: 'CUSTOM_CASE',

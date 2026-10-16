@@ -23,14 +23,26 @@ const clampLimit = (value, fallback = 50, max = 200) => {
  */
 router.get('/', authenticateToken, async (req, res) => {
   try {
-    const { status, limit = 50 } = req.query;
+    const { status, limit = 50, q = '' } = req.query;
+    const page = clampLimit(req.query.page, 1, 100000);
+    const pageSize = clampLimit(limit);
     const where = {};
-    if (status && typeof status === 'string') where.status = status;
+    if (status && !['PENDING', 'PROCESSING', 'WAITING_STUDENT', 'APPROVED', 'ESCALATED', 'REJECTED', 'COMPLETED', 'CANCELLED'].includes(status)) {
+      return res.status(400).json({ success: false, message: 'Trạng thái hồ sơ không hợp lệ.' });
+    }
+    if (status) where.status = status;
     if (req.user?.role === 'STUDENT') where.studentId = req.user.id;
+    const query = String(q).trim().slice(0, 100);
+    if (query) where.OR = [
+      { requestCode: { contains: query, mode: 'insensitive' } },
+      { student: { fullName: { contains: query, mode: 'insensitive' } } },
+      { student: { studentCode: { contains: query, mode: 'insensitive' } } },
+    ];
 
     const petitions = await prisma.studentRequest.findMany({
       where,
-      take: clampLimit(limit),
+      take: pageSize + 1,
+      skip: (page - 1) * pageSize,
       orderBy: { createdAt: 'desc' },
       include: {
         student: {
@@ -63,7 +75,8 @@ router.get('/', authenticateToken, async (req, res) => {
       },
     });
 
-    res.json({ success: true, total: petitions.length, data: petitions });
+    res.json({ success: true, total: Math.min(petitions.length, pageSize), page,
+      hasMore: petitions.length > pageSize, data: petitions.slice(0, pageSize) });
   } catch (error) {
     respondServerError(req, res, error);
   }

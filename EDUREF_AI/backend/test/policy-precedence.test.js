@@ -1,4 +1,4 @@
-import { restorer } from '../testSupport/securityTestEnv.js';
+import { restorer, transactionClient } from '../testSupport/securityTestEnv.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import prisma from '../config/prisma.js';
@@ -13,25 +13,26 @@ function setup(t, status) {
   let request = {
     id: 'request-precedence', requestCode: 'XNSV-123456', status: 'WAITING_STUDENT',
     inputData: { formCode: 'MILITARY_DEFERMENT', purpose: 'Tạm hoãn nghĩa vụ quân sự', isInquiry: true },
-    student, requestType, documents: [],
+    student, requestType, studentId: student.id, requestTypeId: requestType.id, documents: [],
   };
   const audits = [];
   let requirementChecks = 0;
   mocks.stub(console, 'log', () => {});
   mocks.stub(prisma.student, 'findUnique', async () => student);
   mocks.stub(prisma.requestType, 'findUnique', async () => requestType);
+  mocks.stub(prisma.studentRequest, 'findMany', async () => []);
   mocks.stub(prisma.studentRequest, 'findFirst', async () => request);
   mocks.stub(prisma.studentRequest, 'update', async ({ data }) => {
     request = { ...request, ...data };
     return request;
   });
-  mocks.stub(prisma, '$transaction', async (fn) => fn({
+  mocks.stub(prisma, '$transaction', async (fn) => fn(transactionClient(prisma, {
     auditLog: {
       findFirst: async () => null,
       create: async ({ data }) => { audits.push(data); return { ...data, sha256Hash: 'test-proof' }; },
     },
     studentRequest: { update: prisma.studentRequest.update },
-  }));
+  })));
   mocks.stub(studentConfirmationHandler, 'validateRequirements', async () => {
     requirementChecks++;
     return { complete: false, missing: [{ code: 'REQ_ADDRESS', name: 'Địa chỉ', description: 'Thiếu địa chỉ' }] };

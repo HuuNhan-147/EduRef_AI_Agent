@@ -167,6 +167,8 @@ model StudentRequest {
   requestType       RequestType       @relation(fields: [requestTypeId], references: [id])
   status            RequestStatus     @default(PENDING)
   inputData         Json              // JSONB lưu các trường dữ liệu linh hoạt
+  verificationRunId String?           // Server-owned synthetic verification run, excluded from real quota
+  verificationCaseId String?
   decision          String?           // ROUTINE_AUTO_APPROVE, ASK_CLARIFICATION, ESCALATE_STAFF, REJECTED
   escalationReason  String?           // Lý do gắn cờ chuyển tiếp
   contextCapsule    Json?             // Tóm tắt sự vụ, chỉ số rủi ro, câu hỏi hành động cho người duyệt
@@ -178,6 +180,7 @@ model StudentRequest {
   auditLogs         AuditLog[]
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
+  @@index([studentId, requestTypeId, verificationRunId, status])
 }
 
 // 9. RequestDocuments (Chứng từ đính kèm)

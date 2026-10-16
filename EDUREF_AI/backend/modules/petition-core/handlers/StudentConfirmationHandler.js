@@ -8,6 +8,7 @@ import {
   validatePermanentAddress,
   TRACK_A_CLASSIFICATION,
   TRACK_A_DECISION,
+  HUTECH_FORMS,
 } from '../../../services/StudentConfirmationDecisionService.js';
 
 export class StudentConfirmationHandler extends BasePetitionHandler {
@@ -158,6 +159,29 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       }
     }
 
+    // Metadata and all entrypoints use the same required-field contract.
+    const values = { ...fullProfile, ...inputData };
+    const labels = { idCardDate: 'Ngày cấp CCCD/CMND', idCardPlace: 'Nơi cấp CCCD/CMND',
+      major: 'Ngành học', faculty: 'Khoa', orphanStatus: 'Tình trạng mồ côi',
+      loanFormCount: 'Số lần đã được cấp giấy vay vốn', loanGrantedCount: 'Số lần đã được vay vốn',
+      lastLoanAmount: 'Số tiền vay lần gần nhất' };
+    const checked = new Set([...passed, ...missing].map((field) => field.code));
+    for (const key of HUTECH_FORMS[formCode]?.requiredFields || []) {
+      const code = { birthDate: 'REQ_BIRTHDATE', idCard: 'REQ_ID_CARD', studentClass: 'REQ_CLASS',
+        phone: 'REQ_PHONE', pickupCampus: 'REQ_CAMPUS', purpose: 'REQ_PURPOSE',
+        permanentAddress: 'REQ_ADDRESS', debtCourses: 'REQ_DEBT_COURSES' }[key] || `REQ_${key.toUpperCase()}`;
+      if (checked.has(code)) continue;
+      const value = values[key];
+      const present = value !== null && value !== undefined && String(value).trim().length > 0;
+      const numeric = ['loanFormCount', 'loanGrantedCount', 'lastLoanAmount'].includes(key);
+      if (present && (!numeric || (Number.isFinite(Number(value)) && Number(value) >= 0))) {
+        passed.push({ code, name: labels[key] || key, value });
+      } else {
+        const label = labels[key] || key;
+        missing.push({ code, name: label, description: `Vui lòng cung cấp ${label.toLowerCase()}${numeric ? ' (số không âm, nhập 0 nếu chưa có)' : ''}.` });
+      }
+    }
+
     return {
       complete: missing.length === 0,
       passed,
@@ -208,6 +232,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
         reason: evaluation.reason,
         actionableQuestion: evaluation.actionableQuestion,
         policyVersion: evaluation.policyVersion,
+        rule: evaluation.rule,
       };
     }
 
@@ -221,6 +246,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
         reason: evaluation.reason,
         userMessage: evaluation.userMessage,
         policyVersion: evaluation.policyVersion,
+        rule: evaluation.rule,
       };
     }
 
@@ -231,6 +257,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       uncertaintyType: evaluation.uncertaintyType,
       reason: evaluation.reason,
       policyVersion: evaluation.policyVersion,
+      rule: evaluation.rule,
     };
   }
 
@@ -257,6 +284,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
         reason: evaluation.reason,
         actionableQuestion: evaluation.actionableQuestion,
         policyVersion: evaluation.policyVersion,
+        rule: evaluation.rule,
       };
     }
 
@@ -267,6 +295,7 @@ export class StudentConfirmationHandler extends BasePetitionHandler {
       uncertaintyType: null,
       reason: evaluation.reason,
       policyVersion: evaluation.policyVersion,
+      rule: evaluation.rule,
     };
   }
 }

@@ -674,6 +674,13 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
   const registryProfile = student?.studentCode ? STUDENT_REGISTRY[String(student.studentCode).trim()] : null;
   const rawEnrolledCredits = student.enrolledCredits ?? student.credits ?? registryProfile?.enrolledCredits ?? null;
   const enrolledCredits = rawEnrolledCredits !== null ? Number(rawEnrolledCredits) : null;
+  if (rawEnrolledCredits === null && student.hasSchedule == null) {
+    return { classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT, uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      decision: TRACK_A_DECISION.ASK_CLARIFICATION, rule: 'UNKNOWN_ACADEMIC_RECORD',
+      reason: 'Chưa có nguồn xác nhận TKB/tín chỉ học kỳ hiện tại.',
+      actionableQuestion: 'Cán bộ học vụ có thể xác nhận tình trạng đăng ký học phần trong học kỳ hiện tại của sinh viên này không?',
+      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION };
+  }
   const hasSchedule = student.hasSchedule !== undefined && student.hasSchedule !== null
     ? Boolean(student.hasSchedule)
     : (enrolledCredits !== null ? enrolledCredits > 0 : false);

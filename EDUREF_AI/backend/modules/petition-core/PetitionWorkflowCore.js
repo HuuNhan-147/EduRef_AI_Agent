@@ -1,11 +1,10 @@
 // backend/modules/petition-core/PetitionWorkflowCore.js
 // Nhạc trưởng Trung tâm Điều phối Vòng đời Hồ sơ Đơn Phiếu Sinh Viên (FSM & Decision Dispatcher)
 
-import prisma from '../../config/prisma.js';
 import AuditLogService from '../../services/AuditLogService.js';
 import { studentConfirmationHandler } from './handlers/StudentConfirmationHandler.js';
-import { calculatePickupAppointment } from '../../services/StudentConfirmationDecisionService.js';
-import { sanitizeDocumentUrl } from '../../services/ClientInputGuard.js';
+import { calculatePickupAppointment, detectFormIntent } from '../../services/StudentConfirmationDecisionService.js';
+import { sanitizeDocumentUrl, stripServerAuthoritativeFields } from '../../services/ClientInputGuard.js';
 
 export class PetitionWorkflowCore {
   constructor() {
@@ -68,7 +67,11 @@ export class PetitionWorkflowCore {
   /**
    * Pipeline điều phối và thẩm định đơn từ đầu tới cuối (5 Chốt chặn cố định)
    */
-  async processPetitionWorkflow({
+  async processPetitionWorkflow(args) {
+    return AuditLogService.runWorkflowTransaction((db) => this._processPetitionWorkflow({ ...args, db }));
+  }
+
+  async _processPetitionWorkflow({
     studentCode,
     requestTypeCode,
     inputData = {},
@@ -76,12 +79,14 @@ export class PetitionWorkflowCore {
     existingRequestId = null,
     forceNewRequest = false,
     actorType = 'AI_AGENT',
+    verificationContext = null,
+    db,
   }) {
     const startTime = Date.now();
     console.log(`\n🚀 [PetitionWorkflowCore] Bắt đầu xử lý đơn: Code=[${requestTypeCode}], MSSV=[${studentCode}]`);
 
     // 1. Lấy thông tin sinh viên từ Database
-    const student = await prisma.student.findUnique({
+    let student = await db.student.findUnique({
       where: { studentCode },
       include: { department: true },
     });
@@ -95,7 +100,7 @@ export class PetitionWorkflowCore {
     }
 
     // 2. Lấy định nghĩa loại đơn từ Database
-    const requestType = await prisma.requestType.findUnique({
+    const requestType = await db.requestType.findUnique({
       where: { code: requestTypeCode },
     });
 
@@ -110,15 +115,27 @@ export class PetitionWorkflowCore {
     // 3. Lấy Handler chuyên biệt của loại đơn này
     const handler = this.getHandler(requestTypeCode);
 
+    // Client and LLM snapshots can never decide the current quota. Verification
+    // scenarios are supplied only by the server-owned runner and visibly tagged.
+    inputData = { ...stripServerAuthoritativeFields(inputData), formCode: inputData.formCode || detectFormIntent(inputData.purpose || '')?.code || 'GENERAL_CONFIRMATION' };
+    if (verificationContext) {
+      student = { ...student, ...(verificationContext.student || {}), id: student.id, studentCode: student.studentCode };
+    }
+
     // 4. Khởi tạo hoặc nạp hồ sơ đơn (StudentRequest)
     let request = null;
     if (existingRequestId) {
-      request = await prisma.studentRequest.findFirst({
+      request = await db.studentRequest.findFirst({
         where: { OR: [{ id: existingRequestId }, { requestCode: existingRequestId }] },
         include: { documents: true, student: true, requestType: true },
       });
       if (request) {
-        request = await prisma.studentRequest.update({
+        if (request.studentId !== student.id || request.requestTypeId !== requestType.id ||
+            !['PENDING', 'PROCESSING', 'WAITING_STUDENT'].includes(request.status) ||
+            (request.inputData?.formCode || 'GENERAL_CONFIRMATION') !== inputData.formCode) {
+          return { success: false, requestId: request.id, message: 'Không thể thay đổi hồ sơ đã chuyển cán bộ/đã kết thúc hoặc đổi biểu mẫu khi bổ sung.' };
+        }
+        request = await db.studentRequest.update({
           where: { id: request.id },
           data: {
             inputData: { ...(request.inputData || {}), ...(inputData || {}) },
@@ -136,11 +153,13 @@ export class PetitionWorkflowCore {
       // Duplicate Guard: Chặn tạo trùng đơn đang xử lý
       const existingActive = forceNewRequest
         ? null
-        : await prisma.studentRequest.findFirst({
+        : await db.studentRequest.findFirst({
             where: {
               studentId: student.id,
               requestTypeId: requestType.id,
-              status: { in: ['PENDING', 'PROCESSING', 'WAITING_STUDENT', 'ESCALATED'] },
+              status: { in: ['PENDING', 'WAITING_STUDENT'] },
+              verificationRunId: null,
+              inputData: { path: ['formCode'], equals: inputData.formCode },
             },
             orderBy: { createdAt: 'desc' },
             include: { documents: true, student: true, requestType: true },
@@ -148,7 +167,7 @@ export class PetitionWorkflowCore {
 
       if (existingActive) {
         console.log(`  ♻️ [Core] Tái sử dụng đơn đang xử lý: [${existingActive.requestCode}] (${existingActive.status})`);
-        request = await prisma.studentRequest.update({
+        request = await db.studentRequest.update({
           where: { id: existingActive.id },
           data: {
             inputData: inputData || {},
@@ -160,19 +179,37 @@ export class PetitionWorkflowCore {
         });
       } else {
         const requestCode = `XNSV-${Math.floor(100000 + Math.random() * 900000)}`;
-        request = await prisma.studentRequest.create({
+        request = await db.studentRequest.create({
           data: {
             requestCode,
             studentId: student.id,
             requestTypeId: requestType.id,
             status: 'PROCESSING',
             inputData: inputData || {},
+            verificationRunId: verificationContext?.runId || null,
+            verificationCaseId: verificationContext?.caseId || null,
           },
           include: { documents: true, student: true, requestType: true },
         });
         console.log(`  📄 [Core] Đã tạo mã hồ sơ mới: [${request.requestCode}]`);
       }
     }
+
+    const history = await db.studentRequest.findMany({
+      where: { studentId: student.id, requestTypeId: requestType.id,
+        id: { not: request.id }, verificationRunId: null,
+        status: { in: ['APPROVED', 'COMPLETED', 'ESCALATED'] } },
+      select: { id: true, requestCode: true, status: true, createdAt: true, inputData: true },
+      orderBy: { createdAt: 'desc' },
+    });
+    inputData.historyRequests = history.map((item) => ({ ...item,
+      inputData: { formCode: item.inputData?.formCode || 'GENERAL_CONFIRMATION' } }));
+    if (verificationContext?.existingApprovedCount !== undefined) {
+      inputData.historyRequests = verificationContext.historyRequests || [];
+      inputData.existingApprovedCount = verificationContext.existingApprovedCount || 0;
+    }
+    request = await db.studentRequest.update({ where: { id: request.id },
+      data: { inputData }, include: { documents: true, student: true, requestType: true } });
 
     // Kết hợp chứng từ hiện có trong database và chứng từ mới truyền vào
     const allDocs = [...(request.documents || []), ...documents];
@@ -228,6 +265,7 @@ export class PetitionWorkflowCore {
         missing: reqResult.missing,
         question,
         actionableQuestion: question,
+        rule: reqResult.missing[0]?.code,
         message: question,
       };
     }
@@ -273,6 +311,7 @@ export class PetitionWorkflowCore {
           question,
           actionableQuestion: question,
           message: question,
+          rule: policyResult.rule,
         };
       }
 
@@ -340,6 +379,7 @@ export class PetitionWorkflowCore {
         reason: authResult.reason,
         contextCapsule,
         actionableQuestion: authResult.actionableQuestion || contextCapsule.actionableQuestion,
+        rule: authResult.rule,
         message: `Yêu cầu của bạn đã được tiếp nhận và đóng gói chuyển tiếp lên ${roleDisplayName} thẩm định theo thẩm quyền. Mã hồ sơ: [${request.requestCode}].`,
       };
     }
@@ -397,8 +437,10 @@ export class PetitionWorkflowCore {
         qrCodeUrl: null,
         sha256Proof: auditLog?.sha256Hash,
         totalDuration,
+        policyVersion: authResult.policyVersion,
+        rule: authResult.rule,
         appointment,
-        message: `Đơn [${request.requestCode}] đã được EduRef AI tự động phê duyệt thành công trong ${totalDuration}ms. Bạn vui lòng mang thẻ sinh viên đến ${pickupCampus} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường.${appointmentMsg}`,
+        message: `Đơn [${request.requestCode}] đã được EduRef AI tự động thẩm định thành công trong ${totalDuration}ms. Lịch nhận bản cứng là thông tin dự kiến trong bản demo; việc phát hành cần đơn vị phụ trách xác nhận.${appointmentMsg}`,
         confirmationDetails: {
           studentName: student.fullName,
           studentCode: student.studentCode,
@@ -415,10 +457,14 @@ export class PetitionWorkflowCore {
   /**
    * Luồng RESUME: Tiếp tục thẩm định đơn sau khi sinh viên bổ sung thông tin/chứng từ
    */
-  async resumePetitionWorkflow({ requestId, additionalData = {}, newDocuments = [], actorType = 'STUDENT' }) {
+  async resumePetitionWorkflow(args) {
+    return AuditLogService.runWorkflowTransaction((db) => this._resumePetitionWorkflow({ ...args, db }));
+  }
+
+  async _resumePetitionWorkflow({ requestId, additionalData = {}, newDocuments = [], actorType = 'STUDENT', db }) {
     console.log(`🔄 [PetitionWorkflowCore] Kích hoạt luồng Resume cho đơn: [${requestId}]`);
 
-    const request = await prisma.studentRequest.findFirst({
+    const request = await db.studentRequest.findFirst({
       where: { OR: [{ id: requestId }, { requestCode: requestId }] },
       include: { student: true, requestType: true, documents: true },
     });
@@ -438,7 +484,7 @@ export class PetitionWorkflowCore {
     // 1. Lưu các chứng từ mới nếu có vào DB
     if (newDocuments.length > 0) {
       for (const doc of newDocuments) {
-        await prisma.requestDocument.create({
+        await db.requestDocument.create({
           data: {
             requestId: request.id,
             documentType: String(doc.documentType || 'ATTACHMENT').slice(0, 50),
@@ -454,11 +500,15 @@ export class PetitionWorkflowCore {
     // 2. Hợp nhất dữ liệu đầu vào
     const mergedInputData = {
       ...(request.inputData || {}),
-      ...additionalData,
+      ...stripServerAuthoritativeFields(additionalData),
     };
+    if (additionalData.permanentAddress && additionalData.permanentAddress !== request.inputData?.permanentAddress && additionalData.isAddressConfirmed !== true) {
+      mergedInputData.isAddressConfirmed = false;
+      mergedInputData.addressConfirmed = false;
+    }
 
     // 3. Cập nhật lại request
-    await prisma.studentRequest.update({
+    await db.studentRequest.update({
       where: { id: request.id },
       data: {
         inputData: mergedInputData,

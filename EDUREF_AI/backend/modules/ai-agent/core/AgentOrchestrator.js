@@ -10,6 +10,7 @@ import AuditLogService from '../../../services/AuditLogService.js';
 import { describeToolOutcome } from './toolOutcome.js';
 import { stripServerAuthoritativeFields } from '../../../services/ClientInputGuard.js';
 import { publicErrorMessage } from '../../../services/ErrorShield.js';
+import AcademicWorkflowService from '../../../services/AcademicWorkflowService.js';
 
 export class AgentOrchestrator {
   constructor(socket = null, sessionId = null) {
@@ -26,6 +27,7 @@ export class AgentOrchestrator {
   async run({ message, currentUser = null, conversationHistory = [], onChunk = null, attachments = null, inputData = null, signal = null, requestedModel = null }) {
     const startTime = Date.now();
     const perfTimeline = [];
+    const executionEvidence = [];
     let lastModelUsed = requestedModel || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
 
     this.logger.log({
@@ -108,14 +110,14 @@ export class AgentOrchestrator {
           const actionableQuestion = `${visionRejectMessage} Cán bộ PĐT có xác minh thủ công và quyết định tiếp nhận minh chứng này không?`;
           this.logger.log({
             step: 'DECISION_FINAL',
-            message: 'Quyết định cuối: [ESCALATE_TO_STAFF] - Dịch vụ thị giác không đủ bằng chứng để tự kết luận',
+            message: 'Quyết định cuối: [NEEDS_HUMAN_REVIEW] - Chưa tạo hồ sơ chuyển tiếp',
             type: 'decision',
           });
-          const reply = `Hệ thống chưa thể tự xác minh ảnh chứng chỉ nên đã dừng tự động hóa. ${actionableQuestion}`;
+          const reply = `Hệ thống chưa thể tự xác minh ảnh chứng chỉ nên đã dừng tự động hóa. Chưa có hồ sơ được chuyển tiếp; vui lòng liên hệ cán bộ. ${actionableQuestion}`;
           await AuditLogService.recordLog({
             actorType: 'AI_AGENT',
             action: 'VISION_SERVICE_MANUAL_REVIEW',
-            decision: 'ESCALATE_TO_STAFF',
+            decision: 'NEEDS_HUMAN_REVIEW',
             reason: visionRejectMessage,
             inputSnapshot: { actionableQuestion, sessionId: this.sessionId },
             decisionTimeMs: Date.now() - startTime,
@@ -123,11 +125,11 @@ export class AgentOrchestrator {
           if (onChunk) onChunk(reply);
           return {
             reply,
-            decision: 'ESCALATE_TO_STAFF',
+            decision: 'NEEDS_HUMAN_REVIEW',
             toolResult: {
-              decision: 'ESCALATE_TO_STAFF',
+              decision: 'NEEDS_HUMAN_REVIEW',
               classification: 'BEYOND_AUTHORITY',
-              status: 'ESCALATED',
+              status: 'NOT_SUBMITTED',
               actionableQuestion,
               message: reply,
             },
@@ -307,10 +309,14 @@ export class AgentOrchestrator {
         ].join(' ');
 
         // 1. Kiểm tra xác nhận địa chỉ NVQS từ tin nhắn hiện tại hoặc lịch sử hội thoại
-        const isExplicitlyConfirmed =
-          toolArgs.isAddressConfirmed === true ||
-          inputData?.isAddressConfirmed === true ||
-          /(?:xác nhận|xac nhan|đúng rồi|dung roi|chính xác|chinh xac|chuẩn rồi|chuan roi|đồng ý|dong y|đúng địa chỉ)/i.test(allUserTexts);
+        const pendingAddress = conversationMemory.getSessionMeta(this.sessionId, 'pendingAddress');
+        const explicitConsent = /^(?:xác nhận đúng|xac nhan dung|đúng địa chỉ|đồng ý địa chỉ|địa chỉ chính xác)[.!\s]*$/i.test(String(message).trim());
+        const effectiveAddress = toolArgs.permanentAddress || inputData?.permanentAddress ||
+          (explicitConsent ? pendingAddress?.address : null);
+        const isExplicitlyConfirmed = Boolean(
+          (inputData?.isAddressConfirmed === true && inputData?.permanentAddress === effectiveAddress) ||
+          (explicitConsent && pendingAddress?.address && pendingAddress.address === effectiveAddress)
+        );
 
         // 2. Zero-Trust Campus Guard: Chỉ công nhận pickupCampus nếu sinh viên thực sự nhắc đến trong tin nhắn, lịch sử hoặc payload
         const campusInHistoryOrMessage = /(?:sài gòn|sai gon|ung văn khiêm|điện biên phủ|a-01|trụ sở|khu ab|cơ sở a|thủ đức|thu duc|e1|khu e|cơ sở e|khu công nghệ cao)/i.test(allUserTexts);
@@ -330,7 +336,7 @@ export class AgentOrchestrator {
           studentClass: toolArgs.studentClass || currentUser?.studentClass || currentUser?.class || null,
           // CÁC TRƯỜNG DỮ LIỆU ĐƠN: TUYỆT ĐỐI KHÔNG FALLBACK TỪ CURRENTUSER (ZERO-TOLERANCE GUARD)
           phone: toolArgs.phone || inputData?.phone || null,
-          permanentAddress: toolArgs.permanentAddress || inputData?.permanentAddress || null,
+          permanentAddress: effectiveAddress,
           idCard: toolArgs.idCard || inputData?.idCard || null,
           pickupCampus: effectivePickupCampus,
           isAddressConfirmed: isExplicitlyConfirmed,
@@ -341,6 +347,7 @@ export class AgentOrchestrator {
             ...stripServerAuthoritativeFields(inputData),
             ...stripServerAuthoritativeFields(toolArgs.inputData),
             pickupCampus: effectivePickupCampus,
+            permanentAddress: effectiveAddress,
             isAddressConfirmed: isExplicitlyConfirmed,
           },
           conversationHistory: history,
@@ -348,7 +355,15 @@ export class AgentOrchestrator {
         };
         const toolResult = await ToolResolver.resolve(toolName, mergedArgs);
         const toolDuration = Date.now() - toolStart;
+        executionEvidence.push({ toolName, durationMs: toolDuration, decision: toolResult?.decision || null,
+          requestId: toolResult?.requestId || null, requestCode: toolResult?.requestCode || null });
         lastToolResult = toolResult;
+        if (toolResult?.decision === 'ASK_CLARIFICATION' && effectiveAddress &&
+            (mergedArgs.formCode || mergedArgs.inputData?.formCode) === 'MILITARY_DEFERMENT') {
+          conversationMemory.setSessionMeta(this.sessionId, 'pendingAddress', { address: effectiveAddress });
+        } else if (isExplicitlyConfirmed || toolResult?.status === 'APPROVED') {
+          conversationMemory.setSessionMeta(this.sessionId, 'pendingAddress', null);
+        }
 
         perfTimeline.push({
           name: `Vòng ${stepCount}: Chạy Tool [${toolName}]`,
@@ -393,33 +408,22 @@ export class AgentOrchestrator {
 
       // ⚠️ CHỐT CHẶN AN NINH: Graceful Escalation khi chạm trần 5 bước ReAct Loop
       if (!finalReplyText && stepCount >= MAX_AGENT_STEPS) {
-        const timeoutMsg = `Hệ thống đã đạt ngưỡng giới hạn an toàn ${MAX_AGENT_STEPS} bước suy luận nhưng chưa thể kết luận dứt khoát. Hồ sơ đã được chuyển tiếp an toàn lên Cán bộ Phòng Đào tạo xem xét trực tiếp.`;
-        const actionableQuestion = `Hồ sơ vượt ngưỡng an toàn ${MAX_AGENT_STEPS} bước suy luận của Agent. Cán bộ PĐT có tiếp nhận thẩm định và ra quyết định thủ công cho sinh viên không?`;
-
-        this.logger.log({
-          step: 'MAX_STEPS_ESCALATION',
-          message: `🚨 [AgentOrchestrator] Chạm ngưỡng an toàn MAX_STEPS=${MAX_AGENT_STEPS}. Kích hoạt Graceful Escalation!`,
-          type: 'warning',
-        });
-
-        await AuditLogService.recordLog({
-          actorType: 'AI_AGENT',
-          action: 'MAX_STEPS_EXCEEDED_ESCALATE',
-          decision: 'ESCALATE_TO_STAFF',
-          reason: `Vượt quá giới hạn an toàn ${MAX_AGENT_STEPS} bước suy luận ReAct Loop (Loop Step Cap Protection)`,
-          inputSnapshot: { actionableQuestion, sessionId: this.sessionId, stepCount },
-          decisionTimeMs: Date.now() - startTime,
-        });
-
-        finalReplyText = timeoutMsg;
-        lastToolResult = {
-          decision: 'ESCALATE_TO_STAFF',
-          status: 'ESCALATED',
-          classification: 'BEYOND_AUTHORITY',
-          actionableQuestion,
-          message: timeoutMsg,
-        };
-        if (onChunk) onChunk(timeoutMsg);
+        if (lastToolResult?.requestId && ['APPROVED', 'REJECTED', 'ESCALATED', 'WAITING_STUDENT'].includes(lastToolResult.status)) {
+          finalReplyText = lastToolResult.message || lastToolResult.actionableQuestion || 'Đã hoàn tất xử lý hồ sơ theo quyết định đã lưu.';
+        } else if (lastToolResult?.requestId) {
+          const transferred = await AcademicWorkflowService.escalateRequest({
+            requestId: lastToolResult.requestId,
+            reason: 'Agent đạt giới hạn 5 bước; cần cán bộ xử lý tiếp.',
+            actionableQuestion: `Cán bộ có tiếp nhận hồ sơ ${lastToolResult.requestCode || lastToolResult.requestId} để xác minh và quyết định thủ công không?`,
+          });
+          if (!transferred.success) throw new Error(transferred.error || transferred.message || 'Chưa chuyển tiếp được hồ sơ.');
+          lastToolResult = { ...transferred, requestId: lastToolResult.requestId, decision: 'ESCALATE_TO_STAFF', status: 'ESCALATED', classification: 'BEYOND_AUTHORITY' };
+          finalReplyText = transferred.message;
+        } else {
+          finalReplyText = 'Agent đã đạt giới hạn 5 bước và dừng xử lý. Chưa có hồ sơ được chuyển tiếp; vui lòng liên hệ cán bộ hoặc bổ sung yêu cầu để tiếp tục.';
+          lastToolResult = { decision: 'NEEDS_HUMAN_REVIEW', status: 'NOT_SUBMITTED', message: finalReplyText };
+        }
+        if (onChunk) onChunk(finalReplyText);
       }
 
       const totalDuration = Date.now() - startTime;
@@ -496,6 +500,7 @@ export class AgentOrchestrator {
         sessionId: this.sessionId,
         totalDuration,
         modelUsed: lastModelUsed,
+        executionEvidence,
       };
     } catch (error) {
       console.error('❌ [AgentOrchestrator] Lỗi:', error);
