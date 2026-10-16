@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-10-16T09:32:26.358Z",
+  "generatedAt": "2026-10-16T10:41:25.992Z",
   "scope": "Targeted security regression mutations; not exhaustive mutation coverage",
   "testFiles": [
     "test/security-agent-tools.test.js",
@@ -63,10 +63,11 @@
       "file": "services/ErrorShield.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 53,
+      "tests": 50,
       "failedTests": [
         "ErrorShield.isInternalError: phân loại lỗi nội bộ và lỗi nghiệp vụ",
-        "ErrorShield.publicErrorMessage: che lỗi nội bộ (kèm mã tham chiếu), giữ thông báo nghiệp vụ"
+        "ErrorShield.publicErrorMessage: che lỗi nội bộ (kèm mã tham chiếu), giữ thông báo nghiệp vụ",
+        "test\\\\security-gemini-stream.test.js"
       ],
       "error": null
     },
@@ -75,11 +76,12 @@
       "file": "services/ErrorShield.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 53,
+      "tests": 50,
       "failedTests": [
         "AgentOrchestrator: lỗi nội bộ không lộ ra reply, có mã tham chiếu",
         "AcademicWorkflowService: lỗi Prisma bị che, kết quả tool vẫn đúng hình dạng",
-        "ErrorShield.publicErrorMessage: che lỗi nội bộ (kèm mã tham chiếu), giữ thông báo nghiệp vụ"
+        "ErrorShield.publicErrorMessage: che lỗi nội bộ (kèm mã tham chiếu), giữ thông báo nghiệp vụ",
+        "test\\\\security-gemini-stream.test.js"
       ],
       "error": null
     },
@@ -273,9 +275,10 @@
       "file": "modules/ai-agent/core/AgentOrchestrator.js",
       "status": "KILLED",
       "exitCode": 1,
-      "tests": 53,
+      "tests": 50,
       "failedTests": [
-        "AgentOrchestrator: inputData của client và của LLM bị lọc khóa máy chủ; MSSV khóa theo phiên đăng nhập"
+        "AgentOrchestrator: inputData của client và của LLM bị lọc khóa máy chủ; MSSV khóa theo phiên đăng nhập",
+        "test\\\\security-gemini-stream.test.js"
       ],
       "error": null
     },

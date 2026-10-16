@@ -19,6 +19,10 @@ export const SERVER_AUTHORITATIVE_INPUT_KEYS = Object.freeze([
   'completedCredits',
   'accumulatedCredits',
   'credits',
+  'thresholdAssessment',
+  'thresholdVersion',
+  'minEvidenceScore',
+  'evidenceScore',
 ]);
 
 /**

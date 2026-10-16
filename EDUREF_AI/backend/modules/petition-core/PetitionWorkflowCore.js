@@ -2,6 +2,10 @@
 // Nhạc trưởng Trung tâm Điều phối Vòng đời Hồ sơ Đơn Phiếu Sinh Viên (FSM & Decision Dispatcher)
 
 import AuditLogService from '../../services/AuditLogService.js';
+import Sprint2Service from '../../services/Sprint2Service.js';
+import { assessThreshold } from '../../services/EscalationThreshold.js';
+import { getStudentFullProfile } from '../../config/studentRegistry.js';
+import { conversationMemory } from '../ai-agent/memory/ConversationMemory.js';
 import { studentConfirmationHandler } from './handlers/StudentConfirmationHandler.js';
 import { calculatePickupAppointment, detectFormIntent } from '../../services/StudentConfirmationDecisionService.js';
 import { sanitizeDocumentUrl, stripServerAuthoritativeFields } from '../../services/ClientInputGuard.js';
@@ -213,6 +217,23 @@ export class PetitionWorkflowCore {
 
     // Kết hợp chứng từ hiện có trong database và chứng từ mới truyền vào
     const allDocs = [...(request.documents || []), ...documents];
+    const snapshotInput = { ...inputData };
+    if (snapshotInput.sessionId) {
+      const history = [...(Array.isArray(snapshotInput.conversationHistory) ? snapshotInput.conversationHistory : [])];
+      for (const message of conversationMemory.getRecentUserMessages(snapshotInput.sessionId, 5)) {
+        if (!history.some((item) => (item.content || item.parts?.[0]?.text) === message.content)) history.push({ role: 'user', content: message.content });
+      }
+      snapshotInput.conversationHistory = history;
+    }
+    delete snapshotInput.sessionId;
+    delete snapshotInput.historyRequests;
+    delete snapshotInput.existingApprovedCount;
+    await db.studentRequest.update({ where: { id: request.id }, data: { evaluationSnapshot: JSON.parse(JSON.stringify({
+      student: { ...student, ...getStudentFullProfile(studentCode, student) }, inputData: snapshotInput,
+      historyRequests: inputData.historyRequests || [], documents: allDocs,
+      referenceDate: new Date(startTime).toISOString(), verificationRunId: request.verificationRunId || null,
+      dataSource: request.verificationRunId ? 'SYNTHETIC_BENCHMARK' : 'STORED_BUSINESS_REQUEST',
+    })) } });
 
     // Trạng thái thôi học/bảo lưu đã đủ căn cứ từ chối, không yêu cầu sinh viên
     // bổ sung địa chỉ/SĐT cho một hồ sơ không thể được cấp. Áp dụng cả submit/resume.
@@ -324,7 +345,15 @@ export class PetitionWorkflowCore {
     // CHỐT 3: CHECK AUTHORITY BOUNDARY (Kiểm tra Phân cấp Thẩm quyền)
     // =========================================================================
     console.log(`  🔒 [Core Chốt 3] Kiểm tra Thẩm quyền xử lý (Authority)...`);
-    const authResult = await handler.checkAuthority(request, student, { inputData, documents: allDocs });
+    let authResult = await handler.checkAuthority(request, student, { inputData, documents: allDocs });
+    let thresholdAssessment = null;
+    if (authResult.action === 'AUTO_APPROVE') {
+      const policy = await Sprint2Service.activePolicy(db);
+      const assessed = assessThreshold({ ...authResult, decision: 'AUTO_APPROVED' }, inputData, policy);
+      thresholdAssessment = assessed.assessment;
+      await db.studentRequest.update({ where: { id: request.id }, data: { thresholdAssessment } });
+      if (thresholdAssessment.applied) authResult = { ...assessed.result, role: 'STAFF', action: 'STAFF_REVIEW' };
+    }
 
     // Nếu vượt thẩm quyền của AI -> Chuyển tiếp (Escalate) có kiểm soát
     if (authResult.action !== 'AUTO_APPROVE') {
@@ -339,6 +368,7 @@ export class PetitionWorkflowCore {
       contextCapsule.classification = authResult.classification || authResult.uncertaintyType || 'BEYOND_AUTHORITY';
       contextCapsule.uncertaintyType = authResult.uncertaintyType || contextCapsule.classification;
       contextCapsule.policyVersion = authResult.policyVersion || null;
+      contextCapsule.thresholdAssessment = thresholdAssessment;
       contextCapsule.manualReviewRequired = Boolean(reqResult.manualReviewRequired);
 
       const escalateDecision = authResult.role === 'DEAN' ? 'ESCALATE_TO_DEAN' : 'ESCALATE_TO_STAFF';
@@ -380,6 +410,7 @@ export class PetitionWorkflowCore {
         contextCapsule,
         actionableQuestion: authResult.actionableQuestion || contextCapsule.actionableQuestion,
         rule: authResult.rule,
+        thresholdAssessment,
         message: `Yêu cầu của bạn đã được tiếp nhận và đóng gói chuyển tiếp lên ${roleDisplayName} thẩm định theo thẩm quyền. Mã hồ sơ: [${request.requestCode}].`,
       };
     }
@@ -396,7 +427,7 @@ export class PetitionWorkflowCore {
       action: 'WORKFLOW_AUTO_APPROVE',
       decision: 'APPROVED',
       reason: 'Đơn đáp ứng toàn bộ điều kiện đầu vào, quy chế đào tạo và nằm trong thẩm quyền tự chủ của Tác tử AI.',
-      inputSnapshot: { inputData, requestCode: request.requestCode },
+      inputSnapshot: { inputData, requestCode: request.requestCode, thresholdAssessment },
       afterState: { status: 'APPROVED', qrCodeUrl: approvalResult?.qrCodeUrl || null },
       decisionTimeMs: Date.now() - startTime,
     }, async (tx, log) => {
@@ -438,6 +469,7 @@ export class PetitionWorkflowCore {
         sha256Proof: auditLog?.sha256Hash,
         totalDuration,
         policyVersion: authResult.policyVersion,
+        thresholdAssessment,
         rule: authResult.rule,
         appointment,
         message: `Đơn [${request.requestCode}] đã được EduRef AI tự động thẩm định thành công trong ${totalDuration}ms. Lịch nhận bản cứng là thông tin dự kiến trong bản demo; việc phát hành cần đơn vị phụ trách xác nhận.${appointmentMsg}`,

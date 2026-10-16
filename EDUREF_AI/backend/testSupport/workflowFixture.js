@@ -33,6 +33,7 @@ export function workflowFixture() {
   };
   mocks.stub(prisma.student, 'findUnique', async ({ where }) => copy(students.find((s) => s.studentCode === where.studentCode || s.id === where.id) || null));
   mocks.stub(prisma.requestType, 'findUnique', async () => copy(requestType));
+  mocks.stub(prisma.escalationThresholdPolicy, 'findFirst', async () => null);
   mocks.stub(prisma.studentRequest, 'findFirst', async ({ where }) => copy(state.records.find((r) => match(r, where)) || null));
   mocks.stub(prisma.studentRequest, 'findUnique', async ({ where }) => copy(state.records.find((r) => r.id === where.id) || null));
   mocks.stub(prisma.studentRequest, 'findMany', async ({ where = {}, take, skip = 0 } = {}) => copy(state.records.filter((r) => match(r, where)).slice(skip, take ? skip + take : undefined)));
