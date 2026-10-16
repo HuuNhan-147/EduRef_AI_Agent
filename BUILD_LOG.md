@@ -1,5 +1,7 @@
 # Nhật ký phát triển (Build Log) — Dự án EduRef AI
 
+> **Bổ sung 16/10/2026, local trên `fix/track-vng-compliance`:** triển khai feedback bất biến từ snapshot gốc, threshold có version chỉ thêm review sau hard guards, dataset DRAFT/FROZEN, replay cùng holdout/code và kích hoạt bởi người khác tác giả. Bảng 100 ca chỉ được chuyển thành nguồn ứng viên INTERNAL; không gán người/nhãn/snapshot giả, không công bố tỷ lệ. Backend 147/147, frontend 19/19 và lint PASS trên fixture; chưa đo chất lượng LLM/DB thật. [Runbook](EDUREF_AI/docs/SPRINT2_FEEDBACK_RUNBOOK.md). Các con số/nhân sự trong phần nhật ký cũ dưới đây cần bằng chứng gốc riêng, không được suy thành kết quả kiểm chứng của bản vá này.
+
 > **Cuộc thi:** MLAI Hackathon 2026 — Bảng 1: OrganizationAI (Track VNG — The Escalation Referee)  
 > **Đội thi:** KAISER · **Thành viên:** Cao Hữu Nhân (Lead), Trần Đức Tài, Hoàng Trọng Trà, Trần Minh Quang  
 > **Thời gian thực hiện:** 19/09/2026 – 15/10/2026  

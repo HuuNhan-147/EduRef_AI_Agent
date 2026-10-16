@@ -77,9 +77,9 @@ Hồ sơ tùy biến chưa có dữ liệu TKB/tín chỉ trong schema. Trạng 
 
 ### 2.1. `GET /api/petitions`
 - **Mục đích:** Lấy danh sách hồ sơ đơn sinh viên (hỗ trợ lọc theo `status`, giới hạn `limit`).
-- **Query Params:** `status=ESCALATED`, `limit=50`.
+- **Query Params:** `status=ESCALATED`, `limit=50`, `page=1`, `q=XNSV-...`. Lọc trạng thái/tìm mã hồ sơ, tên hoặc MSSV trước khi phân trang; response có `page`, `hasMore`, `data` và `total` là số bản ghi trên trang trả về.
 - **Response Success (200):** Trả về mảng danh sách các đối tượng `StudentRequest`.
-- Sinh viên chỉ thấy hồ sơ của mình; STAFF/DEAN/ADMIN có thể xem toàn bộ. `limit` mặc định 50, tối đa 200; giá trị không hợp lệ dùng 50. Bộ lọc `status` chỉ nhận chuỗi.
+- Sinh viên chỉ thấy hồ sơ của mình; STAFF/DEAN/ADMIN có thể xem toàn bộ. `limit` mặc định 50, tối đa 200; giá trị không hợp lệ dùng 50. `status` ngoài enum trả 400.
 
 ### 2.2. `POST /api/petitions`
 - **Mục đích:** Nộp hồ sơ đơn mới trực tiếp từ biểu mẫu sinh viên.
@@ -157,9 +157,11 @@ Hồ sơ tùy biến chưa có dữ liệu TKB/tín chỉ trong schema. Trạng 
 - Kiểm tra chủ hồ sơ và chỉ nhận WAITING_STUDENT; 404 nếu không tồn tại, 403 nếu sai chủ, 400 nếu sai trạng thái. `additionalData` được lọc khóa server rồi hợp nhất dữ liệu cũ. Tài liệu mới bắt đầu PENDING.
 
 ### 2.8. `GET /api/petitions/stats/metrics`
-- **Mục đích:** Lấy số đếm, automation rate và latency đã quan sát. Hai tỷ lệ missed/false escalation trả `null` cho đến khi có tập độc lập có nhãn.
+- **Mục đích:** Lấy số đếm nghiệp vụ và phép đo độc lập khớp code/threshold hiện hành. Hồ sơ Verify bị loại khỏi số đếm và mean latency.
 - **Auth:** JWT role STAFF/DEAN/ADMIN.
-- `routineAutomationRate` hiện là số APPROVED / tổng hồ sơ (có thể bao gồm cán bộ duyệt), chưa phải tỷ lệ AI tự động trên tập routine có nhãn.
+- `metrics.missedEscalationRate`, `falseEscalationRate`, `routineAutomationRate`: phần trăm số, hoặc `null` với `measurementStatus: PARTIAL` khi chưa có báo cáo đủ điều kiện. Không suy 0% từ số đếm vận hành. Khi MEASURED có counts, Wilson 95%, reportId/datasetId/thresholdVersion và mode DETERMINISTIC_REPLAY.
+- `operationalApprovalShare`: chuỗi phần trăm APPROVED / tổng hồ sơ nghiệp vụ, hoặc null khi chưa có hồ sơ; có thể bao gồm cán bộ duyệt. Đây không phải routine automation trên tập có nhãn.
+- `avgProcessingTimeMs`: mean `decisionTimeMs` đã ghi trên audit nghiệp vụ; null khi chưa có. Không coi là latency end-to-end của LLM.
 
 ### 2.9. Endpoint phụ trợ
 
@@ -194,13 +196,13 @@ API documents nhận metadata URL, không upload nhị phân lên kho lưu trữ
 
 ### 3.3. `POST /api/agent/verify-custom`
 - **Quyền:** STAFF/DEAN/ADMIN. Body studentCode/requestTypeCode/inputData/documents, chạy trực tiếp Core.
-- `/api/agent/verify-general` **chưa có route** trong phiên bản hiện tại; các tài liệu cũ mô tả 4 ca không phải hợp đồng runtime.
+- `POST /api/agent/verify-general`: JWT và cùng rate limit Verify; chạy bốn ca ROUTINE / ASK / REJECT / ESCALATE. Cả bộ chung và A trả mã lần chạy, `dataSource: SYNTHETIC_BENCHMARK`; PASS kiểm tra quyết định, phân loại, persistence, audit và câu hỏi.
 
 ### 3.4. `POST /api/agent/verify-custom-prompt`
 - **Mục đích:** Chạy ca mới do giám khảo nhập qua cùng policy engine.
-- **Body:** `{ "prompt": "...", "studentCode": "..." }`; `studentCode` là tùy chọn trong môi trường demo.
+- **Body:** `{ "prompt": "...", "studentCode": "...", "inputData": { "phone": "...", "pickupCampus": "..." } }`; `studentCode` là tùy chọn trong môi trường demo.
 - Sinh viên chỉ chạy trên chính mình hoặc MSSV benchmark; nhắm sinh viên khác trả 403. Khi bỏ studentCode, route khóa vào MSSV phiên sinh viên, không dùng MSSV gõ trong prompt. Cán bộ có thể chọn hồ sơ khác.
-- Verify ghi hồ sơ/audit thật trong DB cấu hình. Custom prompt có điền SĐT/cơ sở nhận mẫu phục vụ kiểm thử; không đại diện hoàn toàn cho việc thu thập dữ kiện ở chat thực tế.
+- Verify ghi hồ sơ/audit trong DB cấu hình, có `verificationRunId`/`verificationCaseId` và không tính vào hạn mức thường. Custom prompt không tự điền SĐT/cơ sở nhận; trường mẫu được hiển thị và gửi rõ từ UI. Verify không gọi LLM.
 
 ### 3.5. `GET /api/agent/terminal-logs`
 - **Mục đích:** Lấy lịch sử dòng lệnh suy luận gần nhất của AI Agent (dùng cho Live Terminal Console).
@@ -252,3 +254,20 @@ STAFF/DEAN/ADMIN kiểm tra hash của một bản ghi audit, trả `isValid`, e
 - `GET /health` ngoài `/api`, không yêu cầu JWT; DB truy vấn được trả healthy và số sinh viên, lỗi DB trả 500 với `{ "status": "unhealthy" }`.
 
 Frontend gửi POST /petitions và POST /petitions/:id/resume bằng JSON. Form bổ sung chỉ gửi trường có nhập, không gán mục đích vay vốn hoặc tạo URL file giả; backend vẫn quyết định trạng thái sau mỗi lần bổ sung.
+
+## 6. Sprint 2 — `/api/sprint2`
+
+JWT STAFF/DEAN/ADMIN, response `{ success: true, data }`; validation trả 400 với `{ success: false, message }`. POST/PATCH phải là JSON object. Writes tối đa 20/phút, compare 4/phút theo middleware rate limit hiện có. Sinh viên không được đọc dữ liệu feedback/dataset/report.
+
+| Method / path | Body / hành vi |
+|---|---|
+| GET `/overview` | Active threshold, current measurement, tối đa 30 policies/30 datasets/200 feedback/20 reports. Dataset kèm issues; báo cáo có kết quả từng ca. |
+| POST `/feedback` | `requestId, expectedDecision, expectedClassification, reason, evidenceRef`. Chỉ STUDENT_CONFIRMATION nghiệp vụ có evaluationSnapshot gốc, không Verify; một người/một hồ sơ, bất biến. Không tự đổi quyết định hoặc threshold. |
+| POST `/policies/propose` | `feedbackIds` (5–200), `reason`. Replay hard policy để lọc calibration, đề xuất version DRAFT; không kích hoạt. Cần ≥5 snapshot đủ điều kiện AUTO, có cả nhãn AUTO và chuyển tiếp. |
+| POST `/datasets` | `name, version, origin` INTERNAL/INDEPENDENT, `sourceRef, sourceSha256, referenceDate, policyAuthorIds, independenceDeclaration, cases` (1–500). Luôn tạo DRAFT; thiếu provenance vẫn nhập được để bổ sung, chưa đủ điều kiện đo. |
+| PATCH `/datasets/:id` | `cases, reason`; tùy chọn `referenceDate, policyAuthorIds, independenceDeclaration`. Chỉ DRAFT; không sửa origin/source/version, cần version mới nếu đổi nguồn. |
+| POST `/datasets/:id/freeze` | DEAN/ADMIN, `note`; khác người nhập, tất cả chốt protocol đạt; lưu hash và thời điểm khóa. |
+| POST `/datasets/:id/compare` | `candidatePolicyId` (hoặc BASELINE). So ACTIVE hiện tại với candidate trên cùng holdout. Lưu report bất biến, hash/code versions, before/after/counts/rows/delta. Không ghi hồ sơ nghiệp vụ, không gọi LLM. Ineligible vẫn trả report PARTIAL, hai tỷ lệ null. |
+| POST `/policies/:id/activate` | DEAN/ADMIN, `reportId, note`; khác người đề xuất. Report hợp lệ/đúng code và version hiện hành, dataset nguyên vẹn, không lỗi/missed tăng hoặc routine auto bằng 0. Retire version cũ và audit cùng transaction. RETIRED/BASELINE rollback qua cùng luồng với holdout mới. |
+
+Core lưu `thresholdAssessment` và `evaluationSnapshot` tại mỗi lần quyết định. Threshold chỉ thêm STAFF review sau hard guards, không tự nới policy. Xem [quy trình nhóm cần review](SPRINT2_FEEDBACK_RUNBOOK.md), [schema ca và provenance](../../docs/datasets/SPRINT2_ANNOTATION_GUIDE.md), [định nghĩa tỷ lệ V2](15_MEASUREMENT_PLAN.md).

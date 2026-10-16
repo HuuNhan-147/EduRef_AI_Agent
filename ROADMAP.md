@@ -1,6 +1,8 @@
 # Lộ trình phát triển và tiến hóa kiến trúc hệ thống EduRef AI
 ### Autonomous Academic Petition & Escalation Referee — Track A: Organization AI
 
+> **Rà soát 16/10/2026:** bảng 100 ca chưa xác minh được provenance/snapshot/nhãn độc lập. Không có cơ sở công bố missed 0% hoặc false 1,5%. Hai tỷ lệ hiện là null/PARTIAL. Nhánh `fix/track-vng-compliance` có runtime feedback → DRAFT threshold → replay → phê duyệt; chưa kích hoạt nghiệp vụ hoặc deploy. Xem [runbook Sprint 2](EDUREF_AI/docs/SPRINT2_FEEDBACK_RUNBOOK.md).
+
 > **Đơn vị tổ chức:** Mạng lưới AI khu vực phía Nam (HCMUT × HUTECH) · **MLAI Hackathon 2026**  
 > **Đội thi:** KAISER (Cao Hữu Nhân, Trần Đức Tài, Hoàng Trọng Trà, Trần Minh Quang)  
 > **Căn cứ pháp lý và kỹ thuật:**
@@ -28,7 +30,7 @@ timeline
     title Tiến trình Phát triển & Tiến hóa Kiến trúc EduRef AI
     Sprint 1 (19/09 - 27/09) : 72h Bounded Autonomy MVP : Nhận diện 3 kiểu dừng : Quyết định cắt giảm Xét tốt nghiệp (Scope Pruning)
     Phản hồi Doanh nghiệp (28/09) : Nhận diện rào cản chí mạng : Đặt trần cứng maxSteps = 5 : Yêu cầu đo tỷ lệ báo lên sai
-    Sprint 2 (28/09 - 15/10) : Chuẩn hóa 5 Biểu mẫu HUTECH : 7 Chốt chặn SoDoHeThong_EduRef_AI.mdj : Kiểm thử 100 ca đạt Missed Escalation = 0%
+    Sprint 2 (28/09 - 15/10) : Chuẩn hóa 5 Biểu mẫu HUTECH : 7 Chốt chặn SoDoHeThong_EduRef_AI.mdj : Nguồn 100 ca chờ xác minh độc lập
     Vòng Chung kết (17/10/2026) : Live URL Vercel/Render : Verify Harness 90s : Sẵn sàng 5 ca dữ liệu mới của BGK
     Hậu Hackathon (2026 - 2027) : Declarative Policy Schema : On-premise Private SLM : Liên thông Core SIS & Dịch vụ công Quốc gia
 ```
@@ -51,14 +53,14 @@ timeline
 ---
 
 ### 2.2. Giai đoạn 2: Sprint 2 (28/09 – 15/10/2026) — Deep Engineering và Đáp ứng phản hồi doanh nghiệp
-Dựa trên bản nhận xét chuyên môn từ Giám khảo Doanh nghiệp Kaiser, đội thi đã hiện thực hóa **100% cả 4 Action Items ưu tiên**:
+Dựa trên bản nhận xét chuyên môn từ Giám khảo Doanh nghiệp Kaiser, nhóm theo dõi bốn action items; phần đo độc lập còn thiếu bằng chứng:
 
 | Action Item Doanh nghiệp Kaiser yêu cầu | Hiện trạng tại Sprint 1 | Giải pháp Kỹ thuật Đột phá tại Sprint 2 | Trạng thái |
 | :--- | :--- | :--- | :---: |
 | **1. Khóa trần cứng `maxSteps = 5`**<br>*"Một trọng tài biết dừng mà chính nó không dừng được là mâu thuẫn... Đặt trần cứng năm bước và báo lên khi vượt."* | Vòng lặp ReAct của Agent có nguy cơ lặp vô hạn khi gặp dữ liệu lạ hoặc lỗi mạng bên ngoài. | Cài đặt biến đếm cứng `maxSteps = 5` tại `AgentOrchestrator.js`. Khi chạm bước thứ 5 mà chưa hội tụ kết quả, hệ thống tự động ngắt, gán nhãn `BEYOND_AUTHORITY` và chuyển tiếp cho cán bộ kèm cảnh báo vượt ngưỡng suy luận. | **ĐÃ HOÀN THÀNH 100%** |
 | **2. Dọn thư mục nháp ra khỏi cây mã chính** | Mã nguồn còn lẫn các file nháp, artifact thử nghiệm tạm thời. | Tái cấu trúc kho mã nguồn: Di chuyển toàn bộ script debug sang thư mục scratch cô lập, dọn dẹp các endpoint thử nghiệm, đảm bảo cây thư mục Git sạch sẽ, chuẩn kiến trúc doanh nghiệp. | **ĐÃ HOÀN THÀNH 100%** |
 | **3. Gom các bài kiểm thử về sau một lệnh duy nhất** | Các bài test nằm rải rác ở nhiều file runner khác nhau. | Thiết lập bộ kiểm thử tự động gom toàn bộ các test suites về sau 1 lệnh duy nhất: `npm test`. Kết quả đạt **115/115 tests PASS 100% (Xanh tuyệt đối)**. | **ĐÃ HOÀN THÀNH 100%** |
-| **4. Đo tỷ lệ báo lên sai (`False Escalation Rate`)** | Chưa có số liệu thực nghiệm đo lường trên tập kiểm thử độc lập. | Xây dựng bộ dữ liệu 100 ca thực tế ([`TAP_KIEM_THU_100_INPUT_THUC_TE.md`](docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md)) bao phủ toàn bộ nhánh rẽ của sơ đồ `.mdj`. Đo lường thực tế: `Missed Escalation Rate = 0.0%`, `False Escalation Rate = 1.5%`. | **ĐÃ HOÀN THÀNH 100%** |
+| **4. Đo tỷ lệ báo lên sai (`False Escalation Rate`)** | Chưa có tập độc lập được xác minh. | Đã có code nhập/khóa dataset và replay trước/sau. Bảng 100 ca là nguồn ứng viên; cần snapshot, nhãn duy nhất, người gán nhãn/nguồn và kiểm duyệt độc lập. | **PARTIAL — Chưa đo** |
 
 * **Đồng bộ Kiến trúc theo Sơ đồ StarUML (`SoDoHeThong_EduRef_AI.mdj`):**
   - Tái cấu trúc toàn bộ luồng nghiệp vụ học vụ về một nguồn chân lý duy nhất ([`StudentConfirmationDecisionService.js`](EDUREF_AI/backend/services/StudentConfirmationDecisionService.js)).
@@ -148,43 +150,21 @@ Trong quá trình triển khai và kiểm thử thực tế, dự án nhận di�
 
 ---
 
-## 4. Bộ đo lường thực nghiệm khoa học (Benchmark)
+## 4. Phép đo độc lập và trạng thái bằng chứng
 
-Theo yêu cầu của đề tài, hệ thống công bố số liệu đo lường cụ thể trên tập kiểm thử độc lập bao gồm **Missed Escalation Rate** và **False Escalation Rate**.
+Bảng [100 ca](docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md) có nhiều loại tương tác, gồm chào hỏi/điều hướng và tình huống nhiều kỳ vọng. Chưa có provenance người gán nhãn, snapshot và báo cáo thực thi tương ứng để xác nhận mẫu số routine/escalation. Các công bố cũ 0/35, 1/65 và 99/100 chưa được kiểm chứng; không dùng chúng làm kết quả dự án.
 
-Dự án đã tiến hành kiểm thử thực nghiệm trên bộ dữ liệu **100 ca thực tế** ([`TAP_KIEM_THU_100_INPUT_THUC_TE.md`](file:///d:/MLAI_HACKATHON/equipment_agent/DA_CNPM/docs/datasets/TAP_KIEM_THU_100_INPUT_THUC_TE.md)) với kết quả định lượng:
+| Hạng mục | Trạng thái local 16/10/2026 |
+|---|---|
+| Missed / false escalation | `null`, PARTIAL — Chưa đo trên tập độc lập đủ điều kiện |
+| Threshold từ feedback | Đã có runtime, version, audit, đề xuất DRAFT, đo trước/sau và người duyệt riêng; chưa được nghiệp vụ chấp thuận/kích hoạt |
+| Dữ liệu nguồn | Chuyển đủ 100 ca sang [candidate INTERNAL](docs/datasets/SPRINT2_100_CASES_CANDIDATE.json); chưa sinh nhãn/nhân sự/snapshot giả |
+| Kiểm thử code | Backend 147/147, frontend 19/19 và lint PASS; dữ liệu fixture không thay đánh giá chất lượng độc lập |
+| Latency/LLM end-to-end | Chưa đo trong đợt sửa này; không công bố 0,85s như kết quả đã xác nhận |
 
-### 4.1. Bảng phân bố 100 ca kiểm thử thực tế
+Protocol V2 yêu cầu tối thiểu 30 holdout có nguồn và nhãn độc lập, snapshot khóa/hash, tách calibration, cùng code/policy/ngày tham chiếu khi so trước/sau. Báo cáo trả counts và Wilson 95%; chặn holdout dùng lại để chọn candidate khác. Missed đếm mọi ca cần chuyển mà actual không chuyển; unsafe auto được tách riêng. Các mức mục tiêu cần nhóm nghiệp vụ xác nhận, không suy từ vài chục ca rằng đã chứng minh tỷ lệ lỗi dưới 1%.
 
-| Nhóm kịch bản | Quy mô | Quyết định chuẩn (Ground Truth) | Kết quả thực thi EduRef AI | Trạng thái |
-| :--- | :---: | :--- | :--- | :---: |
-| Nhóm 1: Giao tiếp & Lạc đề | 10 ca | `NO_TOOL_CALL` (0 Tool Calls) | 10/10 phản hồi chuẩn xác, 0 gọi tool | Đạt (100%) |
-| Nhóm 2: Điều hướng 18 biểu mẫu PĐT | 10 ca | `NAVIGATION` (Điều hướng link cổng) | 10/10 điều hướng đúng cổng PĐT | Đạt (100%) |
-| Nhóm 3: Thiếu dữ kiện bắt buộc | 10 ca | `ASK_CLARIFICATION` (`UNKNOWN_FACT`) | 10/10 dừng lại hỏi đích danh trường thiếu | Đạt (100%) |
-| Nhóm 4: Lỗi địa chỉ thường trú CTSV | 10 ca | `ASK_CLARIFICATION` (`UNKNOWN_FACT`) | 10/10 bắt lỗi casing, 4 cấp và KTX | Đạt (100%) |
-| Nhóm 5: Phát hiện Lệch biểu mẫu | 10 ca | `ASK_CLARIFICATION` (`UNKNOWN_FACT`) | 10/10 phát hiện lệch form đơn/đa lượt | Đạt (100%) |
-| Nhóm 6: Sinh viên Thôi học / Bảo lưu | 10 ca | `REJECTED_POLICY` (Từ chối dứt khoát) | 10/10 từ chối theo điều khoản quy chế | Đạt (100%) |
-| Nhóm 7: Kiểm tra Thời khóa biểu | 10 ca | 5 `AUTO_REJECT` / 5 `ESCALATE` | 10/10 xử lý chính xác theo tính khẩn cấp | Đạt (100%) |
-| Nhóm 8: Sinh viên quá 4 năm đào tạo | 10 ca | 6 `AUTO_REJECT` / 4 `ESCALATE` | 10/10 ép mẫu Nợ môn hoặc chuyển PĐT | Đạt (100%) |
-| Nhóm 9: Cấp lại lần 2 trong học kỳ | 10 ca | 4 `ASK_CLARIFICATION` / 6 `ESCALATE` | 10/10 kiểm soát chặt hạn ngạch 150 ngày | Đạt (100%) |
-| Nhóm 10: Golden Path & Chống ép quyền | 10 ca | 7 `AUTO_APPROVED` / 3 `ESCALATE` | 10/10 duyệt mẫu chuẩn & chặn ép quyền | Đạt (100%) |
-| **Tổng cộng** | **100 ca** | **Bao phủ 100% nhánh rẽ sơ đồ logic** | **99/100 ca đạt tiêu chuẩn tuyệt đối** | **Đạt 99.0%** |
-
-### 4.2. Bảng chỉ số hiệu năng cốt lõi (Key Metrics Dashboard)
-
-| Chỉ số đo lường | Mục tiêu | Kết quả thực nghiệm | Đánh giá |
-| :--- | :---: | :---: | :---: |
-| 1. Missed Escalation Rate (Tỷ lệ bỏ sót ca khó) | < 1.0% | 0.0% (0/35 ca) | Đạt chuẩn an toàn tuyệt đối |
-| 2. False Escalation Rate (Tỷ lệ báo lên thừa) | < 3.0% | 1.5% (1/65 ca) | Tối ưu vận hành nhân sự |
-| 3. Decision Accuracy (Độ chính xác quyết định) | > 95.0% | 99.0% (99/100 ca) | Xuất sắc |
-| 4. Deterministic Test Suites (`npm test`) | 100% | 115/115 tests PASS | Tuyệt đối (15 test suites) |
-| 5. Thời gian phản hồi xử lý ca thường quy | < 2.0s | 0.85s | Vượt yêu cầu đề bài |
-
-**Công thức và căn cứ số liệu:**
-- **Missed Escalation Rate:** $\frac{\text{Số ca ngoại lệ bị AI tự ý duyệt nhầm}}{\text{Tổng số ca ngoại lệ cần chuyển tiếp}} = \frac{0}{35} = \mathbf{0.0\%}$  
-  *(Không có bất kỳ trường hợp thôi học, bảo lưu, hoặc ép quyền nào bị AI tự ý thông qua).*
-- **False Escalation Rate:** $\frac{\text{Số ca thường quy hợp lệ bị chuyển nhầm lên Cán bộ}}{\text{Tổng số ca thường quy hợp lệ}} = \frac{1}{65} = \mathbf{1.5\%}$  
-  *(Chỉ duy nhất 1 ca sinh viên viết địa chỉ phức tạp sau đợt sáp nhập địa giới hành chính khiến hệ thống cần xin ý kiến cán bộ, không gây quá tải cho nhân sự).*
+Xem [công thức và phạm vi replay](EDUREF_AI/docs/15_MEASUREMENT_PLAN.md), [hướng dẫn gán nhãn](docs/datasets/SPRINT2_ANNOTATION_GUIDE.md), [runbook và chốt phê duyệt](EDUREF_AI/docs/SPRINT2_FEEDBACK_RUNBOOK.md).
 
 ---
 
@@ -200,7 +180,7 @@ Theo định hướng khái quát hóa mô hình quản trị học vụ, đội
   3. Đơn xin miễn giảm học phí / Trợ cấp chính sách xã hội (Phòng CTSV).
   4. Đơn đăng ký học vượt / Rút bớt học phần quá hạn (Phòng Đào tạo).
   5. Đơn xin công nhận điểm tương đương chứng chỉ Ngoại ngữ / Tin học.
-- Tự động điều chỉnh ngưỡng chuyển tiếp (Dynamic Confidence Threshold) dựa trên nhật ký duyệt ngoại lệ hoặc thu hồi của cán bộ trong quá trình vận hành.
+- Bản vá local 16/10 có threshold điểm bằng chứng từ feedback, version/đo trước-sau/phê duyệt riêng. Đây là heuristic từ khóa, không phải confidence LLM; cần nhóm nghiệp vụ chấp thuận và triển khai đúng [runbook](EDUREF_AI/docs/SPRINT2_FEEDBACK_RUNBOOK.md).
 
 ### 5.2. Giai đoạn 2 (Q1/2027): On-Premise Private SLM & Data Sovereignty (Chủ quyền dữ liệu)
 - Triển khai Mô hình Ngôn ngữ Nhỏ Cục bộ (Local SLM: Qwen-2.5-Coder-7B / Llama-3.1-8B) qua Ollama / vLLM trực tiếp trên máy chủ GPU nội bộ của Nhà trường.
@@ -224,7 +204,7 @@ Theo định hướng khái quát hóa mô hình quản trị học vụ, đội
 | **Khóa trần số bước Agent** | Trần cứng 5 bước ReAct Loop; báo lên khi vượt ngưỡng. | Biến đếm cứng `maxSteps = 5` tại `OrchestratorAgent.js`, tự động ngắt và chuyển tiếp Cán bộ. | Hoàn thành 100% |
 | **Câu hỏi báo lên cụ thể** | Tạo `actionableQuestion` cụ thể để người xử lý quyết định ngay trong 1 thao tác. | Câu hỏi nêu rõ mã sinh viên, lý do nghi vấn, quy chế liên quan và gợi ý quyết định. | Hoàn thành 100% |
 | **Không bao giờ đoán bừa** | Tuyệt đối không tự ý khẳng định dữ liệu bị nghi vấn hoặc thiếu thông tin. | Chế độ No Default Fallback: bắt buộc xác nhận rõ ràng, từ chối fallback ngầm. | Hoàn thành 100% |
-| **Không báo lên thừa** | Ca thường quy phải tự động xử lý hoàn toàn; False Escalation Rate thấp. | Đạt `False Escalation Rate = 1.5%` trên 100 ca thực tế; 115/115 tests pass. | Hoàn thành 100% |
+| **Không báo lên thừa** | Ca thường quy phải được đo trên nhãn độc lập; theo dõi false escalation và routine automation. | Có protocol V2 và replay trước/sau; bảng 100 ca chưa đủ bằng chứng. Unit test không thay phép đo chất lượng. | PARTIAL — Chưa đo |
 | **Gom kiểm thử 1 lệnh** | Gom toàn bộ test suites về sau một lệnh duy nhất. | Chạy duy nhất `npm test` thực thi toàn bộ test suites đạt 115/115 tests PASS. | Hoàn thành 100% |
 | **Đường dẫn chạy trực tiếp** | Live URL truy cập công khai, không cần đăng nhập, có dòng hướng dẫn ngắn gọn. | Triển khai trên Vercel: `https://edu-ref-ai-agent.vercel.app/` kèm hướng dẫn. | Hoàn thành 100% |
 | **Bộ kiểm thử tự động** | Verify harness chạy kiểm thử phân định rõ Auto và Escalate. | Tính năng `Verify Escalation` sẵn sàng trên thanh điều hướng, chạy độc lập 5 ca mẫu. | Hoàn thành 100% |
