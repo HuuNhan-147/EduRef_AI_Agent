@@ -2,7 +2,7 @@
 // Không gian làm việc Trợ lý Sinh viên: Bố cục 3 Cột (Catalog Thủ Tục | Hội Thoại ReAct | Bảng Thẩm Định & Quyết Định)
 
 import { useState, useEffect, useRef } from "react";
-import { Send, FileText, CheckCircle, Clock, ShieldAlert, ArrowRight, RefreshCw, Terminal, Play, ExternalLink, Square, Trash2, Copy } from "lucide-react";
+import { Send, FileText, CheckCircle, Clock, ShieldAlert, ArrowRight, RefreshCw, Terminal, Play, ExternalLink, Square, Trash2, Copy, Sparkles, ChevronDown, Zap, Cpu } from "lucide-react";
 import MarkdownRenderer from '../components/common/MarkdownRenderer';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
 import AgentProgress from '../components/agent/AgentProgress';
@@ -14,6 +14,37 @@ import PetitionSupplementForm from '../components/forms/PetitionSupplementForm';
 import { supplementDecisionState } from '../config/petitionSupplement';
 
 import { CONFIRMATION_FORMS } from '../config/confirmationForms';
+
+export const AI_MODELS = [
+  {
+    id: 'gemini-3.1-flash-lite',
+    name: 'Gemini 3.1 Flash Lite',
+    shortName: '3.1 Flash Lite',
+    speed: '~1.0s',
+    badge: '⚡ Siêu tốc (Khuyên dùng)',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    description: 'Tốc độ phản hồi cực nhanh ~1s, tối ưu xử lý và thẩm định biểu mẫu học vụ.',
+    recommended: true,
+  },
+  {
+    id: 'gemini-3.5-flash-lite',
+    name: 'Gemini 3.5 Flash Lite',
+    shortName: '3.5 Flash Lite',
+    speed: '~2.5s',
+    badge: '🧠 Chính xác cao',
+    badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
+    description: 'Cân bằng giữa tốc độ và khả năng suy luận ngữ cảnh sâu.',
+  },
+  {
+    id: 'auto',
+    name: 'Tự Động (Auto Resilient)',
+    shortName: 'Tự động',
+    speed: 'Thích ứng',
+    badge: '🛡️ Chống sập 503',
+    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+    description: 'Tự động kích hoạt mô hình nhanh nhất và tự đổi sang mô hình dự phòng nếu Google quá tải.',
+  },
+];
 
 export default function StudentWorkspacePage({
   currentAccountKey,
@@ -175,6 +206,48 @@ export default function StudentWorkspacePage({
   const [isProcessing, setIsProcessing] = useState(false);
   const [sessionId, setSessionId] = useState(() => `sess_${currentAccount.code || 'student'}_${Date.now()}`);
 
+  // Quản lý Mô hình AI được lựa chọn (Model Selector)
+  const [modelsList, setModelsList] = useState(AI_MODELS);
+  const [selectedModel, setSelectedModel] = useState(() => {
+    try {
+      return localStorage.getItem('eduref_selected_model') || 'gemini-3.1-flash-lite';
+    } catch (e) {
+      return 'gemini-3.1-flash-lite';
+    }
+  });
+  const [isModelDropdownOpen, setIsModelDropdownOpen] = useState(false);
+  const [lastModelUsed, setLastModelUsed] = useState(null);
+  const modelDropdownRef = useRef(null);
+
+  // Tự động tải danh sách Model đang cấu hình trong .env từ Backend
+  useEffect(() => {
+    let isMounted = true;
+    api.get('/agent/models')
+      .then((res) => {
+        if (isMounted && res.data?.success && Array.isArray(res.data.models) && res.data.models.length > 0) {
+          setModelsList(res.data.models);
+        }
+      })
+      .catch(() => {});
+    return () => { isMounted = false; };
+  }, []);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('eduref_selected_model', selectedModel);
+    } catch (e) {}
+  }, [selectedModel]);
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (modelDropdownRef.current && !modelDropdownRef.current.contains(e.target)) {
+        setIsModelDropdownOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
   // Bộ đếm thời gian phản hồi ms thời gian thực & Tiến trình 3 Chốt (AgentProgress)
   const [elapsedMs, setElapsedMs] = useState(0);
   const [activeStep, setActiveStep] = useState(1);
@@ -264,6 +337,10 @@ export default function StudentWorkspacePage({
       setIsProcessing(false);
       const measuredDuration = data.totalDuration || (startTimeRef.current ? Math.round(performance.now() - startTimeRef.current) : elapsedMs);
 
+      if (data.modelUsed) {
+        setLastModelUsed(data.modelUsed);
+      }
+
       setMessages((prev) => {
         const lastMsg = prev[prev.length - 1];
         if (lastMsg && lastMsg.sender === 'agent') {
@@ -276,6 +353,7 @@ export default function StudentWorkspacePage({
               toolResult: data.toolResult,
               decision: data.decision,
               durationMs: measuredDuration,
+              modelUsed: data.modelUsed,
             },
           ];
         }
@@ -414,6 +492,8 @@ export default function StudentWorkspacePage({
     const payload = {
       message: text,
       studentCode: currentAccount.code,
+      model: selectedModel,
+      requestedModel: selectedModel,
       token: localStorage.getItem('eduref_token'),
       currentUser: {
         studentCode: currentAccount.code,
@@ -868,37 +948,119 @@ export default function StudentWorkspacePage({
 
         {/* Khung nhập tin nhắn */}
         <div className="p-3.5 sm:p-4 border-t border-slate-200 bg-white">
-          {/* Quick Action Suggestion Chips */}
-          <div className="flex items-center gap-1.5 overflow-x-auto pb-2 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Gợi ý:</span>
-            <button
-              type="button"
-              onClick={() => handleSendMessage('Em xin cấp giấy xác nhận sinh viên để làm vé tháng xe buýt')}
-              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
-            >
-              Vé tháng xe buýt
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSendMessage('Em muốn xin giấy xác nhận sinh viên để vay vốn ngân hàng chính sách xã hội')}
-              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
-            >
-              Vay vốn NHCSXH
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSendMessage('Em xin giấy xác nhận để làm thủ tục tạm hoãn nghĩa vụ quân sự')}
-              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
-            >
-              Tạm hoãn NVQS
-            </button>
-            <button
-              type="button"
-              onClick={() => handleSendMessage('Cho em hỏi làm giấy vay vốn sinh viên cần những giấy tờ gì vậy bot?')}
-              className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
-            >
-              Hỏi thủ tục cần gì
-            </button>
+          {/* Thanh Toolbar: Bộ chọn Mô hình AI (ChatGPT/Gemini style) & Quick Action Suggestion Chips */}
+          <div className="flex items-center gap-2 pb-2.5">
+            {/* Compact Model Selector Combobox (Gọn gàng, thanh lịch) */}
+            <div className="relative shrink-0" ref={modelDropdownRef}>
+              <button
+                type="button"
+                onClick={() => setIsModelDropdownOpen((prev) => !prev)}
+                className="flex items-center gap-1.5 px-2 py-1 rounded-md text-[11px] font-medium bg-slate-100 hover:bg-slate-200/70 border border-slate-200/90 text-slate-700 transition-all cursor-pointer select-none group"
+                title="Chọn mô hình AI (đồng bộ từ .env)"
+              >
+                <Sparkles className="w-3 h-3 text-amber-500 fill-amber-400/40 group-hover:scale-110 transition-transform" />
+                <span className="font-semibold text-slate-800 text-[11px]">
+                  {modelsList.find((m) => m.id === selectedModel)?.shortName || modelsList.find((m) => m.id === selectedModel)?.name || selectedModel}
+                </span>
+                <span className="text-[9px] px-1 py-0.2 rounded bg-blue-100 text-[#0B3B82] font-mono font-medium">
+                  {modelsList.find((m) => m.id === selectedModel)?.speed || '~1s'}
+                </span>
+                <ChevronDown className={`w-2.5 h-2.5 text-slate-400 transition-transform ${isModelDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+
+              {/* Menu Dropdown Popup siêu gọn */}
+              {isModelDropdownOpen && (
+                <div className="absolute bottom-full mb-1.5 left-0 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 animate-in fade-in zoom-in-95 duration-75">
+                  <div className="px-2.5 py-1 border-b border-slate-100 flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
+                    <span className="flex items-center gap-1 text-slate-500">
+                      <Cpu className="w-3 h-3 text-blue-600" />
+                      Mô hình AI
+                    </span>
+                    <span className="text-emerald-600 font-normal">Chống sập 503</span>
+                  </div>
+
+                  <div className="p-1 space-y-0.5 max-h-56 overflow-y-auto">
+                    {modelsList.map((m) => {
+                      const isSelected = selectedModel === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedModel(m.id);
+                            setIsModelDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-2 py-1.5 rounded-md transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
+                            isSelected
+                              ? 'bg-blue-50 text-[#0B3B82] font-semibold'
+                              : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            {m.id === 'auto' ? (
+                              <RefreshCw className="w-3 h-3 text-amber-500 shrink-0" />
+                            ) : (
+                              <Zap className="w-3 h-3 text-blue-600 shrink-0" />
+                            )}
+                            <span className="text-[11px] truncate">
+                              {m.name || m.shortName || m.id}
+                            </span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {m.badge && (
+                              <span className={`text-[9px] px-1 py-0.2 rounded border font-medium ${m.badgeColor || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                                {m.badge}
+                              </span>
+                            )}
+                            {isSelected && (
+                              <CheckCircle className="w-3 h-3 text-[#0B3B82]" />
+                            )}
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+
+                  <div className="px-2.5 py-1 mt-0.5 border-t border-slate-100 bg-slate-50/60 rounded-b-lg text-[9px] text-slate-400 flex items-center justify-between">
+                    <span>Đồng bộ từ .env</span>
+                    <span className="font-mono text-blue-600 font-semibold">Resilient</span>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Quick Action Suggestion Chips (Gợi ý câu hỏi) */}
+            <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Gợi ý:</span>
+              <button
+                type="button"
+                onClick={() => handleSendMessage('Em xin cấp giấy xác nhận sinh viên để làm vé tháng xe buýt')}
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
+              >
+                Vé tháng xe buýt
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage('Em muốn xin giấy xác nhận sinh viên để vay vốn ngân hàng chính sách xã hội')}
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
+              >
+                Vay vốn NHCSXH
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage('Em xin giấy xác nhận để làm thủ tục tạm hoãn nghĩa vụ quân sự')}
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
+              >
+                Tạm hoãn NVQS
+              </button>
+              <button
+                type="button"
+                onClick={() => handleSendMessage('Cho em hỏi làm giấy vay vốn sinh viên cần những giấy tờ gì vậy bot?')}
+                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
+              >
+                Hỏi thủ tục cần gì
+              </button>
+            </div>
           </div>
 
           <form
@@ -946,7 +1108,17 @@ export default function StudentWorkspacePage({
             )}
           </form>
           <div className="flex items-center justify-between text-[11px] text-slate-400 mt-2 px-1">
-            <span>Tự động phân giải tiếng lóng: xnsv, nhcs, nvqs, đk, pdt</span>
+            <div className="flex items-center gap-2">
+              <span className="flex items-center gap-1 text-slate-600 font-medium">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                <span>Mô hình: <strong className="text-slate-700">{modelsList.find((m) => m.id === selectedModel)?.shortName || modelsList.find((m) => m.id === selectedModel)?.name || selectedModel}</strong></span>
+              </span>
+              {lastModelUsed && (
+                <span className="text-[10px] text-slate-400 border-l border-slate-200 pl-2">
+                  Phục vụ: <code className="text-[#0B3B82] font-mono">{lastModelUsed}</code>
+                </span>
+              )}
+            </div>
             <span>{isProcessing ? 'Nhấn Esc hoặc nút Dừng lại để hủy' : 'Phím tắt: Enter để gửi'}</span>
           </div>
         </div>

@@ -3,9 +3,9 @@ import AgentOrchestrator from './core/AgentOrchestrator.js';
 /**
  * Entrypoint thực thi EduRef AI Agent
  */
-export async function runAgent({ message, currentUser = null, socket = null, sessionId = null, onChunk = null, attachments = null, inputData = null, signal = null }) {
+export async function runAgent({ message, currentUser = null, socket = null, sessionId = null, onChunk = null, attachments = null, inputData = null, signal = null, requestedModel = null }) {
   const orchestrator = new AgentOrchestrator(socket, sessionId);
-  return await orchestrator.run({ message, currentUser, onChunk, attachments, inputData, signal });
+  return await orchestrator.run({ message, currentUser, onChunk, attachments, inputData, signal, requestedModel });
 }
 
 export default { runAgent };

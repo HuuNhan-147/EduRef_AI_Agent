@@ -22,12 +22,14 @@ export class AgentOrchestrator {
   /**
    * Vòng lặp ReAct Loop thực thi tác tử đa bước kết hợp SSE Token Streaming
    */
-  async run({ message, currentUser = null, conversationHistory = [], onChunk = null, attachments = null, inputData = null, signal = null }) {
+  async run({ message, currentUser = null, conversationHistory = [], onChunk = null, attachments = null, inputData = null, signal = null, requestedModel = null }) {
     const startTime = Date.now();
     const perfTimeline = [];
+    let lastModelUsed = requestedModel || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite';
+
     this.logger.log({
       step: 'START',
-      message: `Nhận yêu cầu: "${message}"`,
+      message: `Nhận yêu cầu: "${message}" (Mô hình: ${requestedModel || 'Tự động/Mặc định'})`,
       type: 'info',
     });
 
@@ -231,9 +233,13 @@ export class AgentOrchestrator {
           functionDeclarations,
           systemInstruction,
           onChunk,
-          signal
+          signal,
+          requestedModel
         );
         const llmDuration = Date.now() - llmStart;
+        if (stepResult?.model) {
+          lastModelUsed = stepResult.model;
+        }
 
         if (stepResult.isAborted || signal?.aborted) {
           this.logger.log({
@@ -488,6 +494,7 @@ export class AgentOrchestrator {
         decision: lastToolResult?.decision || 'PROCESSED',
         sessionId: this.sessionId,
         totalDuration,
+        modelUsed: lastModelUsed,
       };
     } catch (error) {
       console.error('❌ [AgentOrchestrator] Lỗi:', error);

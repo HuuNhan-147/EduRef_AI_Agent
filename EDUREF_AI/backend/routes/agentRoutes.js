@@ -18,11 +18,60 @@ const chatLimiter = rateLimit({ name: 'agent-chat', max: 20, windowMs: 60_000 })
 const verifyLimiter = rateLimit({ name: 'agent-verify', max: 6, windowMs: 60_000 });
 
 /**
+ * GET /api/agent/models (Lấy danh sách các mô hình AI đang được cấu hình trong .env)
+ */
+router.get('/models', (req, res) => {
+  try {
+    const rawFallbacks = process.env.GEMINI_FALLBACK_MODELS || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-flash-lite-latest';
+    const modelsList = rawFallbacks.split(',').map((m) => m.trim()).filter(Boolean);
+
+    const formatMeta = (id) => {
+      if (id === 'gemini-4-argon') return { name: 'Gemini 4 Argon', shortName: '4 Argon', badge: 'Next-Gen 4.0', speed: 'Thế hệ 4' };
+      if (id === 'gemini-3.8-flash') return { name: 'Gemini 3.8 Flash', shortName: '3.8 Flash', badge: 'Mới 3.8', speed: '~1.5s' };
+      if (id === 'gemini-3.7-flash') return { name: 'Gemini 3.7 Flash', shortName: '3.7 Flash', badge: '3.7 Flash', speed: '~1.8s' };
+      if (id === 'gemini-3.5-flash-lite') return { name: 'Gemini 3.5 Flash Lite', shortName: '3.5 Flash Lite', badge: 'Chính xác cao', speed: '~2.5s' };
+      if (id === 'gemini-3.1-flash-lite') return { name: 'Gemini 3.1 Flash Lite', shortName: '3.1 Flash Lite', badge: '⚡ Siêu tốc (Khuyên dùng)', speed: '~1.0s', recommended: true };
+      if (id === 'gemini-2.5-flash') return { name: 'Gemini 2.5 Flash', shortName: '2.5 Flash', badge: 'Chuẩn', speed: '~2.0s' };
+      if (id === 'gemini-flash-lite-latest') return { name: 'Gemini Flash-Lite Latest', shortName: 'Flash-Lite', badge: 'Dự phòng', speed: '~2.0s' };
+
+      const clean = id.replace(/^gemini-/, '').replace(/-/g, ' ');
+      return { name: `Gemini ${clean}`, shortName: clean, badge: 'AI Model', speed: 'Tốc độ cao' };
+    };
+
+    const formatted = modelsList.map((id) => ({
+      id,
+      ...formatMeta(id),
+    }));
+
+    const result = [
+      {
+        id: 'auto',
+        name: 'Tự Động (Auto Resilient)',
+        shortName: 'Tự động',
+        badge: '🛡️ Chống 503',
+        speed: 'Thích ứng',
+        description: 'Tự động kích hoạt mô hình nhanh nhất và tự đổi model nếu Google quá tải 503.',
+      },
+      ...formatted,
+    ];
+
+    return res.json({
+      success: true,
+      models: result,
+      defaultModel: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
+    });
+  } catch (error) {
+    respondServerError(req, res, error);
+  }
+});
+
+/**
  * POST /api/agent/chat (HTTP Fallback khi không dùng Socket.IO)
  */
 router.post('/chat', authenticateToken, chatLimiter, async (req, res) => {
   try {
-    const { message, sessionId, attachments, inputData } = req.body;
+    const { message, sessionId, attachments, inputData, model, requestedModel } = req.body;
+    const targetModel = model || requestedModel || null;
 
     if (!message) {
       return res.status(400).json({ success: false, message: 'Thiếu trường message.' });
@@ -105,6 +154,7 @@ router.post('/chat', authenticateToken, chatLimiter, async (req, res) => {
       sessionId: scopeSessionId(userContext, sessionId),
       attachments,
       inputData,
+      requestedModel: targetModel,
     });
 
     res.json({ success: true, data: result });

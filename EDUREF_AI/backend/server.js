@@ -137,7 +137,8 @@ io.on('connection', (socket) => {
   if (['STAFF', 'DEAN', 'ADMIN'].includes(socket.user?.role)) socket.join('staff');
 
   socket.on('client_send_message', async (data) => {
-    const { message, sessionId = `sess_${socket.id}`, attachments, inputData } = data || {};
+    const { message, sessionId = `sess_${socket.id}`, attachments, inputData, model, requestedModel } = data || {};
+    const targetModel = model || requestedModel || null;
 
     if (!message) {
       socket.emit('agent_error', { message: 'Tin nhắn không được để trống.' });
@@ -247,6 +248,7 @@ io.on('connection', (socket) => {
         sessionId: scopeSessionId(userContext, sessionId),
         attachments,
         inputData,
+        requestedModel: targetModel,
         signal: controller.signal,
         onChunk: (chunk) => {
           if (!controller.signal.aborted) {
@@ -265,6 +267,7 @@ io.on('connection', (socket) => {
         decision: result.decision,
         toolResult: result.toolResult,
         totalDuration: result.totalDuration,
+        modelUsed: result.modelUsed,
         isAborted: result.isAborted || false,
       });
     } catch (err) {

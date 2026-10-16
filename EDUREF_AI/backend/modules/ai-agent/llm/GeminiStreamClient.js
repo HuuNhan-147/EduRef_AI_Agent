@@ -12,11 +12,33 @@ const STREAM_IDLE_TIMEOUT_MS = Number(process.env.GEMINI_STREAM_IDLE_TIMEOUT_MS)
 const STREAM_MAX_DURATION_MS = Number(process.env.GEMINI_STREAM_MAX_DURATION_MS) || 120_000;
 
 export class GeminiStreamClient {
-  constructor(apiKey = process.env.GEMINI_API_KEY, model = process.env.GEMINI_MODEL || 'gemini-flash-lite-latest') {
+  constructor(apiKey = process.env.GEMINI_API_KEY, model = process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite') {
     const rawKeys = apiKey || process.env.GEMINI_API_KEYS || process.env.GEMINI_API_KEY || '';
     this.apiKeys = rawKeys.split(',').map((k) => k.trim()).filter(Boolean);
     this.model = model;
     this.baseUrl = 'https://generativelanguage.googleapis.com/v1beta';
+  }
+
+  /**
+   * Xác định danh sách mô hình cần thử nghiệm theo thứ tự ưu tiên (Primary -> Fallbacks)
+   */
+  getModelsToTry(requestedModel = null) {
+    const rawFallbacks = process.env.GEMINI_FALLBACK_MODELS || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-flash-lite-latest';
+    const defaultList = rawFallbacks.split(',').map((m) => m.trim()).filter(Boolean);
+    const target = (requestedModel || this.model || '').trim();
+
+    if (!target || target === 'auto') {
+      return defaultList.length > 0 ? defaultList : ['gemini-3.1-flash-lite', 'gemini-3.5-flash-lite', 'gemini-flash-lite-latest'];
+    }
+
+    // Nếu target nằm trong danh sách production models được hỗ trợ, cho phép fallback sang các model còn lại
+    if (defaultList.includes(target)) {
+      const others = defaultList.filter((m) => m !== target);
+      return [target, ...others];
+    }
+
+    // Nếu là model custom (ví dụ trong test: 'test-model'), chỉ chạy đúng model đó
+    return [target];
   }
 
   /**
@@ -31,15 +53,17 @@ export class GeminiStreamClient {
 
   /**
    * Gọi API Gemini dạng HTTP Stream và giải mã JSON stream an toàn
-   * Hỗ trợ tự động xoay Key khi gặp giới hạn Quota (429) hoặc lỗi mạng
+   * Hỗ trợ tự động xoay Model (Model Fallback) và xoay Key khi gặp lỗi 503, 429 hoặc timeout
    * @param {Array} contents Lịch sử hội thoại
    * @param {Array} functionDeclarations Khai báo tool
    * @param {String} systemInstruction System prompt
    * @param {Function} onChunk Callback nhận từng chunk text thời gian thực
+   * @param {AbortSignal} signal Tín hiệu ngắt
+   * @param {String} requestedModel Tên model tùy chọn yêu cầu từ client
    */
-  async streamGenerateContent(contents, functionDeclarations = [], systemInstruction = '', onChunk = null, signal = null) {
+  async streamGenerateContent(contents, functionDeclarations = [], systemInstruction = '', onChunk = null, signal = null, requestedModel = null) {
     const totalKeys = Math.max(this.apiKeys.length, 1);
-    const activeModel = this.model || process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
+    const modelsToTry = this.getModelsToTry(requestedModel);
 
     if (this.apiKeys.length === 0) {
       console.error('❌ [GeminiStreamClient] GEMINI_API_KEY is not defined in environment variables!');
@@ -52,15 +76,21 @@ export class GeminiStreamClient {
         parts: [],
         duration: 0,
         ttfb: 0,
-        model: activeModel,
+        model: modelsToTry[0] || 'gemini-3.1-flash-lite',
         isAborted: true,
       };
     }
 
-    for (let keyAttempt = 0; keyAttempt < totalKeys; keyAttempt++) {
-      const activeKey = this.getNextKey();
-      const keyIdx = ((globalKeyIndex - 1) % this.apiKeys.length) + 1;
-      const maskedKey = `API_KEY_#${keyIdx}/${this.apiKeys.length}`;
+    let lastError = null;
+
+    for (let mIdx = 0; mIdx < modelsToTry.length; mIdx++) {
+      const activeModel = modelsToTry[mIdx];
+
+      for (let keyAttempt = 0; keyAttempt < totalKeys; keyAttempt++) {
+        const activeKey = this.getNextKey();
+        const keyIdx = ((globalKeyIndex - 1) % this.apiKeys.length) + 1;
+        const maskedKey = `API_KEY_#${keyIdx}/${this.apiKeys.length}`;
+
 
       try {
         const payload = {
@@ -258,6 +288,7 @@ export class GeminiStreamClient {
           });
         });
       } catch (err) {
+        lastError = err;
         if (signal?.aborted || axios.isCancel(err) || err.name === 'CanceledError' || err.name === 'AbortError') {
           console.log('⏹ [GeminiStreamClient] Yêu cầu stream đã dừng an toàn theo tín hiệu người dùng.');
           return {
@@ -269,66 +300,107 @@ export class GeminiStreamClient {
             isAborted: true,
           };
         }
-        const isRecoverable = err.response && [429, 403, 500, 503, 504].includes(err.response.status);
-        if (isRecoverable && keyAttempt < totalKeys - 1) {
+
+        // 1. Nếu lỗi quá tải từ phía máy chủ Google (503, 500, 502, 504)
+        const isServerOverloaded = err.response && [500, 502, 503, 504].includes(err.response.status);
+
+        if (isServerOverloaded && mIdx < modelsToTry.length - 1) {
+          console.warn(`🔄 [ModelFallback] Mô hình [${activeModel}] gặp sự cố (${err.response?.status}), tự động chuyển sang mô hình dự phòng [${modelsToTry[mIdx + 1]}]...`);
+          break; // Thoát vòng lặp key để sang model tiếp theo
+        }
+
+        // 2. Nếu lỗi hạn mức API Key (429, 403) thì xoay sang Key tiếp theo trước
+        const isRecoverableKey = err.response && [429, 403].includes(err.response.status);
+        if (isRecoverableKey && keyAttempt < totalKeys - 1) {
           console.warn(`🔄 [KeyRotator] Key [${maskedKey}] gặp sự cố (${err.response?.status}), tự động chuyển sang Key tiếp theo (${keyAttempt + 1}/${totalKeys})...`);
           continue;
         }
+
+        // 3. Nếu hết Key cho model này và vẫn còn model dự phòng khác
+        if (mIdx < modelsToTry.length - 1) {
+          console.warn(`🔄 [ModelFallback] Mô hình [${activeModel}] cạn kiệt key khả dụng, thử sang mô hình dự phòng [${modelsToTry[mIdx + 1]}]...`);
+          break;
+        }
+
         console.error('❌ [GeminiStreamClient] Lỗi khi gọi Gemini API:', err.response?.data || err.message);
         throw err;
       }
-    }
+    } // end keyAttempt
+  } // end mIdx
+
+  if (lastError) {
+    throw lastError;
   }
+}
 
   /**
    * Gọi API Gemini dạng Non-Streaming trả về định dạng JSON (dùng cho Vision OCR & Document Analysis)
    * @param {Array} contents Mảng các parts (text, inline_data...)
    * @param {String} systemInstruction System prompt chỉ dẫn
+   * @param {String} requestedModel Tên model tùy chọn yêu cầu từ client
    */
-  async generateJson(contents, systemInstruction = '') {
+  async generateJson(contents, systemInstruction = '', requestedModel = null) {
     if (this.apiKeys.length === 0) {
       throw new Error('GEMINI_API_KEY chưa được cấu hình. Vui lòng kiểm tra file .env.');
     }
 
     const totalKeys = Math.max(this.apiKeys.length, 1);
-    const activeModel = this.model || process.env.GEMINI_MODEL || 'gemini-flash-lite-latest';
+    const modelsToTry = this.getModelsToTry(requestedModel);
+    let lastError = null;
 
-    for (let keyAttempt = 0; keyAttempt < totalKeys; keyAttempt++) {
-      const activeKey = this.getNextKey();
-      const keyIdx = ((globalKeyIndex - 1) % this.apiKeys.length) + 1;
-      const maskedKey = `API_KEY_#${keyIdx}/${this.apiKeys.length}`;
+    for (let mIdx = 0; mIdx < modelsToTry.length; mIdx++) {
+      const activeModel = modelsToTry[mIdx];
 
-      try {
-        const payload = {
-          system_instruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
-          contents,
-          generationConfig: {
-            temperature: 0.1,
-            maxOutputTokens: 2048,
-            responseMimeType: 'application/json',
-          },
-        };
+      for (let keyAttempt = 0; keyAttempt < totalKeys; keyAttempt++) {
+        const activeKey = this.getNextKey();
+        const keyIdx = ((globalKeyIndex - 1) % this.apiKeys.length) + 1;
+        const maskedKey = `API_KEY_#${keyIdx}/${this.apiKeys.length}`;
 
-        const res = await axios.post(
-          `${this.baseUrl}/models/${activeModel}:generateContent?key=${activeKey}`,
-          payload,
-          {
-            headers: { 'Content-Type': 'application/json' },
-            timeout: 30000,
-            httpsAgent,
+        try {
+          const payload = {
+            system_instruction: systemInstruction ? { parts: [{ text: systemInstruction }] } : undefined,
+            contents,
+            generationConfig: {
+              temperature: 0.1,
+              maxOutputTokens: 2048,
+              responseMimeType: 'application/json',
+            },
+          };
+
+          const res = await axios.post(
+            `${this.baseUrl}/models/${activeModel}:generateContent?key=${activeKey}`,
+            payload,
+            {
+              headers: { 'Content-Type': 'application/json' },
+              timeout: 30000,
+              httpsAgent,
+            }
+          );
+
+          return res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
+        } catch (err) {
+          lastError = err;
+          const isServerOverloaded = err.response && [500, 502, 503, 504].includes(err.response.status);
+          if (isServerOverloaded && mIdx < modelsToTry.length - 1) {
+            console.warn(`🔄 [ModelFallback/Vision] Mô hình [${activeModel}] gặp sự cố (${err.response?.status}), tự động chuyển sang mô hình dự phòng [${modelsToTry[mIdx + 1]}]...`);
+            break;
           }
-        );
 
-        return res.data?.candidates?.[0]?.content?.parts?.[0]?.text;
-      } catch (err) {
-        const isRecoverable = err.response && [429, 403, 500, 503, 504].includes(err.response.status);
-        if (isRecoverable && keyAttempt < totalKeys - 1) {
-          console.warn(`🔄 [KeyRotator/Vision] Key [${maskedKey}] gặp sự cố (${err.response?.status}), tự động chuyển sang Key tiếp theo (${keyAttempt + 1}/${totalKeys})...`);
-          continue;
+          const isRecoverable = err.response && [429, 403].includes(err.response.status);
+          if (isRecoverable && keyAttempt < totalKeys - 1) {
+            console.warn(`🔄 [KeyRotator/Vision] Key [${maskedKey}] gặp sự cố (${err.response?.status}), tự động chuyển sang Key tiếp theo (${keyAttempt + 1}/${totalKeys})...`);
+            continue;
+          }
+
+          if (mIdx < modelsToTry.length - 1) {
+            break;
+          }
+          throw err;
         }
-        throw err;
       }
     }
+
+    if (lastError) throw lastError;
   }
 }
 
