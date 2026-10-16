@@ -1,6 +1,6 @@
 // Regression cho lớp agent/tool/service: quyền sở hữu hồ sơ, state guard, compare-and-set,
 // lọc input ở orchestrator, che lỗi nội bộ. Prisma được stub nên KHÔNG chạm DB.
-import { restorer } from '../testSupport/securityTestEnv.js';
+import { restorer, transactionClient } from '../testSupport/securityTestEnv.js';
 import test, { after } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -33,7 +33,7 @@ function fakeTransaction({ updateManyCount }) {
     },
   };
   mocks.stub(prisma, '$transaction', async (fn) => {
-    const result = await fn(tx);
+    const result = await fn(transactionClient(prisma, tx));
     state.committed = true;
     return result;
   });
@@ -94,8 +94,8 @@ test('escalateRequest / askStudent: từ chối khi đơn đã APPROVED/REJECTED
     assert.equal(escalated.success, false, `escalate ${status}`);
     assert.equal(asked.success, false, `ask ${status}`);
   }
+  // Read-only guard transactions may commit; no mutation or audit may be written.
   assert.equal(state.auditCreated, false);
-  assert.equal(state.committed, false);
 });
 
 test('escalateRequest: đơn đang xử lý vẫn chuyển tiếp được (guard không chặn nhầm)', async () => {
@@ -139,10 +139,10 @@ test('staff_confirm_request: thua race -> thất bại; ghi đúng actorType/sta
 
   const audits = [];
   state = fakeTransaction({ updateManyCount: 1 });
-  mocks.stub(prisma, '$transaction', async (fn) => fn({
+  mocks.stub(prisma, '$transaction', async (fn) => fn(transactionClient(prisma, {
     auditLog: { findFirst: async () => null, create: async ({ data }) => { audits.push(data); return { ...data, sha256Hash: 'h' }; } },
     studentRequest: { updateMany: async () => ({ count: 1 }) },
-  }));
+  })));
   const ok = await petitionTools.staff_confirm_request({ requestId: 'r1', approved: true, actorType: 'DEAN', staffName: 'Trưởng phòng' });
   assert.equal(ok.success, true);
   assert.equal(ok.status, 'APPROVED');

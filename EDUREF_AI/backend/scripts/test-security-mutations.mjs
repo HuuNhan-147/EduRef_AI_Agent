@@ -28,8 +28,8 @@ add('terminal-socket-isolation', 'modules/ai-agent/core/AgentTerminalLogger.js',
 add('terminal-history-isolation', 'modules/ai-agent/core/AgentTerminalLogger.js', 'this.buffer.filter((e) => !e.ownerKey || viewer.isStaff || (viewer.key && e.ownerKey === viewer.key))', 'this.buffer');
 add('tool-request-owner', 'modules/ai-agent/tools/ToolResolver.js', 'if (!caller.studentCode || owned.student?.studentCode !== caller.studentCode)', 'if (false)');
 add('tool-verify-rate-limit', 'modules/ai-agent/tools/ToolResolver.js', 'if (!gate.allowed)', 'if (false)');
-add('ask-terminal-state', 'services/AcademicWorkflowService.js', "if (['APPROVED', 'REJECTED', 'CANCELLED'].includes(request.status)) {\n        return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể yêu cầu bổ sung.` };", "if (false) {\n        return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể yêu cầu bổ sung.` };");
-add('escalate-terminal-state', 'services/AcademicWorkflowService.js', "if (['APPROVED', 'REJECTED', 'CANCELLED'].includes(request.status)) {\n        return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể chuyển tiếp.` };", "if (false) {\n        return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể chuyển tiếp.` };");
+add('ask-terminal-state', 'services/AcademicWorkflowService.js', "if (['APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED', 'ESCALATED'].includes(request.status)) {\n          return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể yêu cầu bổ sung.` };", "if (false) {\n          return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể yêu cầu bổ sung.` };");
+add('escalate-terminal-state', 'services/AcademicWorkflowService.js', "if (['APPROVED', 'REJECTED', 'CANCELLED', 'COMPLETED'].includes(request.status)) {\n          return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể chuyển tiếp.` };", "if (false) {\n          return { success: false, error: `Hồ sơ [${request.requestCode}] đã ở trạng thái [${request.status}], không thể chuyển tiếp.` };");
 add('staff-compare-and-set', 'services/AcademicWorkflowService.js', 'if (updated.count !== 1)', 'if (false)');
 add('staff-confirm-decision-adapter', 'modules/ai-agent/tools/actions/petitionTools.js', "decision: approved ? 'APPROVE' : 'REJECT',", "decision: 'REJECT',");
 add('approval-history-owner', 'services/AcademicWorkflowService.js', 'studentId: resolvedId,', "studentId: 'other-student',");
@@ -88,8 +88,8 @@ try {
   fs.symlinkSync(path.join(backend, 'node_modules'), path.join(temp, 'node_modules'), process.platform === 'win32' ? 'junction' : 'dir');
   const baseline = runTests();
   report.baseline = { exitCode: baseline.exitCode, tests: baseline.tests };
-  if (baseline.exitCode !== 0 || baseline.tests !== 52) throw new Error(`Baseline must pass all 52 tests:\n${baseline.output}`);
-  console.log('Baseline: 52/52 PASS in isolated copy');
+  if (baseline.exitCode !== 0 || baseline.tests < 53) throw new Error(`Baseline must pass at least 53 security tests:\n${baseline.output}`);
+  console.log(`Baseline: ${baseline.tests}/${baseline.tests} PASS in isolated copy`);
 
   for (const m of selected) {
     const target = path.join(temp, m.file);
@@ -114,7 +114,7 @@ try {
   report.restoredBaseline = { exitCode: restored.exitCode, tests: restored.tests };
   report.killed = report.results.filter((r) => r.status === 'KILLED').length;
   report.total = selected.length;
-  report.allDetected = report.killed === report.total && restored.exitCode === 0 && restored.tests === 52;
+  report.allDetected = report.killed === report.total && restored.exitCode === 0 && restored.tests === baseline.tests;
   fs.mkdirSync(path.dirname(reportPath), { recursive: true });
   fs.writeFileSync(reportPath, JSON.stringify(report, null, 2) + '\n');
   console.log(`Mutations: ${report.killed}/${report.total} killed. Restored baseline: ${restored.tests} tests, exit ${restored.exitCode}`);
