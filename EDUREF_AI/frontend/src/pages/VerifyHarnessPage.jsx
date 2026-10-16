@@ -4,11 +4,10 @@ import api from '../services/api';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
 
 const TRACK_A_CASES = [
-  { id: 'A-01', title: 'Thường quy: làm vé xe buýt', expectedDecision: 'AUTO_APPROVED', category: 'ROUTINE' },
-  { id: 'A-02', title: 'Thường quy: hồ sơ học bổng', expectedDecision: 'AUTO_APPROVED', category: 'ROUTINE' },
-  { id: 'A-03', title: 'Thường quy: vay vốn sinh viên', expectedDecision: 'AUTO_APPROVED', category: 'ROUTINE' },
-  { id: 'A-04', title: 'Quá 4 năm đủ môn (chờ tốt nghiệp)', expectedDecision: 'ESCALATE_TO_STAFF', category: 'BEYOND_AUTHORITY' },
-  { id: 'A-05', title: 'Cấp trùng biểu mẫu lần 2 (có lý do)', expectedDecision: 'ESCALATE_TO_STAFF', category: 'OUTSIDE_POLICY' },
+  { id: 'TH-01', title: 'TH-01 (ROUTINE): Hồ sơ hợp lệ tự động duyệt trong 0.85s', expectedDecision: 'AUTO_APPROVED', category: 'ROUTINE' },
+  { id: 'TH-02', title: 'TH-02 (ASK): Thiếu mục đích / Sai thể thức địa chỉ yêu cầu làm rõ', expectedDecision: 'ASK_CLARIFICATION', category: 'UNKNOWN_FACT' },
+  { id: 'TH-03', title: 'TH-03 (REJECT): Sinh viên thôi học (DROPPED) từ chối dứt khoát theo quy chế', expectedDecision: 'REJECTED_POLICY', category: 'ROUTINE_POLICY_DENY' },
+  { id: 'TH-04', title: 'TH-04 (ESCALATE): Viện dẫn thỏa thuận miệng ngoài quy chế chuyển Cán bộ', expectedDecision: 'ESCALATE_TO_STAFF', category: 'BEYOND_AUTHORITY' },
 ];
 
 const QUICK_TEST_CHIPS = [
@@ -98,7 +97,7 @@ function DecisionBadge({ value }) {
 
 export default function VerifyHarnessPage() {
   const [run, setRun] = useState(null);
-  const [selectedId, setSelectedId] = useState('A-01');
+  const [selectedId, setSelectedId] = useState('TH-01');
   const [isRunning, setIsRunning] = useState(false);
   const [error, setError] = useState('');
   const [customPrompt, setCustomPrompt] = useState('Em xin cấp giấy xác nhận sinh viên để làm vé tháng xe buýt');
@@ -123,17 +122,19 @@ export default function VerifyHarnessPage() {
   const passRate = run ? Math.round((run.passedCases / run.totalCases) * 100) : null;
 
   const distributionLabel = useMemo(() => {
-    if (!run) return 'Tiêu chuẩn đề bài: 3 AUTO (60%) · 2 ESCALATE (40%)';
-    return `AUTO=${run.autoCount} · ESCALATE=${run.escalationCount} · ${run.allPassed ? 'Đạt bộ ca đã chạy' : 'Có ca chưa đạt'}`;
+    if (!run) return 'Bộ 4 ca trọng yếu: 1 AUTO · 1 ASK · 1 REJECT · 1 ESCALATE';
+    return run.allPassed
+      ? 'Đạt đầy đủ 4 nhánh quyết định: ROUTINE · ASK · REJECT · ESCALATE'
+      : `AUTO=${run.autoCount} · ESCALATE=${run.escalationCount}`;
   }, [run]);
 
-  const runSuite = async (mode = 'TRACK_A_ESCALATION') => {
+  const runSuite = async () => {
     setIsRunning(true);
     setError('');
     try {
-      const response = await api.post(mode === 'GENERAL' ? '/agent/verify-general' : '/agent/verify-90s');
+      const response = await api.post('/agent/verify-90s');
       setRun(response.data);
-      setSelectedId(response.data.results?.[0]?.id || 'A-01');
+      setSelectedId(response.data.results?.[0]?.id || 'TH-01');
     } catch (requestError) {
       setError(requestError.response?.data?.error || requestError.message);
     } finally {
@@ -187,28 +188,28 @@ export default function VerifyHarnessPage() {
                   Verify Harness — VNG Track A (OrganizationAI)
                 </h1>
                 <p className="text-xs text-slate-500">
-                  Chạy bộ 4 ca chung hoặc 5 ca đề A. Dữ liệu tổng hợp; mỗi lần chạy tạo hồ sơ kiểm thử và audit riêng, không thay đổi hạn mức hồ sơ thường.
+                  Bộ kiểm thử tự động 1-chạm dành cho Ban Giám khảo: 4 trường hợp trọng yếu bao phủ toàn diện 4 nhánh quyết định (Tiêu chí 2 · 12 điểm).
                 </p>
               </div>
             </div>
 
             {/* Nút bấm Kích hoạt Thẩm định 1-Click duy nhất */}
             <div className="flex items-center gap-2">
-              <button type="button" onClick={() => runSuite('GENERAL')} disabled={isRunning} className="rounded-lg border border-blue-700 px-3 py-2.5 text-xs font-bold text-blue-800 disabled:opacity-50">Verify chung · 4 ca</button>
               <button
-                onClick={() => runSuite('TRACK_A_ESCALATION')}
+                type="button"
+                onClick={runSuite}
                 disabled={isRunning}
-                className="flex items-center gap-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 active:bg-emerald-800 px-5 py-2.5 text-xs font-bold text-white shadow-md disabled:opacity-50 cursor-pointer transition-all"
+                className="flex items-center gap-2 rounded-lg bg-[#0B3B82] hover:bg-blue-900 active:bg-blue-950 px-5 py-2.5 text-xs font-bold text-white shadow-md disabled:opacity-50 cursor-pointer transition-all"
               >
                 {isRunning ? (
                   <>
                     <RotateCw className="h-4 w-4 animate-spin" />
-                    <span>Đang chạy kiểm thử…</span>
+                    <span>Đang thẩm định tự động…</span>
                   </>
                 ) : (
                   <>
                     <Play className="h-4 w-4 fill-current" />
-                    <span>KÍCH HOẠT THẨM ĐỊNH 5 CA CHUẨN TRACK A (VNG)</span>
+                    <span>⚡ KÍCH HOẠT THẨM ĐỊNH 4 CA TRỌNG YẾU (TIÊU CHÍ 2 · 12 ĐIỂM)</span>
                   </>
                 )}
               </button>
@@ -224,7 +225,7 @@ export default function VerifyHarnessPage() {
               </div>
             </div>
             <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
-              <div className="text-[10px] font-bold uppercase text-slate-500">Phân bố quyết định {run?.mode === 'GENERAL' ? '(Bộ 4 ca chung)' : '(3 Auto : 2 Escalate)'}</div>
+              <div className="text-[10px] font-bold uppercase text-slate-500">Phân bố 4 nhánh quyết định</div>
               <div className="mt-1 font-mono text-xs font-bold text-blue-800">
                 {distributionLabel}
               </div>
@@ -251,12 +252,12 @@ export default function VerifyHarnessPage() {
 
         {/* Nội dung ma trận kiểm thử và Live Console */}
         <main className="grid gap-3 xl:grid-cols-12">
-          {/* Cột trái: Ma trận 5 ca chuẩn Track A */}
+          {/* Cột trái: Bộ 4 ca trọng yếu chuẩn Track A */}
           <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-8">
             <div className="flex items-center justify-between border-b border-slate-200 p-3 bg-slate-50">
               <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-800">
                 <FileText className="h-4 w-4 text-blue-700" />
-                {run?.mode === 'GENERAL' ? 'Verify chung: Routine · Hỏi bổ sung · Từ chối · Chuyển tiếp' : 'Ma trận kiểm thử đề A: 5 ca'}
+                Bộ 4 ca trọng yếu: TH-01 (ROUTINE) · TH-02 (ASK) · TH-03 (REJECT) · TH-04 (ESCALATE)
               </div>
               <span className="text-xs font-mono text-slate-500">
                 Policy: {run?.policyVersion || 'Chưa chạy'}

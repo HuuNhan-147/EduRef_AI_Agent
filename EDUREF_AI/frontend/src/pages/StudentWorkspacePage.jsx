@@ -87,7 +87,7 @@ export default function StudentWorkspacePage({
 
   const handleRunVerify90s = async () => {
     setIsVerifying90s(true);
-    setVerifyFeedback('Đang gửi request chạy 5 ca kiểm thử thực tế tới Backend...');
+    setVerifyFeedback('Đang gửi request chạy 4 ca kiểm thử trọng yếu tới Backend...');
     setColumn3Tab('TERMINAL'); // Tự động mở Live Terminal để quan sát log chạy
     try {
       const res = await api.post('/agent/verify-90s');
@@ -1422,12 +1422,12 @@ export default function StudentWorkspacePage({
                     {isVerifying90s ? (
                       <>
                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                        <span>Đang chạy 5 ca kiểm thử...</span>
+                        <span>Đang chạy 4 ca kiểm thử...</span>
                       </>
                     ) : (
                       <>
                         <Play className="w-3.5 h-3.5 fill-current" />
-                        <span>KÍCH HOẠT CHẠY 5 CA TEST BAN GIÁM KHẢO (90s)</span>
+                        <span>KÍCH HOẠT 4 CA TRỌNG YẾU (TIÊU CHÍ 2 · 12 ĐIỂM)</span>
                       </>
                     )}
                   </button>
@@ -1480,12 +1480,12 @@ export default function StudentWorkspacePage({
                   {isVerifying90s ? (
                     <>
                       <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                      <span>Đang thực thi 5 ca test qua Backend...</span>
+                      <span>Đang thực thi 4 ca test qua Backend...</span>
                     </>
                   ) : (
                     <>
                       <Play className="w-3.5 h-3.5 fill-current" />
-                      <span>KÍCH HOẠT CHẠY 5 CA TEST BAN GIÁM KHẢO (90s)</span>
+                      <span>KÍCH HOẠT 4 CA TRỌNG YẾU (TIÊU CHÍ 2 · 12 ĐIỂM)</span>
                     </>
                   )}
                 </button>

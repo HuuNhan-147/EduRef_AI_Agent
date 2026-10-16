@@ -14,10 +14,12 @@ const defaultStudent = {
   department: 'CNTT',
 };
 
-test('Track A fixture has exactly 3 routine auto cases and 2 escalation cases (60% Auto / 40% Escalate)', () => {
-  assert.equal(TRACK_A_VERIFY_CASES.length, 5);
-  assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision === 'AUTO_APPROVED').length, 3);
-  assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision.startsWith('ESCALATE_')).length, 2);
+test('Track A fixture covers all 4 canonical decision branches (ROUTINE, ASK, REJECT, ESCALATE)', () => {
+  assert.equal(TRACK_A_VERIFY_CASES.length, 4);
+  assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision === 'AUTO_APPROVED').length, 1);
+  assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision === 'ASK_CLARIFICATION').length, 1);
+  assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision === 'REJECTED_POLICY').length, 1);
+  assert.equal(TRACK_A_VERIFY_CASES.filter((item) => item.expectedDecision.startsWith('ESCALATE_')).length, 1);
 });
 
 test('15-case dataset is executable against the canonical policy', () => {

@@ -151,8 +151,9 @@ test('both Verify suites are repeatable, persisted, classified, audited and excl
   assert.equal(general.totalCases, 4);
   assert.equal(general.allPassed, true, JSON.stringify(general.results));
   const track = await verifyTools.run_verify_90s();
+  assert.equal(track.totalCases, 4);
   assert.equal(track.allPassed, true, JSON.stringify(track.results));
-  assert.equal(track.autoCount, 3); assert.equal(track.escalationCount, 2);
+  assert.equal(track.autoCount, 1); assert.equal(track.escalationCount, 1);
   for (const row of [...general.results, ...track.results]) {
     assert.ok(row.classificationMatched); assert.ok(row.persistenceMatched); assert.ok(row.sha256Proof);
     assert.ok(row.startedAt); assert.ok(row.completedAt);
