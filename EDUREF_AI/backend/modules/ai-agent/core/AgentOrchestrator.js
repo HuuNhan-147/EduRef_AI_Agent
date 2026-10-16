@@ -1,4 +1,4 @@
-import GeminiStreamClient from '../llm/GeminiStreamClient.js';
+import LlmStreamRouter from '../llm/LlmStreamRouter.js';
 import PromptEngine from './PromptEngine.js';
 import ToolRegistry from '../tools/ToolRegistry.js';
 import ToolResolver from '../tools/ToolResolver.js';
@@ -16,7 +16,8 @@ export class AgentOrchestrator {
     this.socket = socket;
     this.sessionId = sessionId || `sess_${Date.now()}`;
     this.logger = new AgentTerminalLogger(socket, this.sessionId);
-    this.geminiClient = new GeminiStreamClient();
+    this.llmClient = new LlmStreamRouter();
+    this.geminiClient = this.llmClient; // Tương thích ngược với các test cũ
   }
 
   /**
@@ -228,7 +229,7 @@ export class AgentOrchestrator {
         stepCount++;
 
         const llmStart = Date.now();
-        const stepResult = await this.geminiClient.streamGenerateContent(
+        const stepResult = await this.llmClient.streamGenerateContent(
           contents,
           functionDeclarations,
           systemInstruction,

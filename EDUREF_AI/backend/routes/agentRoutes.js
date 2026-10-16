@@ -22,37 +22,53 @@ const verifyLimiter = rateLimit({ name: 'agent-verify', max: 6, windowMs: 60_000
  */
 router.get('/models', (req, res) => {
   try {
-    const rawFallbacks = process.env.GEMINI_FALLBACK_MODELS || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-flash-lite-latest';
-    const modelsList = rawFallbacks.split(',').map((m) => m.trim()).filter(Boolean);
+    const rawGemini = process.env.GEMINI_FALLBACK_MODELS || process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite,gemini-3.5-flash-lite,gemini-flash-lite-latest';
+    const geminiList = rawGemini.split(',').map((m) => m.trim()).filter(Boolean);
 
-    const formatMeta = (id) => {
-      if (id === 'gemini-4-argon') return { name: 'Gemini 4 Argon', shortName: '4 Argon', badge: 'Next-Gen 4.0', speed: 'Thế hệ 4' };
-      if (id === 'gemini-3.8-flash') return { name: 'Gemini 3.8 Flash', shortName: '3.8 Flash', badge: 'Mới 3.8', speed: '~1.5s' };
-      if (id === 'gemini-3.7-flash') return { name: 'Gemini 3.7 Flash', shortName: '3.7 Flash', badge: '3.7 Flash', speed: '~1.8s' };
-      if (id === 'gemini-3.5-flash-lite') return { name: 'Gemini 3.5 Flash Lite', shortName: '3.5 Flash Lite', badge: 'Chính xác cao', speed: '~2.5s' };
-      if (id === 'gemini-3.1-flash-lite') return { name: 'Gemini 3.1 Flash Lite', shortName: '3.1 Flash Lite', badge: '⚡ Siêu tốc (Khuyên dùng)', speed: '~1.0s', recommended: true };
-      if (id === 'gemini-2.5-flash') return { name: 'Gemini 2.5 Flash', shortName: '2.5 Flash', badge: 'Chuẩn', speed: '~2.0s' };
-      if (id === 'gemini-flash-lite-latest') return { name: 'Gemini Flash-Lite Latest', shortName: 'Flash-Lite', badge: 'Dự phòng', speed: '~2.0s' };
+    const rawOpenAI = process.env.OPENAI_FALLBACK_MODELS || process.env.OPENAI_MODEL || 'gpt-4o-mini,gpt-5.4-mini,gpt-4.1-mini,gpt-5.5,gpt-6.1-sol,gpt-4.1,gpt-5.6-sol';
+    const openAiList = rawOpenAI.split(',').map((m) => m.trim()).filter(Boolean);
+
+    const formatGeminiMeta = (id) => {
+      if (id === 'gemini-4-argon') return { name: 'Gemini 4 Argon', shortName: '4 Argon', badge: 'Next-Gen 4.0', speed: 'Thế hệ 4', provider: 'gemini' };
+      if (id === 'gemini-3.8-flash') return { name: 'Gemini 3.8 Flash', shortName: '3.8 Flash', badge: 'Mới 3.8', speed: '~1.5s', provider: 'gemini' };
+      if (id === 'gemini-3.7-flash') return { name: 'Gemini 3.7 Flash', shortName: '3.7 Flash', badge: '3.7 Flash', speed: '~1.8s', provider: 'gemini' };
+      if (id === 'gemini-3.5-flash-lite') return { name: 'Gemini 3.5 Flash Lite', shortName: '3.5 Flash Lite', badge: 'Chính xác cao', speed: '~2.5s', provider: 'gemini' };
+      if (id === 'gemini-3.1-flash-lite') return { name: 'Gemini 3.1 Flash Lite', shortName: '3.1 Flash Lite', badge: '⚡ Siêu tốc (Khuyên dùng)', speed: '~1.0s', recommended: true, provider: 'gemini' };
+      if (id === 'gemini-2.5-flash') return { name: 'Gemini 2.5 Flash', shortName: '2.5 Flash', badge: 'Chuẩn', speed: '~2.0s', provider: 'gemini' };
+      if (id === 'gemini-flash-lite-latest') return { name: 'Gemini Flash-Lite Latest', shortName: 'Flash-Lite', badge: 'Dự phòng', speed: '~2.0s', provider: 'gemini' };
 
       const clean = id.replace(/^gemini-/, '').replace(/-/g, ' ');
-      return { name: `Gemini ${clean}`, shortName: clean, badge: 'AI Model', speed: 'Tốc độ cao' };
+      return { name: `Gemini ${clean}`, shortName: clean, badge: 'Google Gemini', speed: 'Tốc độ cao', provider: 'gemini' };
     };
 
-    const formatted = modelsList.map((id) => ({
-      id,
-      ...formatMeta(id),
-    }));
+    const formatOpenAIMeta = (id) => {
+      if (id === 'gpt-6.1-sol') return { name: 'GPT-6.1 Sol', shortName: '6.1 Sol', badge: '👑 Flagship Reasoning', speed: '~1.8s', provider: 'openai' };
+      if (id === 'gpt-5.6-sol') return { name: 'GPT-5.6 Sol', shortName: '5.6 Sol', badge: '⚖️ Thẩm tra Đối chứng', speed: '~2.2s', provider: 'openai' };
+      if (id === 'gpt-5.5') return { name: 'GPT-5.5', shortName: '5.5 Workhorse', badge: '🧠 Đa nhiệm Workflow', speed: '~2.0s', provider: 'openai' };
+      if (id === 'gpt-5.4-mini') return { name: 'GPT-5.4 Mini', shortName: '5.4 Mini', badge: '⚡ Thông minh & Tiết kiệm', speed: '~1.2s', provider: 'openai' };
+      if (id === 'gpt-4.1') return { name: 'GPT-4.1', shortName: '4.1 Policy', badge: '📜 Tuân thủ Quy chế', speed: '~2.0s', provider: 'openai' };
+      if (id === 'gpt-4.1-mini') return { name: 'GPT-4.1 Mini', shortName: '4.1 Mini', badge: '🛡️ Chuẩn xác & Dự phòng', speed: '~1.3s', provider: 'openai' };
+      if (id === 'gpt-4o-mini') return { name: 'GPT-4o Mini', shortName: '4o Mini', badge: '🚀 Siêu tốc & Kinh tế', speed: '~1.0s', provider: 'openai' };
+      if (id === 'gpt-4o') return { name: 'GPT-4o', shortName: '4o Omnipresent', badge: 'Trí tuệ cao cấp', speed: '~1.8s', provider: 'openai' };
+
+      return { name: `OpenAI ${id}`, shortName: id, badge: 'OpenAI GPT', speed: 'Tốc độ cao', provider: 'openai' };
+    };
+
+    const formattedGemini = geminiList.map((id) => ({ id, ...formatGeminiMeta(id) }));
+    const formattedOpenAI = openAiList.map((id) => ({ id, ...formatOpenAIMeta(id) }));
 
     const result = [
       {
         id: 'auto',
-        name: 'Tự Động (Auto Resilient)',
+        name: 'Tự Động (Auto Multi-Provider)',
         shortName: 'Tự động',
-        badge: '🛡️ Chống 503',
+        badge: '🛡️ Chống sập 503',
         speed: 'Thích ứng',
-        description: 'Tự động kích hoạt mô hình nhanh nhất và tự đổi model nếu Google quá tải 503.',
+        provider: 'auto',
+        description: 'Tự động kích hoạt mô hình nhanh nhất và tự đổi chéo giữa Gemini và OpenAI khi quá tải.',
       },
-      ...formatted,
+      ...formattedOpenAI,
+      ...formattedGemini,
     ];
 
     return res.json({

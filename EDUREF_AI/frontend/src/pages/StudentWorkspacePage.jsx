@@ -2,7 +2,7 @@
 // Không gian làm việc Trợ lý Sinh viên: Bố cục 3 Cột (Catalog Thủ Tục | Hội Thoại ReAct | Bảng Thẩm Định & Quyết Định)
 
 import { useState, useEffect, useRef } from "react";
-import { Send, FileText, CheckCircle, Clock, ShieldAlert, ArrowRight, RefreshCw, Terminal, Play, ExternalLink, Square, Trash2, Copy, Sparkles, ChevronDown, Zap, Cpu } from "lucide-react";
+import { Send, FileText, CheckCircle, Clock, ShieldAlert, ArrowRight, RefreshCw, Terminal, Play, ExternalLink, Square, Trash2, Copy, Sparkles, ChevronDown, ChevronLeft, ChevronRight, Zap, Cpu } from "lucide-react";
 import MarkdownRenderer from '../components/common/MarkdownRenderer';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
 import AgentProgress from '../components/agent/AgentProgress';
@@ -17,6 +17,36 @@ import { CONFIRMATION_FORMS } from '../config/confirmationForms';
 
 export const AI_MODELS = [
   {
+    id: 'auto',
+    name: 'Tự Động (Auto Multi-Provider)',
+    shortName: 'Tự động',
+    speed: 'Thích ứng',
+    badge: '🛡️ Chống sập 503',
+    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
+    description: 'Tự động kích hoạt mô hình nhanh nhất và tự đổi chéo giữa Gemini và OpenAI khi quá tải.',
+    provider: 'auto',
+  },
+  {
+    id: 'gpt-4o-mini',
+    name: 'GPT-4o Mini',
+    shortName: '4o Mini',
+    speed: '~1.0s',
+    badge: '🚀 Siêu tốc & Kinh tế',
+    badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
+    description: 'Mô hình OpenAI siêu tốc ~1s, chi phí cực thấp, gọi Tool nghiệp vụ rất nhạy.',
+    provider: 'openai',
+  },
+  {
+    id: 'gpt-6.1-sol',
+    name: 'GPT-6.1 Sol',
+    shortName: '6.1 Sol',
+    speed: '~1.8s',
+    badge: '👑 Flagship Reasoning',
+    badgeColor: 'bg-purple-50 text-purple-700 border-purple-200',
+    description: 'Khả năng suy luận quy chế sâu nhất, gọi Tool qua Responses API chuẩn xác.',
+    provider: 'openai',
+  },
+  {
     id: 'gemini-3.1-flash-lite',
     name: 'Gemini 3.1 Flash Lite',
     shortName: '3.1 Flash Lite',
@@ -25,24 +55,7 @@ export const AI_MODELS = [
     badgeColor: 'bg-emerald-50 text-emerald-700 border-emerald-200',
     description: 'Tốc độ phản hồi cực nhanh ~1s, tối ưu xử lý và thẩm định biểu mẫu học vụ.',
     recommended: true,
-  },
-  {
-    id: 'gemini-3.5-flash-lite',
-    name: 'Gemini 3.5 Flash Lite',
-    shortName: '3.5 Flash Lite',
-    speed: '~2.5s',
-    badge: '🧠 Chính xác cao',
-    badgeColor: 'bg-blue-50 text-blue-700 border-blue-200',
-    description: 'Cân bằng giữa tốc độ và khả năng suy luận ngữ cảnh sâu.',
-  },
-  {
-    id: 'auto',
-    name: 'Tự Động (Auto Resilient)',
-    shortName: 'Tự động',
-    speed: 'Thích ứng',
-    badge: '🛡️ Chống sập 503',
-    badgeColor: 'bg-amber-50 text-amber-700 border-amber-200',
-    description: 'Tự động kích hoạt mô hình nhanh nhất và tự đổi sang mô hình dự phòng nếu Google quá tải.',
+    provider: 'gemini',
   },
 ];
 
@@ -60,6 +73,9 @@ export default function StudentWorkspacePage({
 
   // Tab điều hướng phụ trên Mobile (khi màn hình < 1280px): 'CHAT' | 'PROCEDURES' | 'DECISION'
   const [mobileTab, setMobileTab] = useState('CHAT');
+
+  // Trạng thái thu gọn/mở rộng thanh 5 Biểu mẫu học vụ bên trái trên Desktop (để mở rộng khung chat)
+  const [isSidebarCollapsed, setIsSidebarCollapsed] = useState(false);
 
   // Tab điều hướng Cột 3: Mặc định là 'TERMINAL' (Live Console) hiện trước 'DECISION' (Thẩm định 4 chốt)
   const [column3Tab, setColumn3Tab] = useState('TERMINAL');
@@ -642,8 +658,12 @@ export default function StudentWorkspacePage({
       {/* ========================================================================= */}
       {/* CỘT 1: DANH MỤC THỦ TỤC HÀNH CHÍNH & NỘP BIỂU MẪU (Bên trái) */}
       {/* ========================================================================= */}
-      <div className={`w-full xl:w-80 bg-white border-r border-slate-200/90 flex-col shrink-0 overflow-y-auto ${
-        mobileTab === 'PROCEDURES' ? 'flex flex-1' : 'hidden xl:flex'
+      <div className={`w-full xl:w-80 bg-white border-r border-slate-200/90 flex-col shrink-0 overflow-y-auto transition-all duration-200 ${
+        mobileTab === 'PROCEDURES'
+          ? 'flex flex-1'
+          : isSidebarCollapsed
+          ? 'hidden'
+          : 'hidden xl:flex'
       }`}>
         <div className="p-4 border-b border-slate-100 bg-slate-50/50">
           <div className="flex items-center justify-between">
@@ -651,9 +671,19 @@ export default function StudentWorkspacePage({
               <FileText className="w-4 h-4 text-[#0B3B82]" />
               Danh Mục Thủ Tục Học Vụ
             </h2>
-            <span className="text-[10px] font-semibold text-[#0B3B82] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
-              Chính quy
-            </span>
+            <div className="flex items-center gap-1.5">
+              <span className="text-[10px] font-semibold text-[#0B3B82] bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                Chính quy
+              </span>
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed(true)}
+                className="hidden xl:inline-flex p-1 rounded-md text-slate-400 hover:text-slate-700 hover:bg-slate-200/60 transition-colors cursor-pointer"
+                title="Thu gọn danh mục biểu mẫu để mở rộng khung chat"
+              >
+                <ChevronLeft className="w-4 h-4" />
+              </button>
+            </div>
           </div>
           <p className="text-[11px] text-slate-500 mt-1">
             Chọn thủ tục nộp biểu mẫu trực tuyến hoặc hỏi đáp AI
@@ -778,6 +808,18 @@ export default function StudentWorkspacePage({
         {/* Chat Header Chuẩn Học Vụ HUTECH */}
         <div className="px-5 py-3 border-b border-slate-200 bg-white flex items-center justify-between shrink-0 shadow-2xs">
           <div className="flex items-center gap-2.5">
+            {isSidebarCollapsed && (
+              <button
+                type="button"
+                onClick={() => setIsSidebarCollapsed(false)}
+                className="hidden xl:inline-flex items-center gap-1.5 px-2.5 py-1 text-xs font-semibold bg-blue-50 border border-blue-200 hover:bg-blue-100 text-[#0B3B82] rounded-lg shadow-2xs transition-all cursor-pointer mr-1"
+                title="Mở lại danh mục 5 biểu mẫu học vụ"
+              >
+                <FileText className="w-3.5 h-3.5 text-[#0B3B82]" />
+                <span>5 Biểu Mẫu</span>
+                <ChevronRight className="w-3.5 h-3.5 text-[#0B3B82]" />
+              </button>
+            )}
             <div className="w-8 h-8 rounded-lg bg-[#0B3B82] text-white flex items-center justify-center font-bold text-xs shadow-xs">
               AI
             </div>
@@ -970,7 +1012,7 @@ export default function StudentWorkspacePage({
 
               {/* Menu Dropdown Popup siêu gọn */}
               {isModelDropdownOpen && (
-                <div className="absolute bottom-full mb-1.5 left-0 w-64 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 animate-in fade-in zoom-in-95 duration-75">
+                <div className="absolute bottom-full mb-1.5 left-0 w-72 bg-white rounded-lg shadow-lg border border-slate-200 py-1 z-50 animate-in fade-in zoom-in-95 duration-75">
                   <div className="px-2.5 py-1 border-b border-slate-100 flex items-center justify-between text-[10px] font-semibold text-slate-400 uppercase tracking-wider">
                     <span className="flex items-center gap-1 text-slate-500">
                       <Cpu className="w-3 h-3 text-blue-600" />
@@ -979,8 +1021,9 @@ export default function StudentWorkspacePage({
                     <span className="text-emerald-600 font-normal">Chống sập 503</span>
                   </div>
 
-                  <div className="p-1 space-y-0.5 max-h-56 overflow-y-auto">
-                    {modelsList.map((m) => {
+                  <div className="p-1 space-y-0.5 max-h-72 overflow-y-auto">
+                    {/* Auto Model */}
+                    {modelsList.filter((m) => m.id === 'auto').map((m) => {
                       const isSelected = selectedModel === m.id;
                       return (
                         <button
@@ -991,30 +1034,92 @@ export default function StudentWorkspacePage({
                             setIsModelDropdownOpen(false);
                           }}
                           className={`w-full text-left px-2 py-1.5 rounded-md transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
-                            isSelected
-                              ? 'bg-blue-50 text-[#0B3B82] font-semibold'
-                              : 'hover:bg-slate-50 text-slate-700'
+                            isSelected ? 'bg-blue-50 text-[#0B3B82] font-semibold' : 'hover:bg-slate-50 text-slate-700'
                           }`}
                         >
                           <div className="flex items-center gap-1.5 min-w-0">
-                            {m.id === 'auto' ? (
-                              <RefreshCw className="w-3 h-3 text-amber-500 shrink-0" />
-                            ) : (
-                              <Zap className="w-3 h-3 text-blue-600 shrink-0" />
-                            )}
-                            <span className="text-[11px] truncate">
-                              {m.name || m.shortName || m.id}
-                            </span>
+                            <RefreshCw className="w-3 h-3 text-amber-500 shrink-0" />
+                            <span className="text-[11px] truncate font-semibold">{m.name}</span>
                           </div>
                           <div className="flex items-center gap-1 shrink-0">
                             {m.badge && (
-                              <span className={`text-[9px] px-1 py-0.2 rounded border font-medium ${m.badgeColor || 'bg-slate-100 text-slate-600 border-slate-200'}`}>
+                              <span className="text-[9px] px-1 py-0.2 rounded border font-medium bg-amber-50 text-amber-700 border-amber-200">
                                 {m.badge}
                               </span>
                             )}
-                            {isSelected && (
-                              <CheckCircle className="w-3 h-3 text-[#0B3B82]" />
+                            {isSelected && <CheckCircle className="w-3 h-3 text-[#0B3B82]" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+
+                    {/* Nhóm OpenAI GPT */}
+                    {modelsList.some((m) => m.provider === 'openai' || m.id.startsWith('gpt-')) && (
+                      <div className="pt-1.5 pb-0.5 px-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 border-t border-slate-100 mt-1">
+                        <span>🌐 OpenAI GPT Models</span>
+                      </div>
+                    )}
+                    {modelsList.filter((m) => m.provider === 'openai' || m.id.startsWith('gpt-')).map((m) => {
+                      const isSelected = selectedModel === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedModel(m.id);
+                            setIsModelDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-2 py-1.5 rounded-md transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
+                            isSelected ? 'bg-blue-50 text-[#0B3B82] font-semibold' : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Zap className="w-3 h-3 text-emerald-600 shrink-0" />
+                            <span className="text-[11px] truncate">{m.name || m.shortName || m.id}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {m.badge && (
+                              <span className="text-[9px] px-1 py-0.2 rounded border font-medium bg-emerald-50 text-emerald-700 border-emerald-200">
+                                {m.badge}
+                              </span>
                             )}
+                            {isSelected && <CheckCircle className="w-3 h-3 text-[#0B3B82]" />}
+                          </div>
+                        </button>
+                      );
+                    })}
+
+                    {/* Nhóm Google Gemini */}
+                    {modelsList.some((m) => m.provider === 'gemini' || m.id.startsWith('gemini-')) && (
+                      <div className="pt-1.5 pb-0.5 px-2 text-[9px] font-bold text-slate-400 uppercase tracking-wider flex items-center gap-1 border-t border-slate-100 mt-1">
+                        <span>⚡ Google Gemini Models</span>
+                      </div>
+                    )}
+                    {modelsList.filter((m) => m.provider === 'gemini' || m.id.startsWith('gemini-')).map((m) => {
+                      const isSelected = selectedModel === m.id;
+                      return (
+                        <button
+                          key={m.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedModel(m.id);
+                            setIsModelDropdownOpen(false);
+                          }}
+                          className={`w-full text-left px-2 py-1.5 rounded-md transition-all flex items-center justify-between gap-1.5 cursor-pointer ${
+                            isSelected ? 'bg-blue-50 text-[#0B3B82] font-semibold' : 'hover:bg-slate-50 text-slate-700'
+                          }`}
+                        >
+                          <div className="flex items-center gap-1.5 min-w-0">
+                            <Zap className="w-3 h-3 text-blue-600 shrink-0" />
+                            <span className="text-[11px] truncate">{m.name || m.shortName || m.id}</span>
+                          </div>
+                          <div className="flex items-center gap-1 shrink-0">
+                            {m.badge && (
+                              <span className="text-[9px] px-1 py-0.2 rounded border font-medium bg-blue-50 text-blue-700 border-blue-200">
+                                {m.badge}
+                              </span>
+                            )}
+                            {isSelected && <CheckCircle className="w-3 h-3 text-[#0B3B82]" />}
                           </div>
                         </button>
                       );
