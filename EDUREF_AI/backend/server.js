@@ -10,6 +10,7 @@ import agentRoutes from './routes/agentRoutes.js';
 import petitionRoutes from './routes/petitionRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
 import authRoutes from './routes/authRoutes.js';
+import sprint2Routes from './routes/sprint2Routes.js';
 import { runAgent } from './modules/ai-agent/index.js';
 import { agentTerminalLogger } from './modules/ai-agent/core/AgentTerminalLogger.js';
 import { scopeSessionId } from './modules/ai-agent/memory/sessionScope.js';
@@ -105,6 +106,7 @@ app.use('/api/auth', authRoutes);
 app.use('/api/agent', agentRoutes);
 app.use('/api/petitions', petitionRoutes);
 app.use('/api/audit', auditRoutes);
+app.use('/api/sprint2', sprint2Routes);
 
 // Health check endpoint
 app.get('/health', async (req, res) => {
