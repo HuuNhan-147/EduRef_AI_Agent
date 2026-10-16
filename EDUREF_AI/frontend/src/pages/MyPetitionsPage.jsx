@@ -61,7 +61,7 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }
             <p className="text-xs text-slate-500 mt-1">
               {isStaff
                 ? 'Theo dõi, tra cứu và kiểm toán toàn bộ hồ sơ học vụ sinh viên toàn trường.'
-                : 'Theo dõi tình trạng phê duyệt, tra cứu mã chứng thực số và mã QR điện tử hợp lệ.'}
+                : 'Theo dõi trạng thái hồ sơ đã lưu và đối chiếu bằng chứng trong nhật ký kiểm toán.'}
             </p>
           </div>
 
@@ -126,7 +126,7 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }
                   <th className="py-3 px-4">Sinh Viên</th>
                   <th className="py-3 px-4">Ngày Nộp</th>
                   <th className="py-3 px-4">Trạng Thái</th>
-                  <th className="py-3 px-4">Chứng Thực Số</th>
+                  <th className="py-3 px-4">Bằng chứng đã lưu</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
@@ -170,16 +170,18 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }
                         </span>
                       </td>
                       <td className="py-3 px-4">
-                        {p.qrCodeUrl ? (
+                        {p.sha256Proof ? (
+                          <code className="text-[10px] text-slate-600" title={p.sha256Proof}>SHA-256: {p.sha256Proof.slice(0, 16)}…</code>
+                        ) : p.qrCodeUrl ? (
                           <button
                             onClick={() => setSelectedQrModal(p)}
                             className="flex items-center gap-1.5 text-blue-700 hover:text-blue-900 font-semibold"
                           >
                             <QrCode className="w-4 h-4 text-emerald-600" />
-                            Xem Mã QR
+                            QR lưu từ hồ sơ cũ
                           </button>
                         ) : (
-                          <span className="text-slate-400 text-[11px] italic">Chưa cấp</span>
+                          <span className="text-slate-400 text-[11px] italic">Đối chiếu tab Kiểm toán</span>
                         )}
                       </td>
                     </tr>
@@ -197,7 +199,7 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }
         <div className="fixed inset-0 z-50 bg-slate-900/50 backdrop-blur-xs flex items-center justify-center p-4">
           <div className="w-full max-w-sm rounded-xl bg-white shadow-2xl border border-slate-200 p-6 space-y-4 text-center animate-fade-in duration-150">
             <div className="text-xs font-bold text-slate-400 uppercase tracking-wider">
-              Mã QR Chứng Thực Số Hợp Lệ
+              QR lưu trong hồ sơ
             </div>
             <h3 className="text-sm font-bold text-slate-900">
               {selectedQrModal.requestCode} — {selectedQrModal.student?.fullName}
@@ -212,7 +214,7 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
-              Mã công văn này dùng để đối soát hồ sơ gốc tại Phòng Công tác Sinh viên (A-01.01 hoặc E1-01.05) khi nhận bản cứng có mộc đỏ và chữ ký sống.
+              Đây là dữ liệu QR lưu từ hồ sơ cũ. Kiểm tra nhật ký và xác nhận với đơn vị phụ trách trước khi sử dụng; giao diện demo không xác nhận hiệu lực văn bản.
             </p>
 
             <button

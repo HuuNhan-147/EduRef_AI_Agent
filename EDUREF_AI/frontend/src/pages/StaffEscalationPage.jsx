@@ -1,7 +1,7 @@
 // src/pages/StaffEscalationPage.jsx
 // Hàng đợi Chuyển tiếp Hồ sơ Học vụ dành cho Cán bộ Phòng Đào tạo (Staff Escalation Hub & HITL)
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { AlertOctagon, CheckCircle2, XCircle, RotateCcw, User, FileText, ShieldCheck, AlertTriangle, ExternalLink, Info, Award, GraduationCap, Building, Eye, X, Search, ChevronLeft } from "lucide-react";
 import api from "../services/api";
 
@@ -12,7 +12,12 @@ export default function StaffEscalationPage() {
   const [previewImg, setPreviewImg] = useState(null);
 
   // Bộ lọc trạng thái & tìm kiếm nhanh để thanh danh sách không bị dài
-  const [statusFilter, setStatusFilter] = useState('ALL'); // Mặc định hiển thị Tất cả để thấy cả đơn AI duyệt lẫn đơn chờ PĐT thẩm định
+  const [statusFilter, setStatusFilter] = useState('ESCALATED');
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [detailLoading, setDetailLoading] = useState(false);
+  const detailSequence = useRef(0);
+  const listSequence = useRef(0);
   const [searchQuery, setSearchQuery] = useState('');
   const [mobileShowDetail, setMobileShowDetail] = useState(false); // Chuyển đổi màn hình trên mobile
 
@@ -29,43 +34,69 @@ export default function StaffEscalationPage() {
 
   // Nạp danh sách đơn chờ xử lý
   const fetchEscalations = async () => {
+    const sequence = ++listSequence.current;
     setLoading(true);
     try {
-      const res = await api.get('/petitions');
+      const res = await api.get('/petitions', { params: { page, limit: 50,
+        status: statusFilter === 'ALL' ? undefined : statusFilter, q: searchQuery } });
+      if (sequence !== listSequence.current) return;
       if (res.data?.success) {
         const all = res.data.data || [];
         setPetitions(all);
-        if (!selectedPetition && all.length > 0) {
+        setHasMore(Boolean(res.data.hasMore));
+        if (all.length === 0) {
+          detailSequence.current++;
+          setSelectedPetition(null);
+          setDetailLoading(false);
+        }
+        if ((!selectedPetition || !all.some((item) => item.id === selectedPetition.id)) && all.length > 0) {
           handleSelectPetition(all[0]);
         }
       }
     } catch (err) {
       console.warn('Lỗi tải danh sách hồ sơ:', err.message);
     } finally {
-      setLoading(false);
+      if (sequence === listSequence.current) setLoading(false);
     }
   };
 
   const handleSelectPetition = async (p) => {
     if (!p) return;
+    const sequence = ++detailSequence.current;
+    setDetailLoading(true);
     setSelectedPetition(p);
     try {
       const res = await api.get(`/petitions/${p.id}`);
-      if (res.data?.success && res.data.data) {
+      if (sequence === detailSequence.current && res.data?.success && res.data.data) {
         setSelectedPetition(res.data.data);
       }
     } catch (err) {
       console.warn('Lỗi tải chi tiết đơn:', err.message);
+    } finally {
+      if (sequence === detailSequence.current) setDetailLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchEscalations();
-  }, []);
+    const timer = setTimeout(fetchEscalations, 200);
+    return () => clearTimeout(timer);
+  }, [statusFilter, searchQuery, page]);
+
+  const invalidateQueue = () => {
+    listSequence.current++;
+    detailSequence.current++;
+    setSelectedPetition(null);
+    setDetailLoading(false);
+    setPetitions([]);
+    setActionModal(null);
+  };
+  useEffect(invalidateQueue, [statusFilter, searchQuery, page]);
+  useEffect(() => { setPage(1); }, [statusFilter, searchQuery]);
 
   // Thực hiện hành động Duyệt, Từ chối hoặc Hoàn tác
   const handleExecuteAction = async () => {
-    if (!selectedPetition) return;
+    if (!selectedPetition || detailLoading) return;
+    const sequence = detailSequence.current;
     setIsSubmitting(true);
 
     try {
@@ -73,6 +104,7 @@ export default function StaffEscalationPage() {
         const res = await api.post(`/petitions/${selectedPetition.id}/approve`, {
           note: actionNote || 'Chuyên viên PĐT thẩm định hồ sơ đạt yêu cầu',
         });
+        if (!res.data?.success) throw new Error(res.data?.error || res.data?.message || 'Không thể phê duyệt hồ sơ.');
         if (res.data?.success) {
           showToast(`Đã phê duyệt thành công đơn [${selectedPetition.requestCode}]!`);
         }
@@ -85,6 +117,7 @@ export default function StaffEscalationPage() {
         const res = await api.post(`/petitions/${selectedPetition.id}/reject`, {
           reason: actionNote,
         });
+        if (!res.data?.success) throw new Error(res.data?.error || res.data?.message || 'Không thể từ chối hồ sơ.');
         if (res.data?.success) {
           showToast(`Đã bác bỏ hồ sơ [${selectedPetition.requestCode}].`, 'error');
         }
@@ -92,6 +125,7 @@ export default function StaffEscalationPage() {
         const res = await api.post(`/petitions/${selectedPetition.id}/rollback`, {
           reason: actionNote || 'Can thiệp dừng và thu hồi bởi Cán bộ Quản lý',
         });
+        if (!res.data?.success) throw new Error(res.data?.error || res.data?.message || 'Không thể hoàn tác hồ sơ.');
         if (res.data?.success) {
           showToast(`Đã hoàn tác phê duyệt đơn [${selectedPetition.requestCode}].`, 'warning');
         }
@@ -103,11 +137,11 @@ export default function StaffEscalationPage() {
 
       // Cập nhật lại bản ghi đang chọn
       const updated = await api.get(`/petitions/${selectedPetition.id}`);
-      if (updated.data?.success) {
+      if (sequence === detailSequence.current && updated.data?.success) {
         setSelectedPetition(updated.data.data);
       }
     } catch (err) {
-      alert(`Lỗi thực hiện: ${err.response?.data?.message || err.message}`);
+      showToast(`Lỗi thực hiện: ${err.response?.data?.error || err.response?.data?.message || err.message}`, 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -198,6 +232,11 @@ export default function StaffEscalationPage() {
         </div>
 
         {/* Ô Tìm Kiếm Nhanh */}
+        <div className="flex items-center justify-between border-b p-2 text-xs">
+          <button disabled={page === 1 || loading} onClick={() => setPage((value) => value - 1)}>Trang trước</button>
+          <span>Trang {page} · {petitions.length} hồ sơ</span>
+          <button disabled={!hasMore || loading} onClick={() => setPage((value) => value + 1)}>Trang sau</button>
+        </div>
         <div className="p-2.5 border-b border-slate-100 bg-white">
           <div className="relative">
             <Search className="w-3.5 h-3.5 absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -446,6 +485,7 @@ export default function StaffEscalationPage() {
                 {selectedPetition.status === 'ESCALATED' && (
                   <>
                     <button
+                      disabled={detailLoading || isSubmitting}
                       onClick={() => setActionModal('APPROVE')}
                       className="px-3.5 py-2 rounded-lg bg-emerald-700 hover:bg-emerald-800 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all"
                     >
@@ -453,6 +493,7 @@ export default function StaffEscalationPage() {
                       Phê Duyệt
                     </button>
                     <button
+                      disabled={detailLoading || isSubmitting}
                       onClick={() => setActionModal('REJECT')}
                       className="px-3.5 py-2 rounded-lg bg-rose-600 hover:bg-rose-700 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all"
                     >
@@ -464,7 +505,8 @@ export default function StaffEscalationPage() {
 
                 {selectedPetition.status === 'APPROVED' && (
                   <button
-                    onClick={() => setActionModal('ROLLBACK')}
+                    disabled={detailLoading || isSubmitting}
+                      onClick={() => setActionModal('ROLLBACK')}
                     className="px-3.5 py-2 rounded-lg bg-slate-800 hover:bg-slate-900 text-white text-xs font-semibold shadow-xs flex items-center gap-1.5 transition-all"
                   >
                     <RotateCcw className="w-4 h-4 text-amber-400" />
