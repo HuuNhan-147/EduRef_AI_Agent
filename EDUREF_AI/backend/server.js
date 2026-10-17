@@ -15,6 +15,7 @@ import { runAgent } from './modules/ai-agent/index.js';
 import { agentTerminalLogger } from './modules/ai-agent/core/AgentTerminalLogger.js';
 import { scopeSessionId } from './modules/ai-agent/memory/sessionScope.js';
 import { warnIfInsecureJwtSecret } from './config/jwtSecret.js';
+import { createOriginChecker } from './config/cors.js';
 import { checkRateLimit } from './middlewares/rateLimit.js';
 import { publicErrorMessage } from './services/ErrorShield.js';
 
@@ -37,24 +38,7 @@ const server = http.createServer(app);
 const PORT = process.env.PORT || 5000;
 // Mỗi tin nhắn đi thẳng vào prompt Gemini: chặn văn bản khổng lồ làm tốn chi phí/độ trễ
 const MAX_MESSAGE_LENGTH = 4000;
-const allowedOrigins = [
-  'http://localhost:5173',
-  'http://localhost:5174',
-  'http://127.0.0.1:5173',
-  'https://edu-ref-ai-agent.vercel.app',
-  'https://edu-ref-ai-agent-git-main-hu-nhans-projects.vercel.app',
-  'https://edu-ref-ai-agent-fru4xivtn-hu-nhans-projects.vercel.app',
-  'https://www.eduref.tech/',
-  process.env.FRONTEND_URL,
-].filter(Boolean);
-
-// Kiểm tra nguồn gốc truy cập linh hoạt (hỗ trợ mọi link preview trên Vercel của dự án)
-const isAllowedOrigin = (origin) => {
-  if (!origin) return true;
-  if (allowedOrigins.includes(origin)) return true;
-  if (/^https:\/\/edu-ref-ai-agent.*\.vercel\.app$/.test(origin)) return true;
-  return false;
-};
+const isAllowedOrigin = createOriginChecker();
 
 // Cấu hình Socket.IO với CORS linh hoạt
 const io = new Server(server, {

@@ -168,6 +168,32 @@ Frontend:
 - Build command: `npm ci && npm run build`.
 - Publish directory: `dist`.
 
+### Domain riêng `eduref.tech`
+
+Backend dùng chung allowlist CORS cho REST API và Socket.IO, bao gồm
+`https://eduref.tech` và `https://www.eduref.tech`. `FRONTEND_URL` hỗ trợ nhiều URL
+cách nhau bằng dấu phẩy và chuẩn hóa về origin (bỏ dấu `/` cuối và đường dẫn).
+Trên Render, đặt `FRONTEND_URL=https://eduref.tech,https://www.eduref.tech` rồi
+deploy lại backend chứa bản sửa CORS. Trình duyệt gửi Origin không có dấu `/`
+cuối; allowlist so sánh nguyên chuỗi URL có dấu `/` sẽ chặn kết nối.
+
+Trên Vercel, gắn cả hai domain vào cùng project frontend. Giữ
+`VITE_API_URL=https://eduref-ai-agent-1.onrender.com/api` và
+`VITE_SOCKET_URL=https://eduref-ai-agent-1.onrender.com`; thay đổi biến `VITE_*`
+cần build/deploy lại frontend. Chỉ bật `ALLOW_DEMO_ROLE_SWITCH=true` trên backend
+demo; lỗi CORS không phải lý do để bỏ kiểm tra xác thực hoặc tự bật chế độ demo.
+
+Kiểm tra preflight sau khi deploy (lặp lại với Origin `https://eduref.tech`):
+
+```powershell
+curl.exe -i -X OPTIONS https://eduref-ai-agent-1.onrender.com/api/auth/demo-login -H "Origin: https://www.eduref.tech" -H "Access-Control-Request-Method: POST" -H "Access-Control-Request-Headers: content-type"
+```
+
+Kỳ vọng HTTP 204 và `Access-Control-Allow-Origin` khớp Origin gửi lên. Sau đó
+mở từng domain, kiểm tra phiên demo khởi tạo thành công và Socket.IO kết nối.
+Nếu preflight thành công nhưng POST trả 403, kiểm tra cờ demo; nếu POST trả 500,
+kiểm tra log backend, `JWT_SECRET`, kết nối database và migration.
+
 Sau deploy, cập nhật README bằng URL frontend công khai và kiểm tra lại toàn bộ kịch bản 90 giây trên chính URL đó.
 
 ## 9. Quy tắc báo cáo và tính minh bạch dữ liệu
