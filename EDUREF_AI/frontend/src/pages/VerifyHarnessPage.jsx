@@ -99,6 +99,8 @@ export default function VerifyHarnessPage() {
   const [run, setRun] = useState(null);
   const [selectedId, setSelectedId] = useState('TH-01');
   const [isRunning, setIsRunning] = useState(false);
+  const [isRunningEscalation, setIsRunningEscalation] = useState(false);
+  const [activeMode, setActiveMode] = useState(null); // '4CA' | '5CA'
   const [error, setError] = useState('');
   const [customPrompt, setCustomPrompt] = useState('Em xin cấp giấy xác nhận sinh viên để làm vé tháng xe buýt');
   const [customStudentCode, setCustomStudentCode] = useState('2380600001');
@@ -122,11 +124,16 @@ export default function VerifyHarnessPage() {
   const passRate = run ? Math.round((run.passedCases / run.totalCases) * 100) : null;
 
   const distributionLabel = useMemo(() => {
-    if (!run) return 'Bộ 4 ca trọng yếu: 1 AUTO · 1 ASK · 1 REJECT · 1 ESCALATE';
+    if (!run) return 'Chưa chạy — Chọn bộ 4 ca hoặc 5 ca bên trên';
+    if (activeMode === '5CA') {
+      return run.allPassed
+        ? '✅ Đề bài A ĐẠT: 3 ca tự động + 2 ca chuyển tiếp (BEYOND_AUTHORITY · OUTSIDE_POLICY)'
+        : `AUTO=${run.autoCount} · ESCALATE=${run.escalationCount} — Kiểm tra phân bổ lại`;
+    }
     return run.allPassed
-      ? 'Đạt đầy đủ 4 nhánh quyết định: ROUTINE · ASK · REJECT · ESCALATE'
+      ? '✅ 4 nhánh kiến trúc ĐẠT: ROUTINE · ASK · REJECT · ESCALATE'
       : `AUTO=${run.autoCount} · ESCALATE=${run.escalationCount}`;
-  }, [run]);
+  }, [run, activeMode]);
 
   const runSuite = async () => {
     setIsRunning(true);
@@ -134,11 +141,27 @@ export default function VerifyHarnessPage() {
     try {
       const response = await api.post('/agent/verify-90s');
       setRun(response.data);
+      setActiveMode('4CA');
       setSelectedId(response.data.results?.[0]?.id || 'TH-01');
     } catch (requestError) {
       setError(requestError.response?.data?.error || requestError.message);
     } finally {
       setIsRunning(false);
+    }
+  };
+
+  const runEscalation = async () => {
+    setIsRunningEscalation(true);
+    setError('');
+    try {
+      const response = await api.post('/agent/verify-escalation');
+      setRun(response.data);
+      setActiveMode('5CA');
+      setSelectedId(response.data.results?.[0]?.id || 'TH-01');
+    } catch (requestError) {
+      setError(requestError.response?.data?.error || requestError.message);
+    } finally {
+      setIsRunningEscalation(false);
     }
   };
 
@@ -188,29 +211,46 @@ export default function VerifyHarnessPage() {
                   Verify Harness — VNG Track A (OrganizationAI)
                 </h1>
                 <p className="text-xs text-slate-500">
-                  Bộ kiểm thử tự động 1-chạm dành cho Ban Giám khảo: 4 trường hợp trọng yếu bao phủ toàn diện 4 nhánh quyết định (Tiêu chí 2 · 12 điểm).
+                  Bộ kiểm thử tự động 1-chạm cho BGK: <strong>4 ca kiến trúc</strong> (Tiêu chí 2 · 12 điểm) và <strong>5 ca Đề bài A</strong> (3 tự động + 2 chuyển tiếp — Barem 90s).
                 </p>
               </div>
             </div>
 
-            {/* Nút bấm Kích hoạt Thẩm định 1-Click duy nhất */}
-            <div className="flex items-center gap-2">
+            {/* 2 Nút Verify song song */}
+            <div className="flex flex-wrap items-center gap-2">
+              {/* Nút 4 CA — 4 nhánh kiến trúc */}
               <button
                 type="button"
+                id="btn-verify-4ca"
                 onClick={runSuite}
-                disabled={isRunning}
-                className="flex items-center gap-2 rounded-lg bg-[#0B3B82] hover:bg-blue-900 active:bg-blue-950 px-5 py-2.5 text-xs font-bold text-white shadow-md disabled:opacity-50 cursor-pointer transition-all"
+                disabled={isRunning || isRunningEscalation}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold text-white shadow-md disabled:opacity-50 cursor-pointer transition-all ${
+                  activeMode === '4CA' ? 'bg-blue-800 ring-2 ring-blue-400' : 'bg-[#0B3B82] hover:bg-blue-900 active:bg-blue-950'
+                }`}
               >
                 {isRunning ? (
-                  <>
-                    <RotateCw className="h-4 w-4 animate-spin" />
-                    <span>Đang thẩm định tự động…</span>
-                  </>
+                  <><RotateCw className="h-4 w-4 animate-spin" /><span>Đang chạy…</span></>
                 ) : (
-                  <>
-                    <Play className="h-4 w-4 fill-current" />
-                    <span>⚡ KÍCH HOẠT THẨM ĐỊNH 4 CA TRỌNG YẾU (TIÊU CHÍ 2 · 12 ĐIỂM)</span>
-                  </>
+                  <><Play className="h-4 w-4 fill-current" /><span>⚡ 4 CA TRỌNG YẾU (TIÊU CHÍ 2)</span></>
+                )}
+              </button>
+
+              {/* Nút 5 CA — Đề bài A (3 auto + 2 escalate) */}
+              <button
+                type="button"
+                id="btn-verify-5ca"
+                onClick={runEscalation}
+                disabled={isRunning || isRunningEscalation}
+                className={`flex items-center gap-2 rounded-lg px-4 py-2.5 text-xs font-bold shadow-md disabled:opacity-50 cursor-pointer transition-all ${
+                  activeMode === '5CA'
+                    ? 'bg-amber-700 text-white ring-2 ring-amber-400'
+                    : 'bg-amber-600 hover:bg-amber-700 active:bg-amber-800 text-white'
+                }`}
+              >
+                {isRunningEscalation ? (
+                  <><RotateCw className="h-4 w-4 animate-spin" /><span>Đang chạy…</span></>
+                ) : (
+                  <><Play className="h-4 w-4 fill-current" /><span>🎯 5 CA ĐỀ BÀI A (3 AUTO + 2 ESCALATE)</span></>
                 )}
               </button>
             </div>
@@ -250,129 +290,172 @@ export default function VerifyHarnessPage() {
           )}
         </header>
 
-        {/* Nội dung ma trận kiểm thử và Live Console */}
-        <main className="grid gap-3 xl:grid-cols-12">
-          {/* Cột trái: Bộ 4 ca trọng yếu chuẩn Track A */}
-          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm xl:col-span-8">
+        {/* Nội dung ma trận kiểm thử, Live Console và Thẩm định chia 3 Cột theo góc nhìn BGK */}
+        <main className="grid gap-3.5 xl:grid-cols-12 items-start">
+          {/* CỘT 1: MA TRẬN BAREM KIỂM THỬ (xl:col-span-4) */}
+          <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-xs xl:col-span-4 flex flex-col">
             <div className="flex items-center justify-between border-b border-slate-200 p-3 bg-slate-50">
               <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-800">
-                <FileText className="h-4 w-4 text-blue-700" />
-                Bộ 4 ca trọng yếu: TH-01 (ROUTINE) · TH-02 (ASK) · TH-03 (REJECT) · TH-04 (ESCALATE)
+                <FileText className="h-4 w-4 text-[#0B3B82]" />
+                <span>
+                  {activeMode === '5CA'
+                    ? 'Bộ 5 ca Đề bài A'
+                    : 'Bộ 4 ca trọng yếu'}
+                </span>
               </div>
-              <span className="text-xs font-mono text-slate-500">
+              <span className="text-[10px] font-mono text-slate-500 bg-white px-2 py-0.5 rounded border border-slate-200">
                 Policy: {run?.policyVersion || 'Chưa chạy'}
               </span>
             </div>
 
-            <div className="overflow-x-auto">
-              <table className="w-full min-w-[760px] text-left text-xs">
-                <thead className="bg-slate-100/70 text-slate-600 font-bold">
-                  <tr>
-                    <th className="p-3">Mã</th>
-                    <th className="p-3">Kịch bản thẩm định</th>
-                    <th className="p-3">Phân loại đề bài</th>
-                    <th className="p-3">Kỳ vọng</th>
-                    <th className="p-3">Thực tế</th>
-                    <th className="p-3">Kết luận</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-100">
-                  {cases.map((testCase) => {
-                    const executed = Object.prototype.hasOwnProperty.call(testCase, 'actualDecision');
-                    const isSelected = selected?.id === testCase.id;
-                    return (
-                      <tr
-                        key={testCase.id}
-                        onClick={() => setSelectedId(testCase.id)}
-                        className={`cursor-pointer transition-colors ${
-                          isSelected ? 'bg-blue-50 font-medium' : 'hover:bg-slate-50'
-                        }`}
-                      >
-                        <td className="p-3 font-mono font-bold text-blue-700">{testCase.id}</td>
-                        <td className="p-3 font-semibold text-slate-900">{testCase.title}</td>
-                        <td className="p-3 font-mono text-[11px] text-slate-600">
-                          {testCase.classification || testCase.category || '—'}
-                        </td>
-                        <td className="p-3">
-                          <DecisionBadge value={testCase.expectedDecision} />
-                        </td>
-                        <td className="p-3">
-                          <DecisionBadge value={executed ? testCase.actualDecision : null} />
-                        </td>
-                        <td className="p-3">
-                          {executed ? (
-                            testCase.passed ? (
-                              <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
-                                <CheckCircle2 className="h-4 w-4" />
-                                PASS
-                              </span>
-                            ) : (
-                              <span className="inline-flex items-center gap-1 font-bold text-rose-700">
-                                <XCircle className="h-4 w-4" />
-                                FAIL
-                              </span>
-                            )
-                          ) : (
-                            <span className="text-slate-400">Chờ kích hoạt</span>
-                          )}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
+            <div className="px-3 py-1.5 bg-blue-50/60 border-b border-slate-100 flex items-center justify-between text-[11px] text-slate-600">
+              <span>Bấm vào ca để xem chi tiết Cột 3 &rarr;</span>
+              <span className="font-semibold font-mono text-blue-700">Đang chọn: {selected?.id}</span>
             </div>
 
-            {/* Chi tiết ca đang chọn */}
-            <div className="grid gap-3 border-t border-slate-200 p-4 bg-slate-50/50 md:grid-cols-3">
-              <div>
-                <div className="text-[10px] font-bold uppercase text-slate-500">Đầu vào của sinh viên (Input)</div>
-                <p className="mt-1 text-xs leading-5 text-slate-800 bg-white p-2.5 rounded border border-slate-200">
+            {/* Danh sách các ca test dạng Thẻ Tương Tác Trực Quan */}
+            <div className="p-2.5 flex flex-col gap-2 max-h-[calc(100vh-280px)] overflow-y-auto">
+              {cases.map((testCase) => {
+                const executed = Object.prototype.hasOwnProperty.call(testCase, 'actualDecision');
+                const isSelected = selected?.id === testCase.id;
+                return (
+                  <div
+                    key={testCase.id}
+                    onClick={() => setSelectedId(testCase.id)}
+                    className={`cursor-pointer rounded-lg border p-2.5 transition-all ${
+                      isSelected
+                        ? 'border-[#0B3B82] bg-blue-50/70 shadow-xs ring-2 ring-blue-300'
+                        : 'border-slate-200 bg-white hover:border-blue-200 hover:bg-slate-50/70'
+                    }`}
+                  >
+                    {/* Hàng 1: Mã ca + Category badge + Kết luận PASS/FAIL */}
+                    <div className="flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
+                        <span className="font-mono text-xs font-bold text-[#0B3B82] bg-blue-100/70 px-1.5 py-0.5 rounded border border-blue-200">
+                          {testCase.id}
+                        </span>
+                        <span className="font-mono text-[10px] text-slate-500 uppercase tracking-wide">
+                          {testCase.classification || testCase.category || '—'}
+                        </span>
+                      </div>
+
+                      <div>
+                        {executed ? (
+                          testCase.passed ? (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-200">
+                              <CheckCircle2 className="h-3.5 w-3.5" />
+                              PASS
+                            </span>
+                          ) : (
+                            <span className="inline-flex items-center gap-1 text-[11px] font-bold text-rose-700 bg-rose-50 px-2 py-0.5 rounded border border-rose-200">
+                              <XCircle className="h-3.5 w-3.5" />
+                              FAIL
+                            </span>
+                          )
+                        ) : (
+                          <span className="text-[11px] text-slate-400 font-medium">Chờ kích hoạt</span>
+                        )}
+                      </div>
+                    </div>
+
+                    {/* Hàng 2: Tiêu đề kịch bản */}
+                    <p className="mt-1.5 text-xs font-semibold text-slate-800 leading-snug">
+                      {testCase.title}
+                    </p>
+
+                    {/* Hàng 3: Kỳ vọng -> Thực tế */}
+                    <div className="mt-2 pt-2 border-t border-slate-100 flex items-center justify-between text-[11px]">
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold">Kỳ vọng:</span>
+                        <DecisionBadge value={testCase.expectedDecision} />
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-slate-400 uppercase font-semibold">Thực tế:</span>
+                        <DecisionBadge value={executed ? testCase.actualDecision : null} />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+
+          {/* CỘT 2: LIVE REASONING TERMINAL (xl:col-span-4) - FULL HEIGHT */}
+          <section className="overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-sm xl:col-span-4 flex flex-col min-h-[640px]">
+            <LiveTerminalConsole maxHeight="max-h-[calc(100vh-210px)] min-h-[620px] overflow-y-auto" className="h-full border-0 shadow-none flex-1" />
+          </section>
+
+          {/* CỘT 3: THẨM ĐỊNH CHI TIẾT & SANDBOX GIÁM KHẢO (xl:col-span-4) */}
+          <aside className="flex flex-col gap-3 xl:col-span-4">
+            {/* Thẻ 1: Chi tiết ca đang chọn (Case Inspector & Audit Evidence) */}
+            <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
+              <div className="mb-2.5 flex items-center justify-between border-b border-slate-100 pb-2">
+                <div className="text-xs font-bold uppercase tracking-wider text-[#0B3B82] flex items-center gap-1.5">
+                  <FileText className="h-4 w-4" />
+                  <span>Chi tiết ca: <strong className="font-mono text-blue-900">{selected?.id || 'TH-01'}</strong></span>
+                </div>
+                {selected?.actualDecision && (
+                  <DecisionBadge value={selected.actualDecision} />
+                )}
+              </div>
+
+              {/* Đầu vào sinh viên */}
+              <div className="mb-2.5">
+                <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Đầu vào của sinh viên (Input)</div>
+                <p className="text-xs leading-5 text-slate-800 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                   {selected?.prompt || selected?.title}
                 </p>
               </div>
-              <div>
-                <div className="text-[10px] font-bold uppercase text-slate-500">Quyết định & Câu hỏi hành động</div>
+
+              {/* Quyết định & Câu hỏi hành động */}
+              <div className="mb-2.5">
+                <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Quyết định & Câu hỏi hành động</div>
                 {selected?.actualDecision ? (
-                  <div className="mt-1 space-y-1.5 bg-white p-2.5 rounded border border-slate-200">
-                    <DecisionBadge value={selected.actualDecision} />
-                    <p className="text-xs leading-5 text-slate-700">
+                  <div className="space-y-1.5 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
+                    <p className="text-xs leading-5 text-slate-800 font-medium">
                       {selected.actionableQuestion || selected.message}
                     </p>
                   </div>
                 ) : (
-                  <p className="mt-1 text-xs text-slate-400 bg-white p-2.5 rounded border border-slate-200">
+                  <p className="text-xs text-slate-400 bg-slate-50 p-2.5 rounded-lg border border-slate-200">
                     Chưa có kết quả thực thi.
                   </p>
                 )}
               </div>
+
+              {/* Bằng chứng kiểm toán SHA-256 & Độ trễ */}
               <div>
-                <div className="text-[10px] font-bold uppercase text-slate-500">Bằng chứng kiểm toán (Audit Evidence)</div>
-                <div className="mt-1 space-y-1 font-mono text-[11px] bg-white p-2.5 rounded border border-slate-200 text-slate-600">
-                  <p>
-                    <Clock className="mr-1 inline h-3 w-3 text-slate-400" />
-                    Độ trễ: {selected?.durationMs != null ? `${selected.durationMs} ms` : '—'}
-                  </p>
-                  <p>Bắt đầu: {formatTimestamp(selected?.startedAt)}</p>
-                  <p>Kết thúc: {formatTimestamp(selected?.completedAt)}</p>
-                  <p className="break-all font-bold text-blue-700">
-                    SHA-256: {selected?.sha256Proof ? `${selected.sha256Proof.slice(0, 24)}...` : '—'}
-                  </p>
+                <div className="text-[10px] font-bold uppercase text-slate-500 mb-1">Bằng chứng kiểm toán (Audit Evidence)</div>
+                <div className="space-y-1 font-mono text-[11px] bg-slate-50 p-2.5 rounded-lg border border-slate-200 text-slate-600">
+                  <div className="flex items-center justify-between">
+                    <span className="flex items-center gap-1 text-slate-500">
+                      <Clock className="h-3 w-3" /> Độ trễ:
+                    </span>
+                    <span className="font-bold text-slate-800">
+                      {selected?.durationMs != null ? `${selected.durationMs} ms` : '—'}
+                    </span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Bắt đầu:</span>
+                    <span>{formatTimestamp(selected?.startedAt)}</span>
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <span className="text-slate-500">Kết thúc:</span>
+                    <span>{formatTimestamp(selected?.completedAt)}</span>
+                  </div>
+                  <div className="pt-1 border-t border-slate-200">
+                    <span className="text-slate-500 text-[10px]">SHA-256:</span>
+                    <div className="break-all font-bold text-blue-700 text-[10px]">
+                      {selected?.sha256Proof || '—'}
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
-          </section>
 
-          {/* Cột phải: Live Console & Ca thử nghiệm của Giám khảo */}
-          <aside className="flex flex-col gap-3 xl:col-span-4">
-            {/* Terminal theo dõi tiến trình thời gian thực */}
-            <div className="min-h-[300px] overflow-hidden rounded-xl border border-slate-800 bg-slate-950 shadow-sm">
-              <LiveTerminalConsole maxHeight="max-h-[360px] overflow-y-auto" className="h-full border-0 shadow-none" />
-            </div>
-
-            {/* Hộp thử nghiệm ca tự do dành cho Giám khảo */}
-            <div className="rounded-xl border border-slate-200/90 bg-white p-4 shadow-2xs">
-              <div className="mb-2.5 flex items-center justify-between">
+            {/* Thẻ 2: Hộp thử nghiệm ca tự do dành cho Giám khảo */}
+            <div className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-xs">
+              <div className="mb-2 flex items-center justify-between border-b border-slate-100 pb-2">
                 <div className="text-xs font-bold uppercase tracking-wider text-[#0B3B82]">
                   Thử nghiệm ca của Giám khảo
                 </div>
@@ -382,11 +465,11 @@ export default function VerifyHarnessPage() {
               </div>
 
               {/* Quick-Test Chips 1-Click */}
-              <div className="mb-3">
+              <div className="mb-2.5">
                 <div className="text-[10px] font-bold text-slate-500 uppercase tracking-wider mb-1.5">
                   Kịch bản thử nghiệm nhanh (1-Click):
                 </div>
-                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-3">
+                <div className="grid grid-cols-2 gap-1.5 sm:grid-cols-4">
                   {QUICK_TEST_CHIPS.map((chip, idx) => (
                     <button
                       key={idx}
@@ -394,7 +477,7 @@ export default function VerifyHarnessPage() {
                       onClick={() => handleSelectChip(chip)}
                       title={chip.tip}
                       disabled={isCustomRunning}
-                      className={`flex items-center justify-between rounded-lg border px-2 py-1.5 text-[11px] font-medium transition-all cursor-pointer disabled:opacity-50 ${chip.color}`}
+                      className={`flex items-center justify-between rounded-lg border px-1.5 py-1 text-[10px] font-medium transition-all cursor-pointer disabled:opacity-50 ${chip.color}`}
                     >
                       <span className="truncate">{chip.label}</span>
                       <span className="ml-1 text-[9px] font-bold uppercase opacity-80">{chip.badge}</span>
@@ -404,17 +487,34 @@ export default function VerifyHarnessPage() {
               </div>
 
               <div className="mb-2 grid grid-cols-2 gap-2 text-xs">
-                <label>SĐT thử nghiệm<input aria-label="Số điện thoại kiểm thử" className="mt-1 w-full rounded border p-2" value={customPhone} onChange={(event) => setCustomPhone(event.target.value)} /></label>
-                <label>Cơ sở nhận<input aria-label="Cơ sở nhận kiểm thử" className="mt-1 w-full rounded border p-2" value={customCampus} onChange={(event) => setCustomCampus(event.target.value)} /></label>
+                <label className="text-[10px] font-semibold text-slate-600">
+                  SĐT thử nghiệm
+                  <input
+                    aria-label="Số điện thoại kiểm thử"
+                    className="mt-1 w-full rounded border border-slate-200 p-1.5 text-xs"
+                    value={customPhone}
+                    onChange={(event) => setCustomPhone(event.target.value)}
+                  />
+                </label>
+                <label className="text-[10px] font-semibold text-slate-600">
+                  Cơ sở nhận
+                  <input
+                    aria-label="Cơ sở nhận kiểm thử"
+                    className="mt-1 w-full rounded border border-slate-200 p-1.5 text-xs"
+                    value={customCampus}
+                    onChange={(event) => setCustomCampus(event.target.value)}
+                  />
+                </label>
               </div>
-              <p className="mb-2 text-[11px] text-slate-500">Các dữ kiện trên được gửi cùng prompt. Xóa trường để kiểm tra thiếu thông tin; backend không tự điền.</p>
+
               <textarea
                 value={customPrompt}
                 onChange={(event) => setCustomPrompt(event.target.value)}
                 rows={2}
-                className="w-full resize-none rounded-lg border border-slate-300 p-2.5 text-xs outline-none focus:border-[#0B3B82] focus:ring-1 focus:ring-[#0B3B82]"
+                className="w-full resize-none rounded-lg border border-slate-300 p-2 text-xs outline-none focus:border-[#0B3B82] focus:ring-1 focus:ring-[#0B3B82]"
                 placeholder="Nhập yêu cầu kiểm thử hoặc bấm các nút kịch bản mẫu ở trên…"
               />
+
               <button
                 onClick={() => runCustom()}
                 disabled={isCustomRunning || !customPrompt.trim()}
@@ -423,17 +523,18 @@ export default function VerifyHarnessPage() {
                 {isCustomRunning ? <RotateCw className="h-4 w-4 animate-spin" /> : null}
                 <span>Chạy qua Policy Engine</span>
               </button>
-              <div className="mt-3 min-h-24 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
-                {!customResult && <p className="text-slate-400">Kết quả sẽ xuất hiện sau khi backend thực thi.</p>}
+
+              <div className="mt-2.5 min-h-20 rounded-lg border border-slate-200 bg-slate-50 p-2.5 text-xs">
+                {!customResult && <p className="text-slate-400 text-center py-2">Kết quả sẽ xuất hiện sau khi backend thực thi.</p>}
                 {customResult && !customResult.success && <p className="text-rose-700 font-semibold">{customResult.error}</p>}
                 {customResult?.success && (
-                  <div className="space-y-2">
+                  <div className="space-y-1.5">
                     <div className="flex items-center justify-between">
                       <DecisionBadge value={customDecision} />
                       <span className="font-mono text-[10px] text-slate-500">{customResult.durationMs} ms</span>
                     </div>
-                    <p><strong>Phân loại:</strong> {customResult.data?.classification || '—'}</p>
-                    <p className="text-slate-700">{customQuestion || customResult.data?.message}</p>
+                    <p className="text-slate-800 font-medium"><strong>Phân loại:</strong> {customResult.data?.classification || '—'}</p>
+                    <p className="text-slate-700 leading-snug">{customQuestion || customResult.data?.message}</p>
                     <p className="text-[10px] text-slate-500 font-mono">Hoàn tất: {formatTimestamp(customResult.completedAt)}</p>
                   </div>
                 )}

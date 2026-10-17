@@ -198,6 +198,14 @@ router.post('/verify-general', authenticateToken, verifyLimiter, async (req, res
   catch (error) { respondServerError(req, res, error); }
 });
 
+/**
+ * POST /api/agent/verify-escalation (Bộ 5 ca Đề bài A: 3 tự động + 2 chuyển tiếp — chuẩn barem 90s)
+ */
+router.post('/verify-escalation', authenticateToken, verifyLimiter, async (req, res) => {
+  try { res.json(await verifyTools.run_verify_escalation()); }
+  catch (error) { respondServerError(req, res, error); }
+});
+
 
 /**
  * POST /api/agent/verify-custom (Kích hoạt thẩm định ca kiểm thử tùy chỉnh do BGK nhập)

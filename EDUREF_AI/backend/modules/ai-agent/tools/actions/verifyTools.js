@@ -3,7 +3,7 @@ import { randomUUID } from 'node:crypto';
 import prisma from '../../../../config/prisma.js';
 import { publicErrorMessage } from '../../../../services/ErrorShield.js';
 import { agentTerminalLogger } from '../../core/AgentTerminalLogger.js';
-import { TRACK_A_VERIFY_CASES, GENERAL_VERIFY_CASES } from '../../../../fixtures/trackAVerifyCases.js';
+import { TRACK_A_VERIFY_CASES, TRACK_A_ESCALATION_CASES, GENERAL_VERIFY_CASES } from '../../../../fixtures/trackAVerifyCases.js';
 import {
   inferStudentConfirmationInput,
   STUDENT_CONFIRMATION_POLICY_VERSION,
@@ -171,7 +171,11 @@ async function executeSuite({ mode, cases }) {
   const passedCases = results.filter((result) => result.passed).length;
   const autoCount = results.filter((result) => result.actualDecision === 'AUTO_APPROVED').length;
   const escalationCount = results.filter((result) => result.actualDecision?.startsWith('ESCALATE_')).length;
-  const distributionPassed = mode !== 'TRACK_A_ESCALATION' || (autoCount >= 1 && escalationCount >= 1);
+  const distributionPassed = mode === 'TRACK_A_ESCALATION_5CA'
+    ? (escalationCount >= 2 && (cases.length - escalationCount) >= 3)
+    : mode === 'TRACK_A_ESCALATION'
+      ? (autoCount >= 1 && escalationCount >= 1)
+      : true;
   const allPassed = passedCases === cases.length && distributionPassed;
 
   agentTerminalLogger.log({
@@ -207,6 +211,10 @@ export const verifyTools = {
   },
   async run_verify_90s() {
     return executeSuite({ mode: 'TRACK_A_ESCALATION', cases: TRACK_A_VERIFY_CASES });
+  },
+
+  async run_verify_escalation() {
+    return executeSuite({ mode: 'TRACK_A_ESCALATION_5CA', cases: TRACK_A_ESCALATION_CASES });
   },
 
   async run_custom_verify({ studentCode = '2280602154', requestTypeCode = 'STUDENT_CONFIRMATION', inputData = {}, documents = [] }) {

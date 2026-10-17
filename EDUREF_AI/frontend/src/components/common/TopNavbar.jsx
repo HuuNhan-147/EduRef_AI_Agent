@@ -79,15 +79,12 @@ export default function TopNavbar({
     <header className="bg-[#0B3B82] text-white border-b border-[#082C64] sticky top-0 z-40 shadow-sm select-none">
       <div className="w-full px-3 sm:px-5 lg:px-6 h-16 flex items-center justify-between gap-3">
         
-        {/* Khối Nhận Diện Thương Hiệu Hành Chính Chuẩn Chính Quy HUTECH */}
+        {/* Khối Nhận Diện Thương Hiệu EduRef AI */}
         <div className="flex items-center gap-2.5 shrink-0">
-          {/* Logo HUTECH đại diện trường */}
-          <div className="h-9 px-2 py-0.5 bg-white rounded-lg flex items-center justify-center shadow-xs border border-white/40 shrink-0">
-            <img src="/hutech_logo.png" alt="HUTECH University" className="h-full w-auto object-contain" />
+          {/* Logo Biểu Trưng EduRef AI */}
+          <div className="h-9 w-9 bg-white/10 hover:bg-white/15 rounded-xl flex items-center justify-center shadow-xs border border-white/20 shrink-0 text-amber-300">
+            <ShieldCheck className="h-5 w-5" />
           </div>
-
-          {/* Vạch phân cách tinh tế */}
-          <div className="h-7 w-px bg-blue-400/30 hidden sm:block shrink-0" />
 
           <div>
             <div className="flex items-center gap-2">

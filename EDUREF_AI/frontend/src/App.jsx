@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { ShieldCheck } from "lucide-react";
 import TopNavbar from './components/common/TopNavbar';
 import StudentWorkspacePage from './pages/StudentWorkspacePage';
 import StaffEscalationPage from './pages/StaffEscalationPage';
@@ -183,14 +184,14 @@ export default function App() {
     return (
       <div className="flex min-h-screen items-center justify-center bg-[#0B3B82] px-4 text-white">
         <div className="w-full max-w-md rounded-2xl border border-blue-400/30 bg-[#082C64] p-7 text-center shadow-2xl">
-          <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-white flex items-center justify-center p-1.5 shadow-md">
-            <img src="/hutech_logo.png" alt="HUTECH" className="h-full w-auto object-contain" />
+          <div className="mx-auto mb-4 h-12 w-12 rounded-xl bg-white/10 border border-white/20 flex items-center justify-center shadow-md text-amber-300">
+            <ShieldCheck className="h-7 w-7" />
           </div>
           <h1 className="text-base font-bold text-white tracking-wide">EduRef AI · Cổng Dịch Vụ Học Vụ Tự Hành</h1>
           {authStatus === 'loading' ? (
             <div className="mt-3 flex items-center justify-center gap-2 text-xs text-blue-200">
               <span className="w-2 h-2 rounded-full bg-blue-300 animate-ping"></span>
-              <span>Đang kết nối cổng dịch vụ học vụ HUTECH…</span>
+              <span>Đang kết nối cổng dịch vụ học vụ tự hành…</span>
             </div>
           ) : (
             <>
