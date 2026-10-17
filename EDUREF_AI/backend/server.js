@@ -44,6 +44,7 @@ const allowedOrigins = [
   'https://edu-ref-ai-agent.vercel.app',
   'https://edu-ref-ai-agent-git-main-hu-nhans-projects.vercel.app',
   'https://edu-ref-ai-agent-fru4xivtn-hu-nhans-projects.vercel.app',
+  'https://www.eduref.tech/',
   process.env.FRONTEND_URL,
 ].filter(Boolean);
 
