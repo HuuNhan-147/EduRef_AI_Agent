@@ -1,0 +1,28 @@
+❌ [OpenAIStreamClient] OPENAI_API_KEY chưa được cấu hình!
+❌ [AgentOrchestrator] Lỗi: Error: OPENAI_API_KEY chưa được cấu hình. Vui lòng kiểm tra file .env.
+    at OpenAIStreamClient.streamGenerateContent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/llm/OpenAIStreamClient.js:209:13)
+    at LlmStreamRouter.streamGenerateContent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/llm/LlmStreamRouter.js:34:38)
+    at AgentOrchestrator.run (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/core/AgentOrchestrator.js:259:49)
+    at async runAgent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/index.js:8:10)
+    at async Socket.<anonymous> (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/server.js:187:22)
+❌ [OpenAIStreamClient] OPENAI_API_KEY chưa được cấu hình!
+❌ [AgentOrchestrator] Lỗi: Error: OPENAI_API_KEY chưa được cấu hình. Vui lòng kiểm tra file .env.
+    at OpenAIStreamClient.streamGenerateContent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/llm/OpenAIStreamClient.js:209:13)
+    at LlmStreamRouter.streamGenerateContent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/llm/LlmStreamRouter.js:34:38)
+    at AgentOrchestrator.run (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/core/AgentOrchestrator.js:259:49)
+    at async runAgent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/index.js:8:10)
+    at async Socket.<anonymous> (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/server.js:187:22)
+❌ [OpenAIStreamClient] OPENAI_API_KEY chưa được cấu hình!
+❌ [AgentOrchestrator] Lỗi: Error: OPENAI_API_KEY chưa được cấu hình. Vui lòng kiểm tra file .env.
+    at OpenAIStreamClient.streamGenerateContent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/llm/OpenAIStreamClient.js:209:13)
+    at LlmStreamRouter.streamGenerateContent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/llm/LlmStreamRouter.js:34:38)
+    at AgentOrchestrator.run (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/core/AgentOrchestrator.js:259:49)
+    at async runAgent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/index.js:8:10)
+    at async Socket.<anonymous> (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/server.js:187:22)
+❌ [OpenAIStreamClient] OPENAI_API_KEY chưa được cấu hình!
+❌ [AgentOrchestrator] Lỗi: Error: OPENAI_API_KEY chưa được cấu hình. Vui lòng kiểm tra file .env.
+    at OpenAIStreamClient.streamGenerateContent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/llm/OpenAIStreamClient.js:209:13)
+    at LlmStreamRouter.streamGenerateContent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/llm/LlmStreamRouter.js:34:38)
+    at AgentOrchestrator.run (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/core/AgentOrchestrator.js:259:49)
+    at async runAgent (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/modules/ai-agent/index.js:8:10)
+    at async Socket.<anonymous> (file:///D:/Documents/Projects/MLAI/New/EduRef_AI_Agent/EDUREF_AI/backend/server.js:187:22)

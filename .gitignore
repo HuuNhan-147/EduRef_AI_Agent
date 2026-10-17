@@ -11,3 +11,5 @@ scratch/
 **/scratch/
 
 /EDUREF_AI/backend/.env.example
+
+EDUREF_AI/backend/.env.example

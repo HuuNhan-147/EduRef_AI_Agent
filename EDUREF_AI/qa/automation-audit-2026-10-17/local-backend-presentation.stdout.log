@@ -6,3 +6,72 @@ Using a generated signing key for this local session. The .env file is unchanged
 📡 Socket.IO sẵn sàng đón nhận kết nối
 🗄️  Cơ sở dữ liệu: Supabase PostgreSQL qua Prisma
 =======================================================
+🟢 [Socket.IO] Client đã kết nối: rH3VrJ5xlXufB8oIAAAA
+🔴 [Socket.IO] Client ngắt kết nối: rH3VrJ5xlXufB8oIAAAA
+🟢 [Socket.IO] Client đã kết nối: Ubqm3hUyiOtqP1eJAAAB
+[06:40:11.252] ℹ️ [WORKFLOW_START] Bắt đầu chuẩn bị Tạm hoãn NVQS.
+[06:40:11.640] 📥 [PROFILE_LOADED] Đã lấy hồ sơ sinh viên từ backend; tái sử dụng thông tin có sẵn.
+[06:40:11.919] 📥 [DRAFT_SAVED] Đã lưu dữ liệu công việc; chưa nộp đơn khi chưa có xác nhận cuối.
+[06:40:12.046] 📥 [REQUIREMENTS_CHECK] Đã kiểm tra các trường bắt buộc của biểu mẫu.
+[06:40:12.199] 📥 [POLICY_CHECK] Đã đối chiếu dữ liệu học vụ và lịch sử hồ sơ với quy định nhà trường.
+[06:40:12.257] ⚡ [WAITING_INPUT] Đã điền thông tin có sẵn. Chỉ cần bổ sung: Cơ sở nhận giấy, Lý do xin cấp lại.
+🔴 [Socket.IO] Client ngắt kết nối: Ubqm3hUyiOtqP1eJAAAB
+🟢 [Socket.IO] Client đã kết nối: xjn1m9AzeKQ34iTgAAAC
+[06:40:34.483] ℹ️ [WORKFLOW_START] Bắt đầu chuẩn bị Tạm hoãn NVQS.
+[06:40:34.735] 📥 [PROFILE_LOADED] Đã lấy hồ sơ sinh viên từ backend; tái sử dụng thông tin có sẵn.
+[06:40:34.868] 📥 [DRAFT_SAVED] Đã lưu dữ liệu công việc; chưa nộp đơn khi chưa có xác nhận cuối.
+[06:40:35.017] 📥 [REQUIREMENTS_CHECK] Đã kiểm tra các trường bắt buộc của biểu mẫu.
+[06:40:35.079] 📥 [POLICY_CHECK] Đã đối chiếu dữ liệu học vụ và lịch sử hồ sơ với quy định nhà trường.
+[06:40:35.487] 🛡️ [DECISION_SAVED] Đã ghi quyết định từ chối và bằng chứng kiểm toán trong giao dịch dữ liệu.
+[06:40:35.554] ⚡ [WORKFLOW_CLOSED] Không thể cấp Tạm hoãn NVQS: Sinh viên đã quá thời gian đào tạo chuẩn 4 năm và còn học phần chưa hoàn thành. Theo quy định hiện tại, trường hợp này cần dùng Biểu mẫu xác nhận nợ môn, không đủ điều kiện cấp biểu mẫu đang yêu cầu. Quy trình này đã kết thúc. Bạn có thể bắt đầu hồ sơ Biểu mẫu nợ môn bằng nút bên dưới. Hệ thống sẽ dùng lại thông tin hồ sơ và chỉ hỏi phần còn thiếu.
+[06:40:44.294] ℹ️ [WORKFLOW_START] Bắt đầu chuẩn bị Biểu mẫu nợ môn.
+[06:40:44.414] 📥 [PROFILE_LOADED] Đã lấy hồ sơ sinh viên từ backend; tái sử dụng thông tin có sẵn.
+[06:40:44.491] 📥 [DRAFT_SAVED] Đã lưu dữ liệu công việc; chưa nộp đơn khi chưa có xác nhận cuối.
+[06:40:44.619] 📥 [REQUIREMENTS_CHECK] Đã kiểm tra các trường bắt buộc của biểu mẫu.
+[06:40:44.690] 📥 [POLICY_CHECK] Đã đối chiếu dữ liệu học vụ và lịch sử hồ sơ với quy định nhà trường.
+[06:40:44.690] ⚡ [WAITING_INPUT] Đã điền thông tin có sẵn. Chỉ cần bổ sung: Cơ sở nhận giấy, Các học phần còn nợ.
+[06:40:52.353] ℹ️ [WORKFLOW_START] Cập nhật công việc từ thông tin được cung cấp.
+[06:40:52.608] 📥 [PROFILE_LOADED] Đã lấy hồ sơ sinh viên từ backend; tái sử dụng thông tin có sẵn.
+[06:40:52.804] 📥 [DRAFT_SAVED] Đã lưu dữ liệu công việc; chưa nộp đơn khi chưa có xác nhận cuối.
+[06:40:52.922] 📥 [REQUIREMENTS_CHECK] Đã kiểm tra các trường bắt buộc của biểu mẫu.
+[06:40:53.012] 📥 [POLICY_CHECK] Đã đối chiếu dữ liệu học vụ và lịch sử hồ sơ với quy định nhà trường.
+[06:40:53.070] ⚡ [WAITING_INPUT] Đã điền thông tin có sẵn. Chỉ cần bổ sung: Cơ sở nhận giấy.
+[06:40:54.067] ℹ️ [WORKFLOW_START] Cập nhật công việc từ thông tin được cung cấp.
+[06:40:54.313] 📥 [PROFILE_LOADED] Đã lấy hồ sơ sinh viên từ backend; tái sử dụng thông tin có sẵn.
+[06:40:54.445] 📥 [DRAFT_SAVED] Đã lưu dữ liệu công việc; chưa nộp đơn khi chưa có xác nhận cuối.
+[06:40:54.582] 📥 [REQUIREMENTS_CHECK] Đã kiểm tra các trường bắt buộc của biểu mẫu.
+[06:40:54.647] 📥 [POLICY_CHECK] Đã đối chiếu dữ liệu học vụ và lịch sử hồ sơ với quy định nhà trường.
+[06:40:54.714] ⚡ [WAITING_CONFIRMATION] Đã chuẩn bị hồ sơ từ dữ liệu có sẵn. Bạn kiểm tra và bấm xác nhận nộp một lần.
+[06:40:57.675] ℹ️ [WORKFLOW_START] Tiếp nhận xác nhận cuối và thực thi quy trình cấp giấy.
+[06:40:57.969] 📥 [REQUIREMENTS_CHECK] Đã kiểm tra các trường bắt buộc của biểu mẫu.
+[06:40:58.029] 📥 [POLICY_CHECK] Đã đối chiếu dữ liệu học vụ và lịch sử hồ sơ với quy định nhà trường.
+[06:40:58.031] 📥 [CONFIRMATION_CHECKED] Đã kiểm tra xác nhận cuối gắn với đúng phiên bản dữ liệu.
+[06:40:58.035] 🛠️ [WORKFLOW_EXECUTION] Gọi bộ xử lý tạo hồ sơ, kiểm tra quy định và thẩm quyền quyết định.
+
+🚀 [PetitionWorkflowCore] Bắt đầu xử lý đơn: Code=[STUDENT_CONFIRMATION], MSSV=[2280602154]
+  📄 [Core] Đã tạo mã hồ sơ mới: [XNSV-811643]
+  🔍 [Core Chốt 1] Kiểm tra điều kiện đầu vào (Requirements)...
+  ⚖️  [Core Chốt 2] Kiểm tra Quy chế Đào tạo (Policies)...
+  🔒 [Core Chốt 3] Kiểm tra Thẩm quyền xử lý (Authority)...
+  🟢 [Core Chốt 4 & 5] Đơn hợp lệ & trong thẩm quyền -> Tự động phê duyệt (AUTO_APPROVE)...
+  🎉 [Core] Hoàn tất tự động duyệt đơn [XNSV-811643] trong 2402ms!
+
+[06:41:00.567] 🛡️ [DECISION_SAVED] Bộ xử lý đã trả kết quả; đã ghi xác nhận và bằng chứng kiểm toán.
+[06:41:01.012] ⚡ [WORKFLOW_RESULT] Đơn [XNSV-811643] đã được EduRef AI tự động thẩm định thành công trong 2402ms. Lịch nhận bản cứng là thông tin dự kiến trong bản demo; việc phát hành cần đơn vị phụ trách xác nhận.
+
+📅 **Lịch hẹn nhận bản cứng:**
+- **Địa điểm:** Phòng Công tác Sinh viên (A-01.01) (Tầng trệt sảnh A, số 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh)
+- **Thời gian dự kiến nhận:** Buổi chiều (13h30 – 16h30), Thứ Hai ngày 19/10/2026
+- **Hotline hỗ trợ:** (028) 3512 0785
+[06:41:12.026] ℹ️ [START] Nhận yêu cầu: "hi" (Mô hình: gpt-4.1-mini)
+[06:41:12.408] 🧠 [REASONING] Tác tử đang phân tích ngôn ngữ tự nhiên và trích xuất thực thể...
+[06:41:12.413] ❌ [ERROR] Lỗi xử lý tác tử: Dịch vụ AI hiện chưa sẵn sàng. Bạn có thể chọn mô hình Tự động hoặc thử lại sau. Hồ sơ đã lưu vẫn xem được trong Đơn của tôi.
+[06:41:26.391] ℹ️ [START] Nhận yêu cầu: "hi" (Mô hình: gpt-4.1-mini)
+[06:41:26.870] 🧠 [REASONING] Tác tử đang phân tích ngôn ngữ tự nhiên và trích xuất thực thể...
+[06:41:26.871] ❌ [ERROR] Lỗi xử lý tác tử: Dịch vụ AI hiện chưa sẵn sàng. Bạn có thể chọn mô hình Tự động hoặc thử lại sau. Hồ sơ đã lưu vẫn xem được trong Đơn của tôi.
+[06:41:43.217] ℹ️ [START] Nhận yêu cầu: "hi" (Mô hình: gpt-4.1-mini)
+[06:41:43.503] 🧠 [REASONING] Tác tử đang phân tích ngôn ngữ tự nhiên và trích xuất thực thể...
+[06:41:43.504] ❌ [ERROR] Lỗi xử lý tác tử: Dịch vụ AI hiện chưa sẵn sàng. Bạn có thể chọn mô hình Tự động hoặc thử lại sau. Hồ sơ đã lưu vẫn xem được trong Đơn của tôi.
+[06:41:59.465] ℹ️ [START] Nhận yêu cầu: "hi" (Mô hình: gpt-4.1-mini)
+[06:41:59.727] 🧠 [REASONING] Tác tử đang phân tích ngôn ngữ tự nhiên và trích xuất thực thể...
+[06:41:59.729] ❌ [ERROR] Lỗi xử lý tác tử: Dịch vụ AI hiện chưa sẵn sàng. Bạn có thể chọn mô hình Tự động hoặc thử lại sau. Hồ sơ đã lưu vẫn xem được trong Đơn của tôi.
