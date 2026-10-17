@@ -1,0 +1,144 @@
+{
+  "runId": "QA_AUTOMATION_2026-10-17T04-14-39-609Z",
+  "mode": "probe",
+  "base": "https://eduref-ai-agent-1.onrender.com",
+  "startedAt": "2026-10-17T04:14:39.610Z",
+  "results": [
+    {
+      "id": "baseline",
+      "authenticatedUserFields": [
+        "id",
+        "studentCode",
+        "fullName",
+        "email",
+        "role",
+        "status",
+        "tuitionDebt",
+        "gpa",
+        "department"
+      ],
+      "existingRequests": [
+        {
+          "id": "cmvbv0dme0010do2tpb3e901w",
+          "code": "XNSV-999755",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbupyqj000vdo2t52eezopp",
+          "code": "XNSV-893877",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        }
+      ],
+      "hasMore": false,
+      "total": 2
+    },
+    {
+      "id": "greeting",
+      "message": "Xin chào",
+      "sentCurrentUserFields": [
+        "studentCode",
+        "fullName",
+        "role",
+        "studentClass",
+        "birthDate",
+        "gender",
+        "phone",
+        "idCard",
+        "permanentAddress"
+      ],
+      "httpStatus": 200,
+      "durationMs": 5978,
+      "success": true,
+      "decision": "PROCESSED",
+      "reply": "Chào bạn **Nguyễn Văn An**! 👋✨\n\nMình là **EduRef AI** — Trợ lý điều phối hành chính học vụ tự hành của HUTECH. Rất vui được đồng hành và hỗ trợ bạn hôm nay!\n\nHiện tại, mình có thể hỗ trợ bạn thực hiện các thủ tục cấp **Giấy Xác Nhận Sinh Viên** với 5 biểu mẫu chuẩn của Nhà trường:\n1. 📄 **Biểu mẫu tạm hoãn nghĩa vụ quân sự**: Phục vụ nộp Ban Chỉ huy Quân sự địa phương.\n2. 📄 **Biểu mẫu xác nhận vay vốn ngân hàng (Mẫu 01)**: Dành cho sinh viên vay vốn Ngân hàng Chính sách Xã hội.\n3. 📄 **Biểu mẫu giảm thuế thu nhập cá nhân**: Dành cho phụ huynh giảm trừ gia cảnh thuế TNCN.\n4. 📄 **Biểu mẫu nợ môn**: Dành cho sinh viên cần xác nhận tiếp tục hoàn thành chương trình đào tạo.\n5. 📄 **Biểu mẫu xác nhận sinh viên chung**: Phục vụ làm vé xe buýt, xin học bổng, làm visa/thị thực, bổ sung hồ sơ...\n\nHôm nay bạn cần mình hỗ trợ làm thủ tục hay giải đáp thắc mắc gì không nè? Bạn cứ chia sẻ với mình nhé! 🎯🏢",
+      "modelUsed": "gemini-3.8-flash",
+      "executionEvidence": [],
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "sidebar-tax-quick",
+      "message": "Em muốn xin cấp giấy xác nhận giảm trừ gia cảnh thuế TNCN nộp Chi cục Thuế cho ba mẹ em",
+      "sentCurrentUserFields": [
+        "studentCode",
+        "fullName",
+        "role",
+        "studentClass",
+        "birthDate",
+        "gender",
+        "phone",
+        "idCard",
+        "permanentAddress"
+      ],
+      "httpStatus": 200,
+      "durationMs": 14354,
+      "success": true,
+      "decision": "ASK_CLARIFICATION",
+      "status": "WAITING_STUDENT",
+      "requestId": "cmvbvuroh0015do2tp1ylvk3y",
+      "requestCode": "XNSV-116258",
+      "rule": "REQ_PHONE",
+      "missing": [
+        {
+          "code": "REQ_PHONE",
+          "name": "Số điện thoại",
+          "description": "Vui lòng cung cấp số điện thoại di động chính xác (10 chữ số)."
+        },
+        {
+          "code": "REQ_ADDRESS",
+          "name": "Hộ khẩu thường trú",
+          "description": "Biểu mẫu này bắt buộc phải có địa chỉ thường trú viết hoa đúng chuẩn Title Case (chấp nhận địa chỉ sau sáp nhập địa giới như TP. Thủ Đức, sáp nhập phường/xã, nông thôn không có số nhà)."
+        },
+        {
+          "code": "REQ_CAMPUS",
+          "name": "Cơ sở nhận giấy",
+          "description": "Vui lòng chọn 1 trong 2 cơ sở nhận giấy bản cứng: Sai Gon Campus (A-01.01) hoặc Thu Duc Campus (E1-01.05)."
+        }
+      ],
+      "reply": "Chào bạn Nguyễn Văn An! 👋✨\n\nMình đã ghi nhận nhu cầu xin cấp **Giấy chứng nhận — Biểu mẫu giảm thuế thu nhập cá nhân** của bạn để nộp Chi cục Thuế cho ba mẹ (Mã hồ sơ: **XNSV-116258**).\n\nĐể hoàn tất hồ sơ và tiến hành thẩm định cấp giấy, bạn vui lòng bổ sung các thông tin bắt buộc sau:\n\n1. 📱 **Số điện thoại**: Số điện thoại di động chính xác (10 chữ số) của bạn.\n2. 🏡 **Địa chỉ hộ khẩu thường trú**: Địa chỉ thường trú viết hoa đúng chuẩn (Title Case). Hệ thống hoàn toàn chấp nhận địa chỉ sau sáp nhập địa giới hành chính (từ 2 đến 4 cấp, ví dụ: **Phường An Phú, TP. Thủ Đức**, **475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh**, hoặc nông thôn như **Ấp Châu Phú, Xã Hòa Bình, Tỉnh Bạc Liêu**).\n3. 🏢 **Cơ sở nhận giấy bản cứng**: Bạn vui lòng chọn 1 trong 2 cơ sở thuận tiện nhất:\n   - **Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)**\n   - **Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)**\n\n---\n\n👉 **Bạn có thể bổ sung bằng 1 trong 2 cách rất thuận tiện sau:**\n- **Cách 1**: Nhìn sang danh mục biểu mẫu ở **cột bên trái màn hình**, tìm đúng **\"Giấy chứng nhận — Biểu mẫu giảm thuế thu nhập cá nhân\"** và bấm **\"Điền đơn\"**.\n- **Cách 2**: Nhắn trực tiếp các thông tin trên ngay tại khung chat này để mình hỗ trợ cập nhật và xử lý tiếp cho bạn nhé!",
+      "question": "⚠️ **Hồ sơ xin cấp Giấy xác nhận sinh viên còn thiếu thông tin bắt buộc sau:**\n\n1. **Số điện thoại**: Vui lòng cung cấp số điện thoại di động chính xác (10 chữ số).\n2. **Hộ khẩu thường trú**: Biểu mẫu này bắt buộc phải có địa chỉ thường trú viết hoa đúng chuẩn Title Case (chấp nhận địa chỉ sau sáp nhập địa giới như TP. Thủ Đức, sáp nhập phường/xã, nông thôn không có số nhà).\n3. **Cơ sở nhận giấy**: Vui lòng chọn 1 trong 2 cơ sở nhận giấy bản cứng: Sai Gon Campus (A-01.01) hoặc Thu Duc Campus (E1-01.05).\n\n👉 Bạn vui lòng bổ sung đầy đủ các thông tin trên để Nhà trường hoàn tất hồ sơ cho bạn nhé!",
+      "modelUsed": "gemini-3.8-flash",
+      "executionEvidence": [
+        {
+          "toolName": "process_student_confirmation",
+          "durationMs": 111,
+          "decision": "ASK_CLARIFICATION",
+          "requestId": "cmvbvuroh0015do2tp1ylvk3y",
+          "requestCode": "XNSV-116258"
+        }
+      ],
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "created-requests",
+      "requests": [
+        {
+          "id": "cmvbvuroh0015do2tp1ylvk3y",
+          "code": "XNSV-116258",
+          "status": "WAITING_STUDENT",
+          "formCode": "TAX_DEDUCTION",
+          "inputKeys": [
+            "phone",
+            "idCard",
+            "purpose",
+            "formCode",
+            "sessionId",
+            "debtCourses",
+            "pickupCampus",
+            "studentClass",
+            "historyRequests",
+            "permanentAddress",
+            "isAddressConfirmed",
+            "conversationHistory"
+          ]
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-10-17T04:15:00.379Z"
+}

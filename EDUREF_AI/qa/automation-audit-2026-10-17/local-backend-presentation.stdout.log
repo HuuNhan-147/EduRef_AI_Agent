@@ -1,0 +1,8 @@
+Using a generated signing key for this local session. The .env file is unchanged.
+📋 [PetitionWorkflowCore] Đã nạp Handler cho thủ tục: [STUDENT_CONFIRMATION] - Giấy Xác Nhận Sinh Viên
+📚 [ContextResolver] Đã nạp thành công từ điển học vụ với 23 thuật ngữ viết tắt.
+=======================================================
+🚀 EduRef AI Backend đang chạy tại: http://localhost:5000
+📡 Socket.IO sẵn sàng đón nhận kết nối
+🗄️  Cơ sở dữ liệu: Supabase PostgreSQL qua Prisma
+=======================================================

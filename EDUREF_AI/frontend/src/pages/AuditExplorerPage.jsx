@@ -4,6 +4,8 @@
 import { useState, useEffect } from "react";
 import { ShieldCheck, Terminal, RotateCw, CheckCircle2, AlertTriangle } from "lucide-react";
 import api from '../services/api';
+import { displayLabel } from '../config/displayText';
+import MarkdownRenderer from '../components/common/MarkdownRenderer';
 
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
 
@@ -106,7 +108,7 @@ export default function AuditExplorerPage() {
               )}
               <div>
                 <div className="text-xs font-bold">
-                  {chainVerification.message}
+                  <MarkdownRenderer content={chainVerification.message} inline />
                 </div>
                 <div className="text-[11px] opacity-80 mt-0.5">
                   Tổng số khối: <span className="font-mono font-bold">{chainVerification.totalBlocks} Blocks</span> | Hash mới nhất: <span className="font-mono">{chainVerification.latestHash?.substring(0, 24)}...</span>
@@ -198,11 +200,11 @@ export default function AuditExplorerPage() {
                               : 'bg-slate-100 text-slate-700'
                           }`}
                         >
-                          {log.actorType}
+                          {displayLabel(log.actorType)}
                         </span>
                       </td>
                       <td className="py-3 px-4 font-semibold text-slate-800">
-                        {log.action}
+                        {displayLabel(log.action)}
                       </td>
                       <td className="py-3 px-4">
                         <span
@@ -218,7 +220,7 @@ export default function AuditExplorerPage() {
                               : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {log.decision || 'N/A'}
+                          {displayLabel(log.decision || 'Chưa có quyết định')}
                         </span>
                       </td>
                       <td className="py-3 px-4 font-mono font-bold text-blue-700">
@@ -255,7 +257,7 @@ export default function AuditExplorerPage() {
                   <div className="p-4 rounded-lg bg-slate-50 border border-slate-200 space-y-2">
                     <div className="flex items-center justify-between">
                       <span className="font-bold text-xs text-slate-900">
-                        {log.action}
+                        {displayLabel(log.action)}
                       </span>
                       <span className="font-mono text-[10px] text-slate-400">
                         {new Date(log.createdAt).toLocaleString('vi-VN')}
@@ -263,11 +265,11 @@ export default function AuditExplorerPage() {
                     </div>
 
                     <p className="text-xs text-slate-600">
-                      {log.reason || 'Sự kiện hệ thống được ghi nhận vào chuỗi kiểm toán.'}
+                      <MarkdownRenderer content={log.reason || 'Sự kiện hệ thống được ghi nhận vào chuỗi kiểm toán.'} inline />
                     </p>
 
                     <div className="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[10px] font-mono text-slate-500">
-                      <span>Actor: {log.actorType}</span>
+                      <span>Người thực hiện: {displayLabel(log.actorType)}</span>
                       <span>Hash: {log.sha256Hash?.substring(0, 24)}...</span>
                     </div>
                   </div>
@@ -296,7 +298,7 @@ export default function AuditExplorerPage() {
                   Chi Tiết Bằng Chứng Kiểm Toán
                 </span>
                 <h3 className="text-sm font-bold text-slate-900 mt-0.5">
-                  {selectedLog.action}
+                  {displayLabel(selectedLog.action)}
                 </h3>
               </div>
               <button
@@ -311,11 +313,11 @@ export default function AuditExplorerPage() {
               <div className="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-100">
                 <div>
                   <span className="text-slate-400 block text-[10px]">Tác tử (Who):</span>
-                  <span className="font-semibold text-slate-800">{selectedLog.actorType}</span>
+                  <span className="font-semibold text-slate-800">{displayLabel(selectedLog.actorType)}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Quyết định:</span>
-                  <span className="font-bold text-blue-700">{selectedLog.decision}</span>
+                  <span className="font-bold text-blue-700">{displayLabel(selectedLog.decision)}</span>
                 </div>
                 <div>
                   <span className="text-slate-400 block text-[10px]">Thời gian:</span>
@@ -330,14 +332,14 @@ export default function AuditExplorerPage() {
               <div>
                 <span className="font-bold text-slate-700 block mb-1">Lý do giải trình (Why):</span>
                 <p className="p-2.5 rounded bg-slate-50 border border-slate-100 text-slate-800 leading-relaxed">
-                  {selectedLog.reason || 'Ghi nhận sự vụ bình thường theo quy trình đào tạo.'}
+                  <MarkdownRenderer content={selectedLog.reason || 'Ghi nhận sự vụ bình thường theo quy trình đào tạo.'} inline />
                 </p>
               </div>
 
               <div>
                 <span className="font-bold text-slate-700 block mb-1">Mã Băm Khối Trước (Previous Hash):</span>
                 <div className="p-2 rounded bg-slate-100 font-mono text-[10px] text-slate-600 break-all select-all">
-                  {selectedLog.previousHash || 'GENESIS_HASH_EDUREF_2026'}
+                  {displayLabel(selectedLog.previousHash || 'GENESIS_HASH_EDUREF_2026')}
                 </div>
               </div>
 

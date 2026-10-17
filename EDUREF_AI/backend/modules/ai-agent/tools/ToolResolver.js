@@ -1,6 +1,8 @@
 import workflowTools from './actions/workflowTools.js';
 import verifyTools from './actions/verifyTools.js';
 import prisma from '../../../config/prisma.js';
+import Drafts from '../../../services/PetitionDraftService.js';
+import { cleanDraftInput } from '../../../services/PetitionFields.js';
 import { checkRateLimit } from '../../../middlewares/rateLimit.js';
 
 // Các công cụ thao tác trên một hồ sơ cụ thể qua requestId/requestCode do LLM sinh ra.
@@ -55,6 +57,28 @@ export class ToolResolver {
 
     const denied = await ToolResolver.denyIfNotOwner(toolName, args);
     if (denied) return denied;
+
+    if (args.currentUser?.role === 'STUDENT' && ['process_student_confirmation', 'create_request'].includes(toolName)) {
+      const existing = await Drafts.latest(args.currentUser.studentCode);
+      const text = String(args.userMessage || '').toLocaleLowerCase('vi');
+      const grounded = Object.fromEntries(Object.entries(cleanDraftInput({ ...args, ...args.inputData }))
+        .filter(([, value]) => value && text.includes(value.toLocaleLowerCase('vi'))));
+      const data = { ...grounded, ...cleanDraftInput(args.clientInput), formCode: args.formCode || args.inputData?.formCode };
+      // A reply such as "Có" cannot reopen a task that ended in a policy denial.
+      // A student can explicitly start another procedure from its button or a new request.
+      if (existing?.state === 'REJECTED' && (!data.formCode || data.formCode === existing.formCode)
+        && !/(xin|tạo|làm|bắt đầu|yêu cầu|cấp).*(đơn|giấy|hồ sơ|xác nhận)|(?:đơn|hồ sơ) mới/u.test(text)) {
+        return Drafts.agentResult(existing);
+      }
+      if (!existing || ['SUBMITTED', 'CANCELLED', 'REJECTED'].includes(existing.state)) data.purpose ||= args.userMessage || '';
+      const view = await Drafts.prepare({ studentCode: args.currentUser.studentCode,
+        formCode: data.formCode || existing?.formCode || 'GENERAL_CONFIRMATION', inputData: data,
+        ...(existing && (!['SUBMITTED', 'CANCELLED', 'REJECTED'].includes(existing.state) || existing.state !== 'REJECTED' && existing.result?.status === 'WAITING_STUDENT') ? { draftId: existing.id, revision: existing.revision } : {}) });
+      return Drafts.agentResult(view);
+    }
+    if (args.currentUser?.role === 'STUDENT' && ['process_request', 'ask_student', 'escalate_request'].includes(toolName)) {
+      return { success: false, message: 'Hãy tiếp tục hồ sơ bằng bản nháp và nút xác nhận. Công cụ hội thoại không tự nộp hoặc đổi quyết định.' };
+    }
 
     switch (toolName) {
       // ⚡ Fast-Path Master Tool

@@ -1,3 +1,4 @@
+import MarkdownRenderer from '../common/MarkdownRenderer';
 import React, { useState } from 'react';
 import { UserCheck, X, AlertCircle, RotateCw } from "lucide-react";
 import api from '../../services/api';
@@ -219,7 +220,7 @@ export default function CustomProfileModal({
           {error && (
             <div className="p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700 flex items-center gap-2 font-medium">
               <AlertCircle className="w-4 h-4 shrink-0" />
-              <span>{error}</span>
+              <span><MarkdownRenderer content={error} inline /></span>
             </div>
           )}
 

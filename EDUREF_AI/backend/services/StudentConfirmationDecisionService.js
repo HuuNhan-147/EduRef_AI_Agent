@@ -715,45 +715,8 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     };
   }
 
-  // 2.1. Kiểm tra dữ kiện bắt buộc: Mục đích sử dụng giấy
-  const rawPurpose = inputData.purpose || inputData.reason || inputData.REQ_PURPOSE || '';
-  const trimmedPurpose = String(rawPurpose).trim();
-  if (!trimmedPurpose) {
-    return {
-      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
-      rule: 'REQ_PURPOSE',
-      reason: 'Thiếu dữ kiện thực tế bắt buộc: mục đích sử dụng giấy xác nhận sinh viên.',
-      actionableQuestion:
-        'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, giảm thuế hay xin visa? Bạn có thể điền biểu mẫu tương ứng bên tay trái hoặc nhắn trực tiếp cho mình nhé!',
-      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
-    };
-  }
-
-  // 3. Xác định loại biểu mẫu yêu cầu & Kiểm tra phát hiện chéo biểu mẫu (Cross-form mismatch)
+  // Resolve school eligibility before collecting form data or suggesting a switch.
   const currentFormCode = inputData.formCode || inputData.requestTypeCode || null;
-  const mismatchCheck = detectCrossFormMismatch({
-    currentFormCode,
-    text: inputData.purpose || inputData.reason || '',
-    student,
-    inputData,
-    conversationHistory: inputData.conversationHistory || [],
-    sessionId: inputData.sessionId || null,
-  });
-
-  if (mismatchCheck.isMismatch) {
-    return {
-      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
-      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
-      rule: 'MISMATCH_FORM_GUIDANCE',
-      reason: mismatchCheck.reason,
-      actionableQuestion: mismatchCheck.guidanceMessage,
-      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
-    };
-  }
-
   const formCode = currentFormCode || 'GENERAL_CONFIRMATION';
   const targetForm = HUTECH_FORMS[formCode] || detectFormIntent(inputData.purpose || inputData.reason || '') || HUTECH_FORMS.GENERAL_CONFIRMATION;
 
@@ -794,21 +757,57 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
       }
     } else {
       // Nếu quá 4 năm còn nợ môn mà xin 4 mẫu thường quy -> Từ chối và điều hướng sang Mẫu Nợ Môn
-      const debtGuide = getFormFieldsGuide('COURSE_DEBT');
       return {
         classification: TRACK_A_CLASSIFICATION.ROUTINE_POLICY_DENY,
         uncertaintyType: null,
         decision: TRACK_A_DECISION.AUTO_REJECT,
         rule: 'POL_OVERDUE_COHORT_REQUIRE_DEBT_FORM',
-        reason: 'Sinh viên đang trong diện nợ môn cần hoàn thành học phần. Quy chế yêu cầu chuyển sang Biểu mẫu nợ môn để được giải quyết hợp lệ.',
+        reason: 'Sinh viên đã quá thời gian đào tạo chuẩn 4 năm và còn học phần chưa hoàn thành. Theo quy định hiện tại, trường hợp này cần dùng Biểu mẫu xác nhận nợ môn, không đủ điều kiện cấp biểu mẫu đang yêu cầu.',
         userMessage:
-          `Theo quy chế đào tạo của Nhà trường, đối với sinh viên đang trong tiến trình hoàn thành học phần nợ, bạn vui lòng chuyển sang **Biểu mẫu nợ môn (COURSE_DEBT)** theo 1 trong 2 cách sau để được giải quyết nhanh chóng:\n` +
-          `👉 **Cách 1: Điền đơn bên tay trái**: Tìm mục "Biểu mẫu nợ môn" ở danh mục bên tay trái và bấm "Điền đơn".\n` +
-          `👉 **Cách 2: Gửi trực tiếp thông tin cho mình ngay tại đây**:\n${debtGuide}`,
+          'Yêu cầu cấp biểu mẫu này đã bị từ chối vì bạn đã quá thời gian đào tạo chuẩn 4 năm và còn học phần chưa hoàn thành. **Quy trình này đã kết thúc.** Bạn có thể chọn bắt đầu một hồ sơ **Biểu mẫu nợ môn** mới; hệ thống sẽ dùng lại thông tin có sẵn.',
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
       };
     }
   }
+
+  // 2.1. Kiểm tra dữ kiện bắt buộc: Mục đích sử dụng giấy
+  const rawPurpose = inputData.purpose || inputData.reason || inputData.REQ_PURPOSE || '';
+  const trimmedPurpose = String(rawPurpose).trim();
+  if (!trimmedPurpose) {
+    return {
+      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+      rule: 'REQ_PURPOSE',
+      reason: 'Thiếu dữ kiện thực tế bắt buộc: mục đích sử dụng giấy xác nhận sinh viên.',
+      actionableQuestion:
+        'Bạn cần giấy xác nhận sinh viên cho mục đích nào: làm vé tháng xe buýt, vay vốn ngân hàng chính sách, tạm hoãn nghĩa vụ quân sự, giảm thuế hay xin visa? Bạn có thể điền biểu mẫu tương ứng bên tay trái hoặc nhắn trực tiếp cho mình nhé!',
+      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+    };
+  }
+
+  // 3. Xác định loại biểu mẫu yêu cầu & Kiểm tra phát hiện chéo biểu mẫu (Cross-form mismatch)
+  const mismatchCheck = detectCrossFormMismatch({
+    currentFormCode,
+    text: inputData.purpose || inputData.reason || '',
+    student,
+    inputData,
+    conversationHistory: inputData.conversationHistory || [],
+    sessionId: inputData.sessionId || null,
+  });
+
+  if (mismatchCheck.isMismatch) {
+    return {
+      classification: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
+      decision: TRACK_A_DECISION.ASK_CLARIFICATION,
+      rule: 'MISMATCH_FORM_GUIDANCE',
+      reason: mismatchCheck.reason,
+      actionableQuestion: mismatchCheck.guidanceMessage,
+      policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
+    };
+  }
+
 
   // 4.1. CHỐT CHẶN HẠN NGẠCH CẤP GIẤY THEO SƠ ĐỒ .MDJ: CHECK CÓ TRÙNG BIỂU MẪU KHÔNG (THEO HỌC KỲ HIỆN TẠI)
   const ONE_SEMESTER_MS = 150 * 24 * 60 * 60 * 1000;
@@ -835,7 +834,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
         uncertaintyType: TRACK_A_CLASSIFICATION.UNKNOWN_FACT,
         decision: TRACK_A_DECISION.ASK_CLARIFICATION,
         rule: 'REQ_REISSUE_REASON',
-        reason: `Sinh viên đã được cấp Giấy xác nhận cho biểu mẫu [${targetForm.code}] trước đó trong học kỳ. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu; nếu xin cấp lại lần 2 bắt buộc phải giải trình lý do chính đáng.`,
+        reason: `Sinh viên đã được cấp giấy ${targetForm.shortName} trước đó trong học kỳ. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu; nếu xin cấp lại lần 2 bắt buộc phải giải trình lý do chính đáng.`,
         actionableQuestion:
           `Dạ hệ thống ghi nhận bạn đã được cấp Giấy xác nhận cho biểu mẫu "${targetForm.name}" trong học kỳ này rồi. Theo quy chế của Phòng CTSV, mỗi học kỳ sinh viên chỉ được cấp 1 bản cho mỗi biểu mẫu. Để xin cấp lại lần 2, bạn vui lòng cung cấp lý do chính đáng (ví dụ: bị mất giấy, bị rách, nộp bổ sung cho cơ quan thứ 2...) để Cán bộ Phòng CTSV/PĐT xem xét nhé!`,
         policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
@@ -850,7 +849,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
       decision: TRACK_A_DECISION.ESCALATE_STAFF,
       targetRole: 'STAFF',
       rule: 'POLICY_REISSUE_QUOTA_ESCALATE',
-      reason: `Sinh viên xin cấp lại lần thứ 2 trong cùng học kỳ cho biểu mẫu [${targetForm.code}] với lý do giải trình: "${reissueReason}". Vượt hạn ngạch tự động 1 bản/kỳ, bắt buộc chuyển Cán bộ Phòng CTSV/PĐT xem xét phê duyệt ngoại lệ.`,
+      reason: `Sinh viên xin cấp lại giấy ${targetForm.shortName} lần thứ 2 trong cùng học kỳ với lý do giải trình: "${reissueReason}". Vượt hạn ngạch tự động 1 bản/kỳ, bắt buộc chuyển Cán bộ Phòng CTSV/PĐT xem xét phê duyệt ngoại lệ.`,
       actionableQuestion:
         `Sinh viên ${student.fullName} (${student.studentCode}) xin cấp lại lần 2 biểu mẫu "${targetForm.name}" do: "${reissueReason}"${prevCode}. Cán bộ CTSV/PĐT có chấp thuận phê duyệt cấp lại không?`,
       userMessage:
@@ -1024,7 +1023,7 @@ export function evaluateStudentConfirmation({ student, inputData = {} }) {
     formCode: targetForm.code,
     formName: targetForm.name,
     appointment,
-    reason: `Sinh viên có thời khóa biểu hợp lệ trong học kỳ, hồ sơ đầy đủ dữ kiện biểu mẫu [${targetForm.code}] và nằm trong thẩm quyền tự động.`,
+    reason: `Sinh viên có thời khóa biểu hợp lệ trong học kỳ, hồ sơ đầy đủ thông tin cho giấy ${targetForm.shortName} và nằm trong thẩm quyền tự động.`,
     userMessage: `Hồ sơ ${targetForm.name} của bạn đã được EduRef AI tự động thẩm định thành công. Bạn vui lòng mang thẻ sinh viên đến ${campus} để nhận bản cứng có chữ ký sống và mộc đỏ của Nhà trường.${appointmentMsg}`,
     policyVersion: STUDENT_CONFIRMATION_POLICY_VERSION,
   };

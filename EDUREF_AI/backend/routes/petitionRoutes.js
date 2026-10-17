@@ -1,4 +1,7 @@
 import express from 'express';
+import Drafts from '../services/PetitionDraftService.js';
+import { publishPetitionStatus } from '../services/PetitionEvents.js';
+import { FIELD_KEYS } from '../services/PetitionFields.js';
 import prisma from '../config/prisma.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
 import { respondServerError } from '../services/ErrorShield.js';
@@ -129,6 +132,12 @@ router.post('/', authenticateToken, async (req, res) => {
         success: false,
         message: 'Không xác định được mã số sinh viên. Vui lòng đăng nhập hoặc cung cấp studentCode hợp lệ.',
       });
+    }
+
+    if (req.user?.role === 'STUDENT') {
+      const draft = await Drafts.prepare({ studentCode: String(studentCode).trim(),
+        formCode: inputData.formCode || 'GENERAL_CONFIRMATION', inputData });
+      return res.json({ success: true, data: { decision: 'DRAFT_READY', draft } });
     }
 
     // 5 biểu mẫu Giấy xác nhận sinh viên HUTECH là biểu mẫu thông tin thuần túy, không yêu cầu upload tài liệu minh chứng
@@ -302,6 +311,7 @@ router.post('/:id/approve', authenticateToken, requireStaffOrDean, async (req, r
       staffName,
     });
 
+    if (result.success) await publishPetitionStatus(req.params.id);
     res.json(result);
   } catch (error) {
     respondServerError(req, res, error);
@@ -331,6 +341,7 @@ router.post('/:id/reject', authenticateToken, requireStaffOrDean, async (req, re
       staffName,
     });
 
+    if (result.success) await publishPetitionStatus(req.params.id);
     res.json(result);
   } catch (error) {
     respondServerError(req, res, error);
@@ -354,6 +365,7 @@ router.post('/:id/rollback', authenticateToken, requireStaffOrDean, async (req, 
       staffName,
     });
 
+    if (result.success) await publishPetitionStatus(req.params.id);
     res.json(result);
   } catch (error) {
     respondServerError(req, res, error);
@@ -444,10 +456,54 @@ router.post('/:id/resume', authenticateToken, async (req, res) => {
       newDocuments,
     });
 
+    if (result.success) await publishPetitionStatus(req.params.id);
     res.json(result);
   } catch (error) {
     respondServerError(req, res, error);
   }
+});
+
+router.post('/:id/request-supplement', authenticateToken, requireStaffOrDean, async (req, res) => {
+  try {
+    const fields = [...new Set(Array.isArray(req.body.fields) ? req.body.fields : [])].filter(key => FIELD_KEYS.has(key));
+    if (!fields.length) return res.status(400).json({ success: false, message: 'Chọn thông tin cần sinh viên bổ sung.' });
+    const { default: Audit } = await import('../services/AuditLogService.js');
+    const result = await Audit.runWorkflowTransaction(async db => {
+      const request = await db.studentRequest.findUnique({ where: { id: req.params.id } });
+      if (!request || request.status !== 'ESCALATED') return { success: false, message: 'Chỉ yêu cầu bổ sung hồ sơ đang chờ cán bộ.' };
+      const question = String(req.body.reason || 'Cán bộ yêu cầu bổ sung thông tin đã chọn.').slice(0, 2000);
+      await Audit.recordLogWithMutation({ requestId: request.id, actorType: req.user.role, actorId: req.user.id,
+        action: 'STAFF_REQUEST_SUPPLEMENT', decision: 'ASK_CLARIFICATION', reason: question, inputSnapshot: { fields } }, async tx => {
+        await tx.studentRequest.update({ where: { id: request.id }, data: { status: 'WAITING_STUDENT',
+          escalationReason: question, contextCapsule: { ...(request.contextCapsule || {}),
+            retainHumanReview: true, supplementFields: fields, supplementRequestedBy: req.user.fullName } } });
+        const draft = await tx.petitionDraft.findUnique({ where: { submittedRequestId: request.id } });
+        if (draft) await tx.petitionDraft.update({ where: { id: draft.id }, data: { state: 'COLLECTING',
+          inputData: { ...draft.inputData, ...Object.fromEntries(fields.map(key => [key, ''])) }, revision: { increment: 1 } } });
+      });
+      return { success: true, requestId: request.id, status: 'WAITING_STUDENT' };
+    });
+    if (result.success) await publishPetitionStatus(req.params.id);
+    res.json(result);
+  } catch (error) { respondServerError(req, res, error); }
+});
+
+router.post('/:id/transfer', authenticateToken, requireStaffOrDean, async (req, res) => {
+  try {
+    const { default: Audit } = await import('../services/AuditLogService.js');
+    const result = await Audit.runWorkflowTransaction(async db => {
+      const request = await db.studentRequest.findUnique({ where: { id: req.params.id } });
+      if (!request || request.status !== 'ESCALATED') return { success: false, message: 'Hồ sơ không còn chờ thẩm định.' };
+      const reason = String(req.body.reason || 'Chuyển Trưởng phòng xem xét hồ sơ ngoại lệ.').slice(0, 2000);
+      await Audit.recordLogWithMutation({ requestId: request.id, actorType: req.user.role, actorId: req.user.id,
+        action: 'STAFF_TRANSFER_TO_DEAN', decision: 'ESCALATE_TO_DEAN', reason }, tx => tx.studentRequest.update({
+        where: { id: request.id }, data: { decision: 'ESCALATE_TO_DEAN', contextCapsule: {
+          ...(request.contextCapsule || {}), requiredRole: 'DEAN', reason } } }));
+      return { success: true, requestId: request.id, status: 'ESCALATED' };
+    });
+    if (result.success) await publishPetitionStatus(req.params.id);
+    res.json(result);
+  } catch (error) { respondServerError(req, res, error); }
 });
 
 /**

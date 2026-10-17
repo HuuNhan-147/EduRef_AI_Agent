@@ -64,7 +64,10 @@ export class PetitionWorkflowCore {
       requestId: request.id,
       requestCode: request.requestCode,
       reason: policyResult.reason,
-      message: policyResult.userMessage || `Từ chối cấp đơn: ${policyResult.reason}`,
+      rule: policyResult.rule,
+      workflowClosed: true,
+      message: (policyResult.userMessage || `Từ chối cấp đơn: ${policyResult.reason}`) +
+        (/Quy trình này đã kết thúc/i.test(policyResult.userMessage || '') ? '' : ' Quy trình này đã kết thúc. Bạn không cần bổ sung thông tin hoặc xác nhận nộp cho yêu cầu này. Nếu cần kiểm tra dữ liệu học vụ, hãy liên hệ đơn vị tiếp nhận hồ sơ.'),
     };
   }
 
@@ -235,12 +238,11 @@ export class PetitionWorkflowCore {
       dataSource: request.verificationRunId ? 'SYNTHETIC_BENCHMARK' : 'STORED_BUSINESS_REQUEST',
     })) } });
 
-    // Trạng thái thôi học/bảo lưu đã đủ căn cứ từ chối, không yêu cầu sinh viên
-    // bổ sung địa chỉ/SĐT cho một hồ sơ không thể được cấp. Áp dụng cả submit/resume.
-    if (['DROPPED', 'SUSPENDED'].includes(student.status)) {
+    // Resolve known policy denials before collecting personal facts, on submit and resume.
+    if (requestTypeCode === 'STUDENT_CONFIRMATION') {
       // Đây là hồ sơ đã gửi vào workflow, không phải lượt tư vấn: không để cờ
       // isInquiry hoặc dữ kiện do client khai làm đổi kết luận về trạng thái DB.
-      const precheck = await handler.evaluatePolicies(student, { ...request, inputData: {} });
+      const precheck = await handler.evaluatePolicies(student, { ...request, inputData: { ...inputData, isInquiry: false } });
       if (!precheck.passed && precheck.decision === 'REJECTED_POLICY') {
         return this.rejectForPolicy({ request, studentCode, actorType, policyResult: precheck, startTime });
       }
@@ -346,6 +348,11 @@ export class PetitionWorkflowCore {
     // =========================================================================
     console.log(`  🔒 [Core Chốt 3] Kiểm tra Thẩm quyền xử lý (Authority)...`);
     let authResult = await handler.checkAuthority(request, student, { inputData, documents: allDocs });
+    if (request.contextCapsule?.retainHumanReview && authResult.action === 'AUTO_APPROVE') {
+      authResult = { ...authResult, action: 'STAFF_REVIEW', role: request.contextCapsule.requiredRole || 'STAFF', classification: 'BEYOND_AUTHORITY',
+        reason: request.contextCapsule.reason || 'Hồ sơ đã bổ sung, cần cán bộ xác nhận quyết định cuối.',
+        actionableQuestion: 'Thông tin sinh viên bổ sung đã đáp ứng yêu cầu của cán bộ chưa?' };
+    }
     let thresholdAssessment = null;
     if (authResult.action === 'AUTO_APPROVE') {
       const policy = await Sprint2Service.activePolicy(db);
@@ -370,6 +377,7 @@ export class PetitionWorkflowCore {
       contextCapsule.policyVersion = authResult.policyVersion || null;
       contextCapsule.thresholdAssessment = thresholdAssessment;
       contextCapsule.manualReviewRequired = Boolean(reqResult.manualReviewRequired);
+      contextCapsule.requiredRole = authResult.role;
 
       const escalateDecision = authResult.role === 'DEAN' ? 'ESCALATE_TO_DEAN' : 'ESCALATE_TO_STAFF';
       const roleDisplayName =

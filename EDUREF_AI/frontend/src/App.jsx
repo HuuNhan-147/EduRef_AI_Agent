@@ -11,6 +11,7 @@ import WelcomeOnboardingModal from './components/common/WelcomeOnboardingModal';
 import CustomProfileModal from './components/forms/CustomProfileModal';
 import api, { switchRoleAuth, DEMO_ACCOUNTS } from './services/api';
 import getSocket from './services/socket';
+import MarkdownRenderer from './components/common/MarkdownRenderer';
 
 export default function App() {
   // Tài khoản hiện tại được chọn (mặc định sinh viên ACTIVE Cao Hữu Nhân)
@@ -194,7 +195,7 @@ export default function App() {
             </div>
           ) : (
             <>
-              <p className="mt-2 text-sm text-rose-300">{authError}</p>
+              <p className="mt-2 text-sm text-rose-300"><MarkdownRenderer content={authError} inline /></p>
               <button onClick={initializeDemoSession} className="mt-4 rounded-lg bg-white hover:bg-slate-100 px-4 py-2 text-xs font-bold text-[#0B3B82] shadow-sm transition-colors cursor-pointer">
                 Thử kết nối lại
               </button>
@@ -260,7 +261,7 @@ export default function App() {
               }`}
             >
               <span className="w-2 h-2 rounded-full bg-current"></span>
-              <span>{toast.message}</span>
+              <span><MarkdownRenderer content={toast.message} inline /></span>
             </div>
           )}
 
@@ -281,6 +282,7 @@ export default function App() {
             <div className="flex-1 h-full overflow-y-auto w-full">
               <MyPetitionsPage
                 currentAccountKey={currentAccountKey}
+                onContinueDraft={draft => handleSubmitToChat('Tiếp tục hồ sơ đã nộp.', { workflowDraft: draft })}
               />
             </div>
           )}

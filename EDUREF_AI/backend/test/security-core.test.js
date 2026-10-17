@@ -128,6 +128,13 @@ test('ErrorShield.publicErrorMessage: che lỗi nội bộ (kèm mã tham chiế
 // ---------------------------------------------------------------------------
 // Rate limit, bộ nhớ hội thoại, terminal log
 // ---------------------------------------------------------------------------
+test('missing AI configuration gives students a recovery message without backend variable names', () => {
+  for (const provider of ['OPENAI', 'GEMINI']) {
+    const text = publicErrorMessage(new Error(`${provider}_API_KEY chưa được cấu hình. Vui lòng kiểm tra file .env.`));
+    assert.doesNotMatch(text, /API_KEY|\.env/);
+    assert.match(text, /Dịch vụ AI hiện chưa sẵn sàng/);
+  }
+});
 test('rateLimit: cho phép tới max rồi chặn kèm retryAfter; khóa độc lập nhau', () => {
   const opts = { max: 3, windowMs: 60_000 };
   for (let i = 0; i < 3; i++) assert.ok(checkRateLimit('core-test:k1', opts).allowed);

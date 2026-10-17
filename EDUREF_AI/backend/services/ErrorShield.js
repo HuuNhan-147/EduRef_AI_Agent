@@ -35,6 +35,9 @@ export function isInternalError(err) {
  * che lỗi nội bộ (ghi chi tiết vào log kèm mã tham chiếu).
  */
 export function publicErrorMessage(err, context = '') {
+  if (/(?:OPENAI|GEMINI|GOOGLE)_API_KEYS?[^\n]*(?:chưa|thiếu|missing|not (?:set|configured))|(?:chưa|thiếu|missing)[^\n]*(?:OPENAI|GEMINI|GOOGLE)_API_KEYS?/i.test(String(err?.message || ''))) {
+    return 'Dịch vụ AI hiện chưa sẵn sàng. Bạn có thể chọn mô hình Tự động hoặc thử lại sau. Hồ sơ đã lưu vẫn xem được trong Đơn của tôi.';
+  }
   if (!isInternalError(err)) return err?.message || GENERIC_ERROR_MESSAGE;
   const id = newErrorId();
   console.error(`❌ [${id}]${context ? ` ${context}` : ''}:`, err);

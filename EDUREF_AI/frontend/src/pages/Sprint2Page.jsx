@@ -1,5 +1,7 @@
+import MarkdownRenderer from '../components/common/MarkdownRenderer';
 import { useEffect, useState } from 'react';
 import api from '../services/api';
+import { displayLabel, displayDetails } from '../config/displayText';
 
 const emptyDataset = { name: 'Independent evaluation', version: 'v1', origin: 'INDEPENDENT',
   sourceRef: '', sourceSha256: '', referenceDate: '', policyAuthorIds: [], independenceDeclaration: '', cases: [] };
@@ -50,25 +52,25 @@ export default function Sprint2Page({ currentAccountKey }) {
     <div className="mx-auto max-w-6xl space-y-5">
       <header><h1 className="text-xl font-bold">Sprint 2 · Feedback và đo lường</h1>
         <p className="mt-1 text-sm text-slate-600">Threshold thêm bước cán bộ rà soát sau hard guard. Điểm bằng chứng là heuristic, không phải xác suất LLM.</p></header>
-      {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800">{error}</p>}
-      {notice && <p role="status" className="rounded bg-emerald-50 p-3 text-sm text-emerald-800">{notice}</p>}
+      {error && <p role="alert" className="rounded border border-red-200 bg-red-50 p-3 text-sm text-red-800"><MarkdownRenderer content={error} inline /></p>}
+      {notice && <p role="status" className="rounded bg-emerald-50 p-3 text-sm text-emerald-800"><MarkdownRenderer content={notice} inline /></p>}
       {!data ? <p>Đang tải. Backend cần migration Sprint 2 trước khi sử dụng.</p> : <>
-        {data.previewMode && <p className="rounded border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">{data.previewMode}</p>}
+        {data.previewMode && <p className="rounded border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900"><MarkdownRenderer content={data.previewMode} inline /></p>}
         <section className="grid gap-3 sm:grid-cols-3">
           <div className="rounded-lg border bg-white p-4"><p className="text-xs text-slate-500">Version đang hoạt động</p>
-            <p className="mt-2 break-all text-sm font-semibold">{data.activePolicy.version}</p>
+            <p className="mt-2 break-all text-sm font-semibold">{displayLabel(data.activePolicy.version)}</p>
             <p className="text-xs">Chuyển cán bộ nếu điểm thấp hơn {data.activePolicy.minEvidenceScore}/100</p></div>
           <div className="rounded-lg border bg-white p-4"><p className="text-xs text-slate-500">Missed escalation</p><p className="mt-2 text-xl font-bold">{percent(data.measurement.missedEscalationRate)}</p></div>
           <div className="rounded-lg border bg-white p-4"><p className="text-xs text-slate-500">False escalation</p><p className="mt-2 text-xl font-bold">{percent(data.measurement.falseEscalationRate)}</p></div>
         </section>
-        <p className="text-xs text-slate-600">{data.measurement.measurementStatus} · {data.measurement.note || 'Replay policy trên holdout đã khóa; chưa đo chất lượng LLM end-to-end.'}</p>
+        <p className="text-xs text-slate-600">{displayLabel(data.measurement.measurementStatus)} · <MarkdownRenderer content={data.measurement.note || 'Đối chiếu quy định trên tập kiểm định đã khóa; chưa đo chất lượng toàn bộ luồng AI.'} inline /></p>
         <section className="rounded-lg border bg-white p-4 space-y-3">
           <h2 className="font-bold">1. Đề xuất threshold từ feedback hồ sơ</h2>
           <p className="text-xs text-slate-600">Ghi feedback trong trang Duyệt đơn. Chọn ít nhất 5 snapshot khác nhau đủ điều kiện auto, gồm cả thường quy và cần chuyển cán bộ. Tập holdout không được dùng hiệu chỉnh.</p>
           <div className="max-h-48 overflow-auto space-y-2">{data.feedback.length === 0 && <p className="text-xs">Chưa có feedback được lưu. Không tạo dữ liệu người dùng giả.</p>}
             {data.feedback.map((f) => <label key={f.id} className="flex gap-2 text-xs"><input type="checkbox" checked={selectedFeedback.includes(f.id)}
               onChange={(e) => setSelectedFeedback((previous) => e.target.checked ? [...previous, f.id] : previous.filter((id) => id !== f.id))} />
-              <span>{f.reviewerName} · {f.expectedDecision} · {f.reason} · Nguồn: {f.evidenceRef}</span></label>)}</div>
+              <span>{f.reviewerName} · {displayLabel(f.expectedDecision)} · <MarkdownRenderer content={f.reason} inline /> · Nguồn: {f.evidenceRef}</span></label>)}</div>
           <label className="block text-xs">Lý do đề xuất / chỉnh sửa dữ liệu<textarea className={field} value={reason} onChange={(e) => setReason(e.target.value)} /></label>
           <button className={button} disabled={busy || selectedFeedback.length < 5 || !reason.trim()} onClick={() => execute(() => api.post('/sprint2/policies/propose', { feedbackIds: selectedFeedback, reason }), 'Đã tạo version nháp; chưa thay đổi runtime.')}>Tạo đề xuất từ feedback</button>
         </section>
@@ -76,7 +78,7 @@ export default function Sprint2Page({ currentAccountKey }) {
           <h2 className="font-bold">2. Nhập và khóa tập có nhãn</h2>
           <p className="text-xs text-slate-600">Cần tối thiểu 30 ca holdout, người gán nhãn độc lập, nguồn/hash, snapshot học vụ và một nhãn rõ cho mỗi ca. Tập Verify không đủ điều kiện.</p>
           <label className="block text-xs">Dataset đã nhập<select className={field} value={datasetId} onChange={(e) => setDatasetId(e.target.value)}><option value="">Chọn dataset</option>
-            {data.datasets.map((d) => <option key={d.id} value={d.id}>{d.name} · {d.version} · {d.status}</option>)}</select></label>
+            {data.datasets.map((d) => <option key={d.id} value={d.id}>{d.name} · {d.version} · {displayLabel(d.status)}</option>)}</select></label>
           {dataset && <p className="text-xs text-slate-600">Nguồn: {dataset.sourceRef} · {dataset.cases.length} ca · {dataset.issues.length ? `${dataset.issues.length} vấn đề cần xử lý` : 'Đủ thông tin để lãnh đạo kiểm tra'}{dataset.issues.length > 0 && ` · ${dataset.issues.slice(0, 6).join(', ')}`}</p>}
           <button className={button} disabled={busy || !dataset} onClick={() => setDatasetText(JSON.stringify(dataset, null, 2))}>Nạp dataset vào ô sửa</button>
           <label className="block text-xs">Dữ liệu JSON<textarea className={`${field} h-56 font-mono`} value={datasetText} onChange={(e) => setDatasetText(e.target.value)} spellCheck={false} /></label>
@@ -86,15 +88,15 @@ export default function Sprint2Page({ currentAccountKey }) {
         <section className="rounded-lg border bg-white p-4 space-y-3">
           <h2 className="font-bold">3. So sánh trước/sau và phê duyệt</h2>
           <label className="block text-xs">Version threshold cần đánh giá<select className={field} value={policyId} onChange={(e) => setPolicyId(e.target.value)}>
-            {policyOptions.map((p) => <option key={p.id} value={p.id}>{p.version} · Ngưỡng {p.minEvidenceScore} · {p.status}</option>)}</select></label>
+            {policyOptions.map((p) => <option key={p.id} value={p.id}>{displayLabel(p.version)} · Ngưỡng {p.minEvidenceScore} · {displayLabel(p.status)}</option>)}</select></label>
           {policyOptions.find((p) => p.id === policyId)?.calibrationReport && <details className="text-xs text-slate-600">
             <summary className="cursor-pointer">Căn cứ đề xuất: trọng số kỹ thuật 10/1 và tập feedback — cần nghiệp vụ xác nhận</summary>
-            <pre className="max-h-48 overflow-auto whitespace-pre-wrap">{JSON.stringify(policyOptions.find((p) => p.id === policyId).calibrationReport, null, 2)}</pre>
+            <pre className="max-h-48 overflow-auto whitespace-pre-wrap">{JSON.stringify(displayDetails(policyOptions.find((p) => p.id === policyId).calibrationReport), null, 2)}</pre>
           </details>}
           <button className={button} disabled={busy || !datasetId} onClick={async () => { const r = await execute(() => api.post(`/sprint2/datasets/${datasetId}/compare`, { candidatePolicyId: policyId }), 'Đã lưu báo cáo trước/sau.'); if (r) setReportId(r.id); }}>Chạy replay trước/sau</button>
           <label className="block text-xs">Báo cáo đã lưu<select className={field} value={reportId} onChange={(e) => setReportId(e.target.value)}><option value="">Chọn báo cáo</option>
-            {data.reports.map((r) => <option key={r.id} value={r.id}>{r.id} · {r.eligible ? 'MEASURED' : 'PARTIAL'}</option>)}</select></label>
-          {report && <><p className="text-xs">Hash: <code className="break-all">{report.reportHash}</code> · Mode: {report.comparison.mode}</p>
+            {data.reports.map((r) => <option key={r.id} value={r.id}>{r.id} · {r.eligible ? 'Đã đo đầy đủ' : 'Đối chiếu một phần'}</option>)}</select></label>
+          {report && <><p className="text-xs">Mã kiểm chứng: <code className="break-all">{report.reportHash}</code> · Chế độ: {displayLabel(report.comparison.mode)}</p>
             <div className="overflow-auto"><table className="w-full text-left text-xs"><thead><tr><th>Chỉ số</th><th>Trước</th><th>Sau</th></tr></thead><tbody>
               <tr><td>Missed escalation</td><td>{percent(report.comparison.before.missedEscalationRate)}</td><td>{percent(report.comparison.after.missedEscalationRate)}</td></tr>
               <tr><td>False escalation</td><td>{percent(report.comparison.before.falseEscalationRate)}</td><td>{percent(report.comparison.after.falseEscalationRate)}</td></tr>
@@ -103,9 +105,9 @@ export default function Sprint2Page({ currentAccountKey }) {
             </tbody></table></div>
             {report.comparison.issues.length > 0 && <details className="text-xs text-amber-800">
               <summary className="cursor-pointer">{report.comparison.issues.length} điều kiện dữ liệu/đánh giá chưa đạt — xem chi tiết</summary>
-              <pre className="mt-2 max-h-48 overflow-auto whitespace-pre-wrap rounded bg-amber-50 p-2">{report.comparison.issues.join('\n')}</pre>
+              <div className="mt-2 max-h-48 overflow-auto rounded bg-amber-50 p-2"><MarkdownRenderer content={report.comparison.issues.join('\n')} compact /></div>
             </details>}
-            <details className="text-xs"><summary>Chi tiết từng ca và phân loại</summary><pre className="max-h-64 overflow-auto whitespace-pre-wrap">{JSON.stringify(report.comparison.rows, null, 2)}</pre></details></>}
+            <details className="text-xs"><summary>Chi tiết từng ca và phân loại</summary><pre className="max-h-64 overflow-auto whitespace-pre-wrap">{JSON.stringify(displayDetails(report.comparison.rows), null, 2)}</pre></details></>}
           <label className="block text-xs">Xác nhận nguồn độc lập / lý do chấp thuận trade-off<textarea className={field} value={approvalNote} onChange={(e) => setApprovalNote(e.target.value)} /></label>
           <p className="text-xs text-slate-600">Lãnh đạo khác người nhập/đề xuất mới được khóa hoặc kích hoạt. Kích hoạt cần báo cáo khớp code/version hiện hành, không lỗi và không tăng missed escalation. Chọn version cũ để đo lại và hoàn tác có audit.</p>
           <div className="flex flex-wrap gap-2"><button className={button} disabled={busy || !isDean || dataset?.status !== 'DRAFT' || !approvalNote.trim()}

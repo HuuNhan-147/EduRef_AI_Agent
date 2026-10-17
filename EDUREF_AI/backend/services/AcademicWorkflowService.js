@@ -689,7 +689,7 @@ class AcademicWorkflowService {
   /**
    * 10. escalate_request: Chuyển tiếp hồ sơ lên Cán bộ PĐT / Lãnh đạo kèm Context Capsule
    */
-  static async escalateRequest({ requestId, reason, actionableQuestion, requiredRole = 'STAFF' }) {
+  static async escalateRequest({ requestId, reason, actionableQuestion, requiredRole = 'STAFF', retainHumanReview = false }) {
     try {
       return await AuditLogService.runWorkflowTransaction(async (db) => {
         const request = await db.studentRequest.findFirst({
@@ -712,6 +712,7 @@ class AcademicWorkflowService {
         }
 
         const contextCapsule = {
+          ...(retainHumanReview ? { retainHumanReview: true, classification: 'UNKNOWN_FACT' } : {}),
           requestCode: request.requestCode,
           studentCode: request.student.studentCode,
           studentName: request.student.fullName,
@@ -777,6 +778,9 @@ class AcademicWorkflowService {
       if (!request) return { success: false, error: 'Không tìm thấy đơn.' };
 
       const approved = decision === 'APPROVE';
+      if (request.contextCapsule?.requiredRole === 'DEAN' && !['DEAN', 'ADMIN'].includes(actorType)) {
+        return { success: false, error: 'Hồ sơ này cần Trưởng phòng quyết định.' };
+      }
 
       // State Guard: Chặn thao tác trùng lặp hoặc trên đơn đã hủy
       if (request.status === 'CANCELLED') {

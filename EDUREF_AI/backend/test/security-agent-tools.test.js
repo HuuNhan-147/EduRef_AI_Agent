@@ -17,6 +17,7 @@ import { CertificateVisionService } from '../services/CertificateVisionService.j
 const mocks = restorer();
 mocks.stub(console, 'error', () => {});
 mocks.stub(console, 'warn', () => {});
+mocks.stub(prisma.petitionDraft, 'findMany', async () => []);
 after(() => mocks.restoreAll());
 
 /** Giả lập prisma.$transaction để quan sát commit/rollback và bản ghi audit. */

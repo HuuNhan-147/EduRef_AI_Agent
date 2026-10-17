@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { ShieldCheck, ChevronDown, Check, MessageSquare, FileText, AlertOctagon, CheckCircle, HelpCircle, UserPlus } from "lucide-react";
 import { DEMO_ACCOUNTS } from '../../services/api';
+import { toDisplayText } from '../../config/displayText';
 
 export default function TopNavbar({
   currentAccountKey,
@@ -177,7 +178,7 @@ export default function TopNavbar({
                   <span className="text-[10px] text-blue-200 font-mono">({currentAccount.code})</span>
                 </div>
                 <div className="text-[10px] text-blue-200 font-normal truncate max-w-[150px]">
-                  {currentAccount.tag}
+                  {toDisplayText(currentAccount.tag)}
                 </div>
               </div>
               <ChevronDown className="w-4 h-4 text-blue-200" />

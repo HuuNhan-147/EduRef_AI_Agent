@@ -185,6 +185,23 @@ model StudentRequest {
   @@index([studentId, requestTypeId, verificationRunId, status])
 }
 
+// Preparation is durable and does not consume a certificate quota.
+model PetitionDraft {
+  id                 String   @id @default(cuid())
+  studentCode        String
+  formCode           String
+  state              String   @default("COLLECTING")
+  revision           Int      @default(1)
+  inputData          Json
+  fieldSources       Json
+  submittedRequestId String?  @unique
+  confirmation       Json?
+  resolution         Json?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+  @@index([studentCode, state, updatedAt])
+}
+
 // 9. RequestDocuments (Chứng từ đính kèm)
 model RequestDocument {
   id                 String         @id @default(cuid())

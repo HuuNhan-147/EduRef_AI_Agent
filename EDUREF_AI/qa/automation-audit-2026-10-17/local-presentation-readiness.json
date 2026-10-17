@@ -1,0 +1,36 @@
+{
+  "checkedAt": "2026-10-17T06:39:08.982Z",
+  "frontend": "http://localhost:8080",
+  "backend": "http://localhost:5000",
+  "passed": true,
+  "businessRecordsCreated": 0,
+  "externalAICalls": 0,
+  "backendHealth": 200,
+  "frontendStatus": 200,
+  "assetStatus": 200,
+  "productionAssetHasChanges": true,
+  "accounts": [
+    {
+      "account": "STUDENT_ACTIVE",
+      "requestStatuses": [
+        "Chờ cán bộ thẩm định",
+        "Đã phê duyệt",
+        "Chờ sinh viên bổ sung"
+      ],
+      "terminalReadAllowed": true,
+      "latestTask": "Đã nộp hồ sơ",
+      "staysInHistoryAfterFollowup": true,
+      "fixedFormVisible": false,
+      "suggestionCount": 3
+    },
+    {
+      "account": "STUDENT_OVERDUE_2022",
+      "requestStatuses": [],
+      "terminalReadAllowed": true,
+      "latestTask": "Đã từ chối",
+      "staysInHistoryAfterFollowup": true,
+      "fixedFormVisible": false,
+      "suggestionCount": 3
+    }
+  ]
+}

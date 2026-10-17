@@ -1,3 +1,4 @@
+import MarkdownRenderer from '../common/MarkdownRenderer';
 
 import { FilePenLine, ShieldCheck, CheckCircle2 } from 'lucide-react';
 
@@ -49,7 +50,7 @@ export default function DraftReviewCard({
         <div className="bg-slate-50 p-2.5 rounded-lg border border-slate-100">
           <span className="text-[10px] text-slate-500 block">Mục đích cấp giấy:</span>
           <p className="font-medium text-slate-800 text-xs mt-0.5">
-            {draft.purpose || 'Cấp giấy xác nhận sinh viên phục vụ thủ tục'}
+            <MarkdownRenderer content={draft.purpose || 'Cấp giấy xác nhận sinh viên phục vụ thủ tục'} inline />
           </p>
         </div>
 

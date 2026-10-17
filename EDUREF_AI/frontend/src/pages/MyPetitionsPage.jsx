@@ -1,16 +1,31 @@
+import MarkdownRenderer from '../components/common/MarkdownRenderer';
 // src/pages/MyPetitionsPage.jsx
 // Danh sách Hồ sơ & Đơn Học Vụ Cá Nhân / Toàn Trường
 
 import { useState, useEffect } from "react";
 import { FileText, RotateCcw, Search, QrCode } from "lucide-react";
 import api, { DEMO_ACCOUNTS } from '../services/api';
+import getSocket from '../services/socket';
+import { displayLabel } from '../config/displayText';
 
-export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }) {
+export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE', onContinueDraft }) {
   const [petitions, setPetitions] = useState([]);
   const [loading, setLoading] = useState(false);
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedQrModal, setSelectedQrModal] = useState(null);
+  const [continuing, setContinuing] = useState(null);
+  const [continueError, setContinueError] = useState('');
+  const continuePetition = async requestId => {
+    if (continuing) return;
+    setContinuing(requestId); setContinueError('');
+    try {
+      const { data } = await api.post('/drafts/from-request', { requestId });
+      if (!data.success) throw new Error(data.message);
+      onContinueDraft?.(data.data);
+    } catch (err) { setContinueError(err.response?.data?.message || err.message); }
+    finally { setContinuing(null); }
+  };
 
   const account = DEMO_ACCOUNTS[currentAccountKey];
   const isStaff = account?.type === 'STAFF' || account?.type === 'DEAN';
@@ -31,6 +46,9 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }
 
   useEffect(() => {
     fetchPetitions();
+    const socket = getSocket();
+    socket.on('petition_status_updated', fetchPetitions); socket.on('connect', fetchPetitions);
+    return () => { socket.off('petition_status_updated', fetchPetitions); socket.off('connect', fetchPetitions); };
   }, [currentAccountKey]);
 
   const filteredPetitions = petitions.filter((p) => {
@@ -46,6 +64,7 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }
   return (
     <div className="flex-1 bg-[#F0F4F9] overflow-y-auto p-4 sm:p-6 space-y-5">
       <div className="max-w-6xl mx-auto space-y-4">
+        {continueError && <p role="alert" className="rounded-lg bg-red-50 p-3 text-sm text-red-700"><MarkdownRenderer content={continueError} inline /></p>}
         
         {/* Header */}
         <div className="p-5 sm:p-6 rounded-xl bg-white border border-slate-200/90 shadow-2xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -166,8 +185,9 @@ export default function MyPetitionsPage({ currentAccountKey = 'STUDENT_ACTIVE' }
                               : 'bg-amber-100 text-amber-800'
                           }`}
                         >
-                          {p.status}
+                          {displayLabel(p.status)}
                         </span>
+                        {!isStaff && p.status === 'WAITING_STUDENT' && <button disabled={Boolean(continuing)} onClick={() => continuePetition(p.id)} className="mt-2 block rounded-lg bg-blue-800 px-3 py-1.5 text-xs text-white">{continuing === p.id ? 'Đang mở…' : 'Bổ sung hồ sơ'}</button>}
                       </td>
                       <td className="py-3 px-4">
                         {p.sha256Proof ? (

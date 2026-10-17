@@ -1,0 +1,109 @@
+[
+  {
+    "id": "TAX_DEDUCTION-prepare",
+    "state": "NEEDS_INPUT",
+    "missing": [
+      "pickupCampus"
+    ],
+    "durationMs": 471
+  },
+  {
+    "id": "TAX_DEDUCTION-submit",
+    "status": "APPROVED",
+    "sameIdOnRetry": true,
+    "requestId": "cmvbx6e630004ltho86c4auj9",
+    "durationMs": 2098
+  },
+  {
+    "id": "BANK_LOAN-prepare",
+    "state": "NEEDS_INPUT",
+    "missing": [
+      "pickupCampus",
+      "orphanStatus",
+      "loanGrantedCount",
+      "lastLoanAmount"
+    ],
+    "durationMs": 479
+  },
+  {
+    "id": "BANK_LOAN-submit",
+    "status": "APPROVED",
+    "sameIdOnRetry": true,
+    "requestId": "cmvbx6h3i000flthowcrmdnd1",
+    "durationMs": 1869
+  },
+  {
+    "id": "COURSE_DEBT-prepare",
+    "state": "NEEDS_INPUT",
+    "missing": [
+      "pickupCampus",
+      "debtCourses"
+    ],
+    "durationMs": 315
+  },
+  {
+    "id": "COURSE_DEBT-submit",
+    "status": "APPROVED",
+    "sameIdOnRetry": true,
+    "requestId": "cmvbx6jda000qlthozhc65vss",
+    "durationMs": 1339
+  },
+  {
+    "id": "MILITARY_DEFERMENT-prepare",
+    "state": "NEEDS_INPUT",
+    "missing": [
+      "pickupCampus"
+    ],
+    "durationMs": 293
+  },
+  {
+    "id": "MILITARY_DEFERMENT-submit",
+    "status": "APPROVED",
+    "sameIdOnRetry": true,
+    "requestId": "cmvbx6lg60012lthofmx5nilh",
+    "durationMs": 1123
+  },
+  {
+    "id": "GENERAL_CONFIRMATION-prepare",
+    "state": "NEEDS_INPUT",
+    "missing": [
+      "pickupCampus",
+      "purpose"
+    ],
+    "durationMs": 292
+  },
+  {
+    "id": "GENERAL_CONFIRMATION-submit",
+    "status": "APPROVED",
+    "sameIdOnRetry": true,
+    "requestId": "cmvbx6n9p001dlthoo7bpgm2p",
+    "durationMs": 1315
+  },
+  {
+    "id": "staff-supplement-transfer-approve",
+    "sameRequest": true,
+    "retainedHumanReview": true,
+    "deanRequired": true,
+    "realtimeStatusReceived": true
+  },
+  {
+    "id": "real-ai-chat",
+    "decision": "DRAFT_READY",
+    "modelUsed": "gemini-flash-lite-latest",
+    "draftReturned": true,
+    "durationMs": 1656
+  },
+  {
+    "id": "cleanup",
+    "requestsRolledBack": 6,
+    "draftIds": [
+      "cmvbwzh7k0001cjzpig2dnkrg",
+      "cmvbx6fz1000blthoiacmu1t9",
+      "cmvbx6ikx000mlthoni6tvdom",
+      "cmvbx6kj4000xltho2jq067u4",
+      "cmvbx6mj00019lthoymt49bff",
+      "cmvbx6ojw001kltho5trsqn3o",
+      "cmvbx6upu0028lthop93bguhy"
+    ]
+  }
+]

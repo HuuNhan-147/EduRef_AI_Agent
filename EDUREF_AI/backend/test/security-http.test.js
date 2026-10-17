@@ -9,13 +9,13 @@ import jwt from 'jsonwebtoken';
 import bcrypt from 'bcryptjs';
 
 import prisma from '../config/prisma.js';
+import Drafts from '../services/PetitionDraftService.js';
 import authRoutes from '../routes/authRoutes.js';
 import agentRoutes from '../routes/agentRoutes.js';
 import auditRoutes from '../routes/auditRoutes.js';
 import petitionRoutes from '../routes/petitionRoutes.js';
 import verifyTools from '../modules/ai-agent/tools/actions/verifyTools.js';
 import AuditLogService from '../services/AuditLogService.js';
-import AcademicWorkflowService from '../services/AcademicWorkflowService.js';
 import petitionWorkflowCore from '../modules/petition-core/PetitionWorkflowCore.js';
 import { agentTerminalLogger } from '../modules/ai-agent/core/AgentTerminalLogger.js';
 
@@ -262,39 +262,24 @@ test('custom-student: từ chối MSSV không phải số, tên quá dài, statu
 // ---------------------------------------------------------------------------
 // POST /api/petitions: lọc input + nạp lịch sử từ DB + không điền mặc định
 // ---------------------------------------------------------------------------
-test('POST /petitions: loại submissionDate/existingApprovedCount của client, dùng lịch sử từ DB, MSSV từ JWT, không điền SĐT/địa chỉ mặc định', async () => {
-  let captured = null;
-  const dbHistory = [{ id: 'h1', status: 'APPROVED', createdAt: new Date(), inputData: { formCode: 'GENERAL_CONFIRMATION' } }];
-  const originals = [AcademicWorkflowService.loadApprovalHistory, petitionWorkflowCore.processPetitionWorkflow];
-  AcademicWorkflowService.loadApprovalHistory = async () => dbHistory;
-  petitionWorkflowCore.processPetitionWorkflow = async (args) => { captured = args; return { request: { id: 'r1' } }; };
+test('POST /petitions prepares a draft, locks the JWT owner and strips server-only facts before submission', async () => {
+  let captured;
+  const original = Drafts.prepare;
+  Drafts.prepare = async args => { captured = args; return { id: 'draft-1', state: 'READY' }; };
   try {
-    const r = await call('POST', '/api/petitions', {
-      auth: student,
-      body: {
-        requestCode: 'STUDENT_CONFIRMATION',
-        inputData: {
-          purpose: 'xe buýt',
-          existingApprovedCount: 0,
-          submissionDate: '2020-01-01',
-          historyRequests: ['giả mạo'],
-          studentCode: '9999999999',
-        },
-      },
-    });
+    const r = await call('POST', '/api/petitions', { auth: student, body: {
+      requestCode: 'STUDENT_CONFIRMATION', studentCode: 'OTHER',
+      inputData: { purpose: 'bus pass', existingApprovedCount: 0, submissionDate: '2020-01-01', historyRequests: ['fake'] },
+    } });
     assert.equal(r.status, 200);
     assert.equal(captured.studentCode, '2380600001');
-    const data = captured.inputData;
-    assert.equal(data.studentCode, '2380600001', 'client không ghi đè được MSSV');
-    assert.equal('existingApprovedCount' in data, false);
-    assert.equal('submissionDate' in data, false);
-    assert.deepEqual(data.historyRequests, dbHistory, 'lịch sử phải lấy từ DB');
-    assert.equal(data.phone, undefined, 'không điền SĐT mặc định từ registry');
-    assert.equal(data.permanentAddress, undefined, 'không điền địa chỉ mặc định từ registry');
-    assert.equal(data.purpose, 'xe buýt');
-  } finally {
-    [AcademicWorkflowService.loadApprovalHistory, petitionWorkflowCore.processPetitionWorkflow] = originals;
-  }
+    assert.equal('existingApprovedCount' in captured.inputData, false);
+    assert.equal('submissionDate' in captured.inputData, false);
+    assert.equal('historyRequests' in captured.inputData, false);
+    assert.equal(captured.inputData.phone, undefined);
+    assert.equal(r.json.data.draft.id, 'draft-1');
+    assert.equal(r.json.data.decision, 'DRAFT_READY');
+  } finally { Drafts.prepare = original; }
 });
 
 test('POST /petitions/:id/resume: additionalData bị lọc khóa do máy chủ tính', async () => {

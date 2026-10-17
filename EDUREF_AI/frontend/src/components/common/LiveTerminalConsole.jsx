@@ -1,45 +1,52 @@
 // src/components/common/LiveTerminalConsole.jsx
 // LIVE AGENT TERMINAL CONSOLE — Cửa sổ theo dõi log suy luận tác tử thời gian thực (Chuẩn DA_IELS_NEW)
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Terminal, RefreshCw, Trash2 } from "lucide-react";
 import api from '../../services/api';
 import getSocket from '../../services/socket';
+import { mergeTerminalLogs } from '../../config/terminalLogs';
+import { displayLabel, displayDetails } from '../../config/displayText';
+import MarkdownRenderer from './MarkdownRenderer';
 
 export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', className = '' }) {
   const [terminalLogs, setTerminalLogs] = useState([]);
   const [loading, setLoading] = useState(false);
   const logContainerRef = useRef(null);
   const socket = getSocket();
+  const [connected, setConnected] = useState(socket.connected);
+  const [error, setError] = useState('');
+  const historyGeneration = useRef(0);
 
   // Nạp lịch sử log từ API khi mount
-  const fetchTerminalLogs = async () => {
+  const fetchTerminalLogs = useCallback(async () => {
+    const generation = ++historyGeneration.current;
     setLoading(true);
+    setError('');
     try {
       const res = await api.get(`/agent/terminal-logs?limit=150&_t=${Date.now()}`);
-      if (res.data?.success) {
-        setTerminalLogs(res.data.data || []);
+      if (generation === historyGeneration.current && res.data?.success) {
+        setTerminalLogs(previous => mergeTerminalLogs(previous, res.data.data || []));
       }
     } catch (e) {
       console.warn('Không thể nạp terminal log:', e.message);
+      if (generation === historyGeneration.current) setError('Chưa tải được nhật ký. Bấm làm mới để thử lại.');
     } finally {
-      setLoading(false);
+      if (generation === historyGeneration.current) setLoading(false);
     }
-  };
+  }, []);
 
   // Xóa log
-  const clearTerminalLogs = async () => {
-    try {
-      await api.post('/agent/terminal-logs/clear');
-      setTerminalLogs([]);
-    } catch (e) {
-      console.warn('Không thể xóa terminal log:', e.message);
-    }
+  const clearTerminalLogs = () => {
+    historyGeneration.current++;
+    setLoading(false);
+    setTerminalLogs([]);
   };
 
   useEffect(() => {
     fetchTerminalLogs();
-  }, []);
+    return () => { historyGeneration.current++; };
+  }, [fetchTerminalLogs]);
 
   // Tự động cuộn xuống cuối khi có log mới - CHỈ CUỘN NỘI BỘ TRONG KHUNG TERMINAL, KHÔNG KÉO TRÔI TRANG MẸ
   useEffect(() => {
@@ -51,25 +58,30 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
   // Lắng nghe Socket.IO thời gian thực
   useEffect(() => {
     const handleLog = (entry) => {
-      setTerminalLogs((prev) => {
-        // Tránh trùng ID
-        if (prev.some((p) => p.id === entry.id)) return prev;
-        return [...prev, entry];
-      });
+      setTerminalLogs(prev => mergeTerminalLogs(prev, [entry]));
     };
 
     const handleClear = () => {
-      setTerminalLogs([]);
+      clearTerminalLogs();
     };
+    const handleConnect = () => { setConnected(true); fetchTerminalLogs(); };
+    const handleDisconnect = () => setConnected(false);
+    const handleAuth = () => { clearTerminalLogs(); fetchTerminalLogs(); };
 
     socket.on('agent_terminal_log', handleLog);
     socket.on('agent_terminal_clear', handleClear);
+    socket.on('connect', handleConnect);
+    socket.on('disconnect', handleDisconnect);
+    window.addEventListener('eduref-auth-changed', handleAuth);
 
     return () => {
       socket.off('agent_terminal_log', handleLog);
       socket.off('agent_terminal_clear', handleClear);
+      socket.off('connect', handleConnect);
+      socket.off('disconnect', handleDisconnect);
+      window.removeEventListener('eduref-auth-changed', handleAuth);
     };
-  }, [socket]);
+  }, [socket, fetchTerminalLogs]);
 
   // Helper gán màu sắc từng thẻ log chuẩn AI Reasoning
   const getBadgeStyle = (type, step) => {
@@ -116,12 +128,12 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
 
           <div className="flex items-center gap-1.5 text-xs font-mono font-semibold text-slate-200">
             <Terminal className="w-3.5 h-3.5 text-emerald-400" />
-            <span>Live Reasoning Terminal</span>
+            <span>Agent Execution Terminal</span>
           </div>
 
           <span className="hidden sm:inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[9px] font-mono bg-emerald-950/60 text-emerald-400 border border-emerald-800/60">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
-            Live
+            {connected ? 'Live' : 'Đang kết nối'}
           </span>
         </div>
 
@@ -138,7 +150,7 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
           <button
             onClick={clearTerminalLogs}
             className="p-1 rounded text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-            title="Xóa toàn bộ log"
+            title="Ẩn log đang hiển thị; nhật ký máy chủ vẫn được giữ"
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -147,11 +159,12 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
 
       {/* Vùng hiển thị log terminal */}
       <div ref={logContainerRef} className={`p-3 font-mono text-[11px] overflow-y-auto space-y-2 select-text ${maxHeight}`}>
+        {error && <p role="alert" className="text-amber-300">{error}</p>}
         {terminalLogs.length === 0 ? (
           <div className="py-8 text-center space-y-1.5 text-slate-500 select-none">
-            <p className="text-slate-400 text-xs">$ node --agent-orchestrator.js</p>
+            <p className="text-slate-400 text-xs">Nhật ký thực thi tác tử</p>
             <p className="text-slate-600 text-[10px]">
-              Sẵn sàng! Hãy chat câu hỏi hoặc nộp đơn để xem các nhịp suy luận ReAct và Tool Execution bắn thời gian thực...
+              Chọn thủ tục ở sidebar hoặc gửi yêu cầu. Các bước lấy dữ liệu, kiểm tra quy định, gọi công cụ và lưu kết quả sẽ xuất hiện tại đây.
             </p>
           </div>
         ) : (
@@ -172,10 +185,10 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
                     </span>
                   )}
                   <span className={`px-1.5 py-0.5 rounded text-[9px] border font-mono shrink-0 ${badgeClass}`}>
-                    {tag}
+                    {displayLabel(tag)}
                   </span>
                   <span className="text-slate-200 flex-1 break-words font-mono text-[11px]">
-                    {log.text || log.message}
+                    <MarkdownRenderer content={log.text || log.message} inline />
                   </span>
                 </div>
 
@@ -183,10 +196,10 @@ export default function LiveTerminalConsole({ maxHeight = 'max-h-[350px]', class
                 {log.details && (
                   <div className="ml-4 pl-2 border-l border-slate-800 text-[10px] text-slate-400 font-mono mt-1">
                     {typeof log.details === 'string' ? (
-                      <p className="line-clamp-3">{log.details}</p>
+                      <p className="line-clamp-3"><MarkdownRenderer content={log.details} inline /></p>
                     ) : (
                       <pre className="text-[9px] text-slate-400 overflow-x-auto whitespace-pre-wrap max-h-28 bg-slate-950/60 p-1.5 rounded border border-slate-900">
-                        {JSON.stringify(log.details, null, 2)}
+                        {JSON.stringify(displayDetails(log.details), null, 2)}
                       </pre>
                     )}
                   </div>

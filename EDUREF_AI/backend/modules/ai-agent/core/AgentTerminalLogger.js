@@ -28,6 +28,7 @@ class AgentTerminalLoggerManager {
       id: `log_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       sessionId,
       ownerKey,
+      createdAt: new Date().toISOString(),
       timestamp,
       timeFormatted,
       step: step || type.toUpperCase(),

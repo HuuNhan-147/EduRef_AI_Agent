@@ -7,6 +7,13 @@ import MarkdownRenderer from '../components/common/MarkdownRenderer';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
 import AgentProgress from '../components/agent/AgentProgress';
 import DraftReviewCard from '../components/agent/DraftReviewCard';
+import PetitionWorkflowCard from '../components/agent/PetitionWorkflowCard';
+import usePetitionWorkflow from '../services/usePetitionWorkflow';
+import WorkflowOutcome from '../components/agent/WorkflowOutcome';
+import ChatSuggestions from '../components/agent/ChatSuggestions';
+import { chatSuggestions } from '../config/chatSuggestions';
+import { displayLabel, toDisplayText } from '../config/displayText';
+import { isOpenWorkflow, reconcileWorkflowMessages } from '../config/workflowTimeline';
 import api, { DEMO_ACCOUNTS } from '../services/api';
 import getSocket from '../services/socket';
 
@@ -71,6 +78,9 @@ export default function StudentWorkspacePage({
   const currentAccount = currentAccountKey === 'CUSTOM_STUDENT' && customProfile
     ? customProfile
     : DEMO_ACCOUNTS[currentAccountKey] || DEMO_ACCOUNTS.STUDENT_ACTIVE;
+  const workflow = usePetitionWorkflow(currentAccount.code, currentAccount.role === 'STUDENT');
+  const activeDraft = isOpenWorkflow(workflow.draft) ? workflow.draft : null;
+  const workflowCardRef = useRef(null);
 
   // Tab điều hướng phụ trên Mobile (khi màn hình < 1280px): 'CHAT' | 'PROCEDURES' | 'DECISION'
   const [mobileTab, setMobileTab] = useState('CHAT');
@@ -93,7 +103,7 @@ export default function StudentWorkspacePage({
       const res = await api.post('/agent/verify-90s');
       if (res.data?.success) {
         const status = res.data.allPassed ? 'ĐẠT' : 'CHƯA ĐẠT';
-        setVerifyFeedback(`Đã hoàn thành ${res.data.totalCases} ca: ${res.data.passedCases}/${res.data.totalCases} ${status}; AUTO=${res.data.autoCount}, ESCALATE=${res.data.escalationCount}.`);
+        setVerifyFeedback(`Đã hoàn thành ${res.data.totalCases} ca: ${res.data.passedCases}/${res.data.totalCases} ${status}; tự duyệt: ${res.data.autoCount}, chuyển cán bộ: ${res.data.escalationCount}.`);
       } else {
         setVerifyFeedback(`Hoàn tất chạy test: ${res.data?.message || 'Xem chi tiết trong terminal'}`);
       }
@@ -289,7 +299,7 @@ export default function StudentWorkspacePage({
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages, isProcessing]);
+  }, [messages, isProcessing, workflow.draft?.id, workflow.draft?.revision]);
 
   // Lắng nghe sự kiện Socket.IO
   useEffect(() => {
@@ -457,8 +467,8 @@ export default function StudentWorkspacePage({
       message: text,
       clientRequestId,
       studentCode: currentAccount.code,
-      model: selectedModel,
-      requestedModel: selectedModel,
+      model: extraContext.model || selectedModel,
+      requestedModel: extraContext.model || selectedModel,
       token: localStorage.getItem('eduref_token'),
       currentUser: {
         studentCode: currentAccount.code,
@@ -516,7 +526,7 @@ export default function StudentWorkspacePage({
           {
             id: `err_${Date.now()}`,
             sender: 'agent',
-            text: `❌ Lỗi kết nối dịch vụ: ${err.message}`,
+            text: toDisplayText(err.response?.data?.message || err.response?.data?.error || 'Chưa kết nối được dịch vụ AI. Bạn có thể thử gửi lại yêu cầu.'),
             isError: true,
           },
         ]);
@@ -531,7 +541,11 @@ export default function StudentWorkspacePage({
 
   // Lắng nghe externalPrompt khi được nộp từ Modal Biểu Mẫu Động
   useEffect(() => {
-    if (externalPrompt) {
+    if (externalPrompt?.workflowDraft) {
+      workflow.accept(externalPrompt.workflowDraft);
+      setMobileTab('CHAT');
+      onClearExternalPrompt?.();
+    } else if (externalPrompt) {
       if (typeof externalPrompt === 'object' && externalPrompt.text) {
         handleSendMessage(externalPrompt.text, externalPrompt);
       } else {
@@ -540,6 +554,43 @@ export default function StudentWorkspacePage({
       if (onClearExternalPrompt) onClearExternalPrompt();
     }
   }, [externalPrompt]);
+
+  const handledDraftMessage = useRef(messages.at(-1)?.id);
+  useEffect(() => {
+    const latest = messages.at(-1);
+    if (latest?.id === handledDraftMessage.current) return;
+    handledDraftMessage.current = latest?.id;
+    const incoming = latest?.toolResult?.draft;
+    if (incoming?.id && !latest.workflowOutcome) workflow.accept(incoming);
+  }, [messages]);
+  useEffect(() => {
+    if (workflow.draft) {
+      setActiveDecision(agentDecisionState({ toolResult: { draft: workflow.draft } }));
+      setMessages(previous => reconcileWorkflowMessages(previous, workflow.draft));
+    }
+  }, [workflow.draft?.id, workflow.draft?.revision, workflow.draft?.state, workflow.draft?.result?.status, workflow.draft?.result?.message]);
+
+  const handleSuggestion = async suggestion => {
+    if (isProcessing || workflow.busy) return;
+    if (suggestion.kind === 'VIEW_PETITIONS') { onSwitchTab?.('MY_PETITIONS'); return; }
+    if (suggestion.kind === 'RETRY_AUTO') {
+      setSelectedModel('auto');
+      handleSendMessage(suggestion.prompt, { model: 'auto' });
+      return;
+    }
+    if (suggestion.kind === 'FOCUS_WORKFLOW') {
+      workflowCardRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      workflowCardRef.current?.querySelector('input:not(:disabled), button:not(:disabled)')?.focus({ preventScroll: true });
+      return;
+    }
+    if (suggestion.kind === 'START_RECOMMENDED') {
+      setMessages(previous => [...previous, { id: `user_${crypto.randomUUID()}`, sender: 'user', text: suggestion.label,
+        timestamp: new Date().toLocaleTimeString('vi-VN', { hour: '2-digit', minute: '2-digit' }) }]);
+      await workflow.actOn({ id: suggestion.draftId, revision: suggestion.revision }, 'START_RECOMMENDED');
+      return;
+    }
+    if (suggestion.kind === 'SEND') handleSendMessage(suggestion.prompt);
+  };
 
   const handleSupplementSubmitted = (result) => {
     setMessages((previous) => [...previous, {
@@ -651,30 +702,25 @@ export default function StudentWorkspacePage({
                 </span>
               </div>
               <p className="text-[11px] text-slate-500 mt-1 leading-relaxed line-clamp-2">
-                {f.description}
+                <MarkdownRenderer content={f.description} inline />
               </p>
 
               {/* Nút hành động */}
               <div className="mt-2.5 pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
                 <button
                   type="button"
-                  onClick={() => onOpenDynamicForm && onOpenDynamicForm({
-                    code: 'STUDENT_CONFIRMATION',
-                    formCode: f.formCode,
-                    name: f.name,
-                    title: f.title,
-                    description: f.description,
-                  })}
+                  disabled={workflow.busy}
+                  onClick={() => { setMobileTab('CHAT'); workflow.prepare(f.formCode); }}
                   className="font-semibold text-[#0B3B82] hover:text-[#082C64] flex items-center gap-1 transition-colors cursor-pointer"
                 >
-                  Điền đơn <ArrowRight className="w-3.5 h-3.5" />
+                  AI chuẩn bị hồ sơ <ArrowRight className="w-3.5 h-3.5" />
                 </button>
                 <button
                   type="button"
-                  onClick={() => handleSendMessage(f.quickPrompt)}
+                  onClick={() => onOpenDynamicForm?.({ code: 'STUDENT_CONFIRMATION', formCode: f.formCode, name: f.name, title: f.title })}
                   className="text-slate-500 hover:text-slate-800 font-medium text-[11px] cursor-pointer"
                 >
-                  Hỏi nhanh AI
+                  Xem / chỉnh sửa
                 </button>
               </div>
             </div>
@@ -709,7 +755,7 @@ export default function StudentWorkspacePage({
               className="w-full text-left px-2.5 py-2 rounded-lg text-[11px] font-medium bg-purple-50/70 border border-purple-200 hover:bg-purple-100/70 text-purple-900 transition-colors truncate flex items-center gap-1.5 cursor-pointer"
             >
               <span className="w-2 h-2 rounded-full bg-purple-500 shrink-0"></span>
-              <span className="truncate">SV Nợ môn: Hướng dẫn Mẫu Nợ Môn (COURSE_DEBT)</span>
+              <span className="truncate">Sinh viên nợ môn: hướng dẫn giấy xác nhận nợ môn</span>
             </button>
             <button
               onClick={() => handleSendMessage('Em xin cấp Giấy xác nhận vay vốn ngân hàng chính sách Mẫu 01; CCCD: 079203001234; Lớp: 22DTHE4; nhận tại Cơ sở E1-01.05')}
@@ -820,8 +866,11 @@ export default function StudentWorkspacePage({
 
         {/* Khung tin nhắn cuộn */}
         <div className="flex-1 p-5 sm:p-6 overflow-y-auto space-y-4 bg-[#F8FAFC]">
-          {messages.map((msg) => {
+          {messages.map((msg, messageIndex) => {
             const isUser = msg.sender === 'user';
+            const suggestions = !isUser && messageIndex === messages.length - 1 && !isProcessing
+              ? chatSuggestions(msg, { currentDraft: activeDraft,
+                lastUserText: messages.slice(0, messageIndex).findLast(message => message.sender === 'user')?.text || '' }) : [];
 
             return (
               <div
@@ -849,13 +898,14 @@ export default function StudentWorkspacePage({
                 >
                   {/* Nội dung markdown */}
                   <MarkdownRenderer content={msg.text} isUser={isUser} />
+                  {msg.workflowOutcome && !isOpenWorkflow(msg.workflowOutcome) && <WorkflowOutcome outcome={msg.workflowOutcome} onViewPetitions={() => onSwitchTab?.('MY_PETITIONS')} />}
 
                   {/* Thẻ Tool Call Badge nếu có */}
-                  {msg.toolResult && (
+                  {msg.toolResult && !msg.workflowOutcome && (
                     <div className="mt-3 pt-2.5 border-t border-slate-200/80">
                       <div className="flex items-center gap-1.5 text-[11px] font-mono text-slate-600 font-medium">
                         <span className="w-2 h-2 rounded-full bg-[#0B3B82]"></span>
-                        Kết quả công cụ: {msg.toolResult.decision || 'Tra cứu thông tin'}
+                        Kết quả công cụ: {msg.toolResult.draft ? displayLabel(msg.toolResult.draft.state) : displayLabel(msg.toolResult.decision || 'Tra cứu thông tin')}
                       </div>
                       
                       {/* Thẻ kết quả chứng thực số nếu đơn được duyệt */}
@@ -892,14 +942,15 @@ export default function StudentWorkspacePage({
                     <details className="mt-2 rounded border border-slate-200 p-2 text-[11px]">
                       <summary className="cursor-pointer font-semibold">Hành động đã thực thi ({msg.executionEvidence.length})</summary>
                       {msg.executionEvidence.map((event, index) => (
-                        <p key={index} className="mt-1 break-words font-mono">{event.toolName} · {event.durationMs} ms · {event.decision || 'Tra cứu'} {event.requestCode || ''}</p>
+                        <p key={index} className="mt-1 break-words">{displayLabel(event.toolName)} · {event.durationMs} ms · {displayLabel(event.decision || 'Tra cứu')} {event.requestCode || ''}</p>
                       ))}
                       {msg.toolResult?.requestId && <button type="button" className="mt-2 text-blue-700 underline" onClick={() => onSwitchTab?.('MY_PETITIONS')}>Xem hồ sơ đã lưu</button>}
                     </details>
                   )}
 
                   {/* DraftReviewCard nếu tin nhắn trả về có bản nháp */}
-                  {msg.toolResult?.draft && (
+                  {msg.toolResult?.draft && !msg.toolResult.draft.id && messageIndex === messages.length - 1
+                    && !isProcessing && !workflow.draft && (
                     <DraftReviewCard
                       draft={msg.toolResult.draft}
                       onConfirm={() => handleSendMessage('Tôi xác nhận thông tin trên và đề nghị cấp giấy.')}
@@ -916,6 +967,7 @@ export default function StudentWorkspacePage({
                       </span>
                     )}
                   </div>
+                  {!isUser && <ChatSuggestions suggestions={suggestions} disabled={workflow.busy} onChoose={handleSuggestion} />}
                 </div>
               </div>
             );
@@ -932,15 +984,17 @@ export default function StudentWorkspacePage({
             />
           )}
 
-          {activeDecision.status === 'WAITING_STUDENT' && activeDecision.requestId && (
+          {activeDecision.status === 'WAITING_STUDENT' && activeDecision.requestId && !activeDraft && (
             <PetitionSupplementForm
               key={activeDecision.requestId}
               requestId={activeDecision.requestId}
               question={activeDecision.reason}
+              onDraft={workflow.accept}
               onSubmitted={handleSupplementSubmitted}
             />
           )}
 
+          <div ref={workflowCardRef}><PetitionWorkflowCard workflow={{ ...workflow, draft: activeDraft }} /></div>
           <div ref={chatEndRef} />
         </div>
 
@@ -1090,38 +1144,6 @@ export default function StudentWorkspacePage({
               )}
             </div>
 
-            {/* Quick Action Suggestion Chips (Gợi ý câu hỏi) */}
-            <div className="flex items-center gap-1.5 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider shrink-0 mr-1">Gợi ý:</span>
-              <button
-                type="button"
-                onClick={() => handleSendMessage('Em xin cấp giấy xác nhận sinh viên để làm vé tháng xe buýt')}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
-              >
-                Vé tháng xe buýt
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSendMessage('Em muốn xin giấy xác nhận sinh viên để vay vốn ngân hàng chính sách xã hội')}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
-              >
-                Vay vốn NHCSXH
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSendMessage('Em xin giấy xác nhận để làm thủ tục tạm hoãn nghĩa vụ quân sự')}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
-              >
-                Tạm hoãn NVQS
-              </button>
-              <button
-                type="button"
-                onClick={() => handleSendMessage('Cho em hỏi làm giấy vay vốn sinh viên cần những giấy tờ gì vậy bot?')}
-                className="px-2.5 py-1 rounded-full text-[11px] font-medium bg-slate-100 hover:bg-blue-50 hover:text-[#0B3B82] border border-slate-200 text-slate-700 whitespace-nowrap transition-colors cursor-pointer"
-              >
-                Hỏi thủ tục cần gì
-              </button>
-            </div>
           </div>
 
           <form
@@ -1142,6 +1164,8 @@ export default function StudentWorkspacePage({
               placeholder={
                 isProcessing
                   ? 'Tác tử đang xử lý... Nhấn "Dừng lại" hoặc phím Esc để ngắt'
+                  : workflow.draft?.state === 'REJECTED' || workflow.draft?.result?.status === 'REJECTED'
+                    ? 'Quy trình trước đã kết thúc. Nhập yêu cầu mới tại đây…'
                   : 'Nhập yêu cầu học vụ (ví dụ: xin xnsv vay vốn nhcs, hoãn thi, hoãn nvqs...)'
               }
               disabled={isProcessing}
@@ -1284,7 +1308,7 @@ export default function StudentWorkspacePage({
                     4 Chốt Chặn Thẩm Định Tự Hành
                   </span>
                   <span className="font-mono text-[9px] text-[#0B3B82] bg-blue-50 px-1.5 py-0.5 rounded border border-blue-200 font-bold">
-                    BOUNDED
+                    Trong thẩm quyền
                   </span>
                 </div>
 
@@ -1299,7 +1323,7 @@ export default function StudentWorkspacePage({
                         ? 'bg-amber-100 text-amber-800'
                         : 'bg-slate-200 text-slate-600'
                     }`}>
-                      {activeDecision.requirementsCheck}
+                      {displayLabel(activeDecision.requirementsCheck)}
                     </span>
                   </div>
 
@@ -1313,7 +1337,7 @@ export default function StudentWorkspacePage({
                         ? 'bg-rose-100 text-rose-800'
                         : 'bg-slate-200 text-slate-600'
                     }`}>
-                      {activeDecision.policiesCheck}
+                      {displayLabel(activeDecision.policiesCheck)}
                     </span>
                   </div>
 
@@ -1327,7 +1351,7 @@ export default function StudentWorkspacePage({
                         ? 'bg-amber-100 text-amber-800'
                         : 'bg-slate-200 text-slate-600'
                     }`}>
-                      {activeDecision.authorityCheck === 'ESCALATED' ? 'STAFF REVIEW' : activeDecision.authorityCheck}
+                      {displayLabel(activeDecision.authorityCheck)}
                     </span>
                   </div>
 
@@ -1335,7 +1359,7 @@ export default function StudentWorkspacePage({
                   <div className="flex items-center justify-between text-xs p-2.5 rounded-lg bg-slate-50 border border-slate-100">
                     <span className="text-slate-700 font-medium">4. Toàn vẹn chuỗi SHA-256:</span>
                     <span className="font-semibold text-[10px] px-2 py-0.5 rounded bg-emerald-100 text-emerald-800">
-                      GENESIS VERIFIED
+                      {activeDecision.sha256Proof ? 'ĐÃ LƯU BẰNG CHỨNG' : 'Chờ quyết định được lưu'}
                     </span>
                   </div>
                 </div>
@@ -1358,7 +1382,7 @@ export default function StudentWorkspacePage({
                     Quyết Định Cuối Cùng
                   </span>
                   <span className="font-bold text-xs">
-                    {activeDecision.finalDecision || 'CHƯA CÓ YÊU CẦU'}
+                    {toDisplayText(activeDecision.finalDecision || 'CHƯA CÓ YÊU CẦU')}
                   </span>
                 </div>
 
@@ -1434,7 +1458,7 @@ export default function StudentWorkspacePage({
 
                   {verifyFeedback && (
                     <div className="mt-2 text-[10px] font-mono text-emerald-200 bg-[#082C64] p-2 rounded-lg border border-blue-400/30">
-                      {verifyFeedback}
+                      <MarkdownRenderer content={verifyFeedback} inline />
                     </div>
                   )}
                 </div>
@@ -1492,7 +1516,7 @@ export default function StudentWorkspacePage({
 
                 {verifyFeedback && (
                   <div className="mt-2 text-[10px] font-mono text-emerald-200 bg-[#082C64] p-2 rounded-lg border border-blue-400/30">
-                    {verifyFeedback}
+                    <MarkdownRenderer content={verifyFeedback} inline />
                   </div>
                 )}
               </div>

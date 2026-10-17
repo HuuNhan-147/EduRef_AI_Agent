@@ -1,0 +1,96 @@
+{
+  "runId": "QA_AUTOMATION_2026-10-17T04-14-22-088Z",
+  "mode": "inventory",
+  "base": "https://eduref-ai-agent-1.onrender.com",
+  "startedAt": "2026-10-17T04:14:22.089Z",
+  "results": [
+    {
+      "id": "baseline",
+      "authenticatedUserFields": [
+        "id",
+        "studentCode",
+        "fullName",
+        "email",
+        "role",
+        "status",
+        "tuitionDebt",
+        "gpa",
+        "department"
+      ],
+      "existingRequests": [
+        {
+          "id": "cmvbv0dme0010do2tpb3e901w",
+          "code": "XNSV-999755",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbupyqj000vdo2t52eezopp",
+          "code": "XNSV-893877",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        }
+      ],
+      "hasMore": false,
+      "total": 2
+    },
+    {
+      "id": "/health",
+      "httpStatus": 200,
+      "durationMs": 72,
+      "data": {
+        "status": "healthy",
+        "service": "EduRef AI Backend",
+        "database": "Supabase PostgreSQL (Prisma)",
+        "totalStudents": 13,
+        "timestamp": "2026-10-17T04:14:23.007Z"
+      }
+    },
+    {
+      "id": "/api/agent/models",
+      "httpStatus": 200,
+      "durationMs": 80,
+      "defaultModel": "gemini-3.1-flash-lite",
+      "modelIds": [
+        "auto",
+        "gpt-4o-mini",
+        "gpt-5.4-mini",
+        "gpt-4.1-mini",
+        "gpt-5.5",
+        "gpt-6.1-sol",
+        "gpt-4.1",
+        "gpt-5.6-sol",
+        "gemini-4-argon",
+        "gemini-3.8-flash",
+        "gemini-3.1-flash-lite",
+        "gemini-3.5-flash-lite",
+        "gemini-flash-lite-latest"
+      ]
+    },
+    {
+      "id": "/api/auth/me",
+      "httpStatus": 200,
+      "durationMs": 86,
+      "responseKeys": [
+        "success",
+        "user"
+      ],
+      "userFields": [
+        "id",
+        "studentCode",
+        "fullName",
+        "role",
+        "department",
+        "iat",
+        "exp"
+      ]
+    },
+    {
+      "id": "created-requests",
+      "requests": []
+    }
+  ],
+  "completedAt": "2026-10-17T04:14:23.150Z"
+}

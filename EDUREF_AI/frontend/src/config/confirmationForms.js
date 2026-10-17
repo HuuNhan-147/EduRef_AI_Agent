@@ -98,18 +98,9 @@ export const FORM_AGENCY_DEFAULTS = Object.fromEntries(
   CONFIRMATION_FORMS.map((form) => [form.formCode, form.recipientAgency])
 );
 
-export function buildConfirmationInput(formCode, values) {
-  const form = CONFIRMATION_FORMS.find((item) => item.formCode === formCode);
-  const sample = SAMPLE_CONFIRMATION_DATA.defaultsByForm[formCode] || {};
-  return {
-    ...values,
-    formCode,
-    phone: values.phone || SAMPLE_CONFIRMATION_DATA.phone,
-    permanentAddress: values.permanentAddress || sample.permanentAddress || SAMPLE_CONFIRMATION_DATA.permanentAddress,
-    recipientAgency: values.recipientAgency || sample.recipientAgency || form?.recipientAgency || '',
-    purpose: values.purpose || form?.purpose || sample.purpose || '',
-    pickupCampus: values.pickupCampus || SAMPLE_CONFIRMATION_DATA.pickupCampus,
-    debtCourses: values.debtCourses || sample.debtCourses || (formCode === 'COURSE_DEBT' ? SAMPLE_CONFIRMATION_DATA.debtCourses : ''),
-    completionDeadline: values.completionDeadline || sample.completionDeadline || (formCode === 'COURSE_DEBT' ? SAMPLE_CONFIRMATION_DATA.completionDeadline : ''),
+export function buildConfirmationInput(formCode, values = {}) {
+  const form = CONFIRMATION_FORMS.find(item => item.formCode === formCode);
+  return { ...values, formCode,
+    purpose: values.purpose || (formCode !== 'GENERAL_CONFIRMATION' ? form?.purpose : '') || '',
   };
 }

@@ -6,6 +6,9 @@ import cors from 'cors';
 import jwt from 'jsonwebtoken';
 
 import prisma from './config/prisma.js';
+import draftRoutes from './routes/draftRoutes.js';
+import { loadUserContext } from './services/UserContextService.js';
+import { setPetitionIO } from './services/PetitionEvents.js';
 import agentRoutes from './routes/agentRoutes.js';
 import petitionRoutes from './routes/petitionRoutes.js';
 import auditRoutes from './routes/auditRoutes.js';
@@ -68,6 +71,7 @@ io.use((socket, next) => {
 
 // Gắn io vào AgentTerminalLogger để broadcast log thời gian thực về tất cả client
 agentTerminalLogger.setIO(io);
+setPetitionIO(io);
 
 // Middlewares
 app.use(
@@ -89,6 +93,7 @@ app.use('/public', express.static('public'));
 // Gắn routes
 app.use('/api/auth', authRoutes);
 app.use('/api/agent', agentRoutes);
+app.use('/api/drafts', draftRoutes);
 app.use('/api/petitions', petitionRoutes);
 app.use('/api/audit', auditRoutes);
 app.use('/api/sprint2', sprint2Routes);
@@ -172,55 +177,7 @@ io.on('connection', (socket) => {
       }
 
       const explicitStudentCode = data?.studentCode || data?.currentUser?.studentCode;
-      const isStaffRole = ['STAFF', 'DEAN', 'ADMIN'].includes(socket.user?.role) && !explicitStudentCode;
-
-      if (isStaffRole) {
-        const staffUser = await prisma.user.findUnique({
-          where: { id: socket.user.id },
-        });
-        if (staffUser) {
-          userContext = {
-            username: staffUser.username,
-            fullName: staffUser.fullName,
-            email: staffUser.email,
-            role: staffUser.role,
-            type: 'STAFF',
-          };
-        }
-      } else {
-        // AN NINH (ZERO-TRUST IDENTITY): Nếu phiên là STUDENT, bắt buộc dùng studentCode từ JWT token đã xác thực
-        // Tuyệt đối không cho phép client mạo danh sinh viên khác qua data.studentCode!
-        const isStudentToken = socket.user?.role === 'STUDENT' || socket.user?.type === 'STUDENT';
-        const codeToFind = isStudentToken
-          ? (socket.user?.studentCode || explicitStudentCode)
-          : (explicitStudentCode || socket.user?.studentCode);
-        if (codeToFind) {
-          const student = await prisma.student.findUnique({
-            where: { studentCode: String(codeToFind).trim() },
-            include: { department: true },
-          });
-          if (student) {
-            userContext = {
-              studentCode: student.studentCode,
-              fullName: student.fullName,
-              email: student.email,
-              status: student.status,
-              department: student.department?.name,
-              tuitionDebt: Number(student.tuitionDebt),
-              gpa: Number(student.gpa),
-              role: 'STUDENT',
-              type: 'STUDENT',
-            };
-            // Đồng bộ lại danh tính socket hiện tại để các sự kiện kế tiếp không bị lệch
-            socket.user = {
-              ...socket.user,
-              studentCode: student.studentCode,
-              role: 'STUDENT',
-              fullName: student.fullName,
-            };
-          }
-        }
-      }
+      userContext = await loadUserContext(socket.user, explicitStudentCode);
 
       if (!userContext.role) {
         throw new Error('Không xác định được danh tính hợp lệ của phiên Socket.IO.');

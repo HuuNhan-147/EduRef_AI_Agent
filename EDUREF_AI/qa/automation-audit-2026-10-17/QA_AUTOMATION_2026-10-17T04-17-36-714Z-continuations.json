@@ -1,0 +1,285 @@
+{
+  "runId": "QA_AUTOMATION_2026-10-17T04-17-36-714Z",
+  "mode": "continuations",
+  "base": "https://eduref-ai-agent-1.onrender.com",
+  "startedAt": "2026-10-17T04:17:36.715Z",
+  "results": [
+    {
+      "id": "baseline",
+      "authenticatedUserFields": [
+        "id",
+        "studentCode",
+        "fullName",
+        "email",
+        "role",
+        "status",
+        "tuitionDebt",
+        "gpa",
+        "department"
+      ],
+      "existingRequests": [
+        {
+          "id": "cmvbvxfyp001ndo2tr55nht2x",
+          "code": "XNSV-457576",
+          "formCode": "COURSE_DEBT",
+          "status": "APPROVED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvx95w001fdo2tmo9blcue",
+          "code": "XNSV-896825",
+          "formCode": "BANK_LOAN",
+          "status": "APPROVED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvwy14001ado2t4uvbq3zl",
+          "code": "XNSV-931374",
+          "formCode": "GENERAL_CONFIRMATION",
+          "status": "APPROVED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvuroh0015do2tp1ylvk3y",
+          "code": "XNSV-116258",
+          "formCode": "TAX_DEDUCTION",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbv0dme0010do2tpb3e901w",
+          "code": "XNSV-999755",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbupyqj000vdo2t52eezopp",
+          "code": "XNSV-893877",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        }
+      ],
+      "hasMore": false,
+      "total": 6
+    },
+    {
+      "id": "tax-chat-followup",
+      "transport": "http",
+      "sessionId": "QA_AUTOMATION_2026-10-17T04-14-39-609Z-sidebar-tax-quick",
+      "message": "Số điện thoại: 0901234567; địa chỉ thường trú: 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh; nhận tại Sai Gon Campus A-01.01.",
+      "inputKeys": [],
+      "httpStatus": 200,
+      "durationMs": 12584,
+      "success": true,
+      "decision": "AUTO_APPROVED",
+      "status": "APPROVED",
+      "requestId": "cmvbvyeek001sdo2twrongj74",
+      "requestCode": "XNSV-539313",
+      "rule": "APPROVED_TAX_DEDUCTION",
+      "reply": "Chúc mừng bạn **Nguyễn Văn An**! 🎉✨\n\nĐơn xin cấp **Giấy chứng nhận — Biểu mẫu giảm thuế thu nhập cá nhân** của bạn đã được hệ thống thẩm định và phê duyệt tự động thành công.\n\n---\n\n### 📄 **THÔNG TIN HỒ SƠ & LỊCH HẸN NHẬN BẢN CỨNG**\n\n- **Mã hồ sơ:** **XNSV-539313**\n- **Mục đích:** Giảm trừ gia cảnh thuế TNCN nộp Chi cục Thuế cho ba mẹ\n- **Địa điểm nhận giấy:** **Phòng Công tác Sinh viên (A-01.01)** — Tầng trệt sảnh A, Sai Gon Campus (Khu AB — Trụ sở chính, số 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh)\n- 📅 **Thời gian dự kiến nhận:** **Buổi sáng (07h30 – 11h30), Thứ Hai ngày 19/10/2026**\n- ☎️ **Hotline hỗ trợ:** (028) 3512 0785\n\n---\n\n📌 **Lưu ý khi đến nhận giấy bản cứng:**\n- Nhà trường cấp giấy bản cứng có **chữ ký sống và mộc đỏ** của Trường HUTECH để đảm bảo tính pháp lý khi nộp cho Chi cục Thuế.\n- Khi đi nhận giấy, bạn vui lòng mang theo **Thẻ sinh viên** (hoặc **CCCD**) và cung cấp mã hồ sơ **XNSV-539313** tại bàn tiếp nhận của Phòng Công tác Sinh viên (A-01.01) nhé!\n\nNếu bạn cần hỗ trợ thêm thông tin hoặc thủ tục học vụ nào khác, đừng ngần ngại nhắn cho mình biết nha! Chúc bạn và gia đình luôn nhiều sức khỏe và may mắn! 🌟🏢",
+      "modelUsed": "gemini-3.8-flash",
+      "executionEvidence": [
+        {
+          "toolName": "process_student_confirmation",
+          "durationMs": 145,
+          "decision": "AUTO_APPROVED",
+          "requestId": "cmvbvyeek001sdo2twrongj74",
+          "requestCode": "XNSV-539313"
+        }
+      ],
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "tax-followup-identity-check",
+      "initialRequestId": "cmvbvuroh0015do2tp1ylvk3y",
+      "followupRequestId": "cmvbvyeek001sdo2twrongj74",
+      "sameRequest": false
+    },
+    {
+      "id": "military-modal-socket",
+      "transport": "socket",
+      "sessionId": "QA_AUTOMATION_2026-10-17T04-17-36-714Z-military-modal-socket",
+      "message": "Em là Nguyễn Văn An (MSSV: 2380600001, Lớp: 23DTHE1), xin cấp Giấy chứng nhận tạm hoãn nghĩa vụ quân sự nộp Ban Chỉ huy Quân sự Phường Thạnh Mỹ Tây. Địa chỉ thường trú: 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh; SĐT: 0901234567; CCCD: 079204001234; Cơ sở nhận bản cứng: Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01).",
+      "inputKeys": [
+        "fullName",
+        "studentCode",
+        "birthDate",
+        "gender",
+        "studentClass",
+        "faculty",
+        "major",
+        "phone",
+        "idCard",
+        "idCardDate",
+        "idCardPlace",
+        "formCode",
+        "permanentAddress",
+        "recipientAgency",
+        "purpose",
+        "pickupCampus",
+        "debtCourses",
+        "completionDeadline",
+        "typeCode",
+        "formDescription"
+      ],
+      "streamedChunks": 15,
+      "httpStatus": 200,
+      "durationMs": 18185,
+      "success": true,
+      "decision": "ASK_CLARIFICATION",
+      "status": "WAITING_STUDENT",
+      "requestId": "cmvbvyt27001xdo2tx5efkf2d",
+      "requestCode": "XNSV-714436",
+      "rule": "CONFIRM_MILITARY_ADDRESS_RESPONSIBILITY",
+      "reply": "Chào bạn Nguyễn Văn An! 👋✨\n\nHệ thống đã ghi nhận đầy đủ thông tin đề nghị cấp **Giấy chứng nhận — Biểu mẫu tạm hoãn nghĩa vụ quân sự** của bạn. \n\nĐịa chỉ hộ khẩu thường trú của bạn đã được chuẩn hóa theo thể thức văn thư hành chính:\n🏠 **475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh**\n\n⚠️ **CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ (BCH QUÂN SỰ ĐỊA PHƯƠNG):**\nGiấy chứng nhận Tạm hoãn NVQS sẽ được nộp trực tiếp về Ban Chỉ huy Quân sự địa phương nơi bạn đăng ký hộ khẩu thường trú. Sinh viên phải **hoàn toàn chịu trách nhiệm trước pháp luật** về tính chính xác của địa chỉ khai báo (đặc biệt lưu ý tên xã/phường/thị trấn sau các đợt sắp xếp, sáp nhập đơn vị hành chính để tránh trường hợp địa phương từ chối tiếp nhận hồ sơ).\n\nBạn An vui lòng đối chiếu kỹ lại với CCCD/Sổ hộ khẩu và phản hồi giúp mình nhé:\n👉 Nếu địa chỉ trên đã hoàn toàn chính xác: Bạn chỉ cần nhắn lại **\"Xác nhận đúng\"** để hệ thống hoàn tất phê duyệt và gửi lịch hẹn nhận giấy bản cứng ngay tại **Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)**.\n👉 Nếu cần điều chỉnh: Bạn nhắn lại địa chỉ chính xác để mình cập nhật cho bạn nhé!",
+      "question": "Dạ hệ thống đã ghi nhận địa chỉ hộ khẩu thường trú của bạn theo chuẩn văn thư hành chính là:\n🏠 **475a Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành Phố Hồ Chí Minh**\n\n⚠️ **CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ (BCH QUÂN SỰ ĐỊA PHƯƠNG):**\nGiấy chứng nhận Tạm hoãn NVQS sẽ được nộp trực tiếp về Ban Chỉ huy Quân sự địa phương nơi bạn đăng ký hộ khẩu thường trú. Sinh viên phải **hoàn toàn chịu trách nhiệm trước pháp luật** về tính chính xác của địa chỉ khai báo (đặc biệt lưu ý tên xã/phường/thị trấn sau các đợt sáp nhập, sắp xếp đơn vị hành chính để tránh bị địa phương từ chối hồ sơ).\n\nBạn vui lòng đối chiếu kỹ với CCCD/Sổ hộ khẩu và xác nhận lại giúp mình:\n👉 Nếu địa chỉ trên đã chính xác: Bạn chỉ cần nhắn **\"Xác nhận đúng\"** (kèm theo cơ sở nhận giấy bản cứng: A-01.01 Sài Gòn hoặc E1-01.05 Thủ Đức nếu chưa chọn) để mình hoàn tất duyệt và cấp mã hồ sơ ngay nhé!\n👉 Nếu cần điều chỉnh: Bạn nhắn lại địa chỉ chính xác để mình cập nhật nhé!",
+      "modelUsed": "gemini-3.8-flash",
+      "executionEvidence": [
+        {
+          "toolName": "process_student_confirmation",
+          "durationMs": 116,
+          "decision": "ASK_CLARIFICATION",
+          "requestId": "cmvbvyt27001xdo2tx5efkf2d",
+          "requestCode": "XNSV-714436"
+        }
+      ],
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "military-short-yes",
+      "transport": "socket",
+      "sessionId": "QA_AUTOMATION_2026-10-17T04-17-36-714Z-military-modal-socket",
+      "message": "Có",
+      "inputKeys": [],
+      "streamedChunks": 13,
+      "httpStatus": 200,
+      "durationMs": 14765,
+      "success": true,
+      "decision": "ASK_CLARIFICATION",
+      "status": "WAITING_STUDENT",
+      "requestId": "cmvbvz4xy0022do2tpnh6kmst",
+      "requestCode": "XNSV-432466",
+      "rule": "CONFIRM_MILITARY_ADDRESS_RESPONSIBILITY",
+      "reply": "Dạ hệ thống đã ghi nhận địa chỉ hộ khẩu thường trú của bạn theo chuẩn văn thư hành chính là:\n🏠 **475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành Phố Hồ Chí Minh**\n\n⚠️ **CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ (BCH QUÂN SỰ ĐỊA PHƯƠNG):**\nGiấy chứng nhận Tạm hoãn NVQS sẽ được nộp trực tiếp về Ban Chỉ huy Quân sự địa phương nơi bạn đăng ký hộ khẩu thường trú. Sinh viên phải **hoàn toàn chịu trách nhiệm trước pháp luật** về tính chính xác của địa chỉ khai báo (đặc biệt lưu ý tên xã/phường/thị trấn sau các đợt sáp nhập, sắp xếp đơn vị hành chính để tránh bị địa phương từ chối hồ sơ).\n\nBạn Nguyễn Văn An vui lòng đối chiếu kỹ với CCCD/Sổ hộ khẩu và xác nhận lại giúp mình:\n👉 Bạn chỉ cần nhắn chính xác cụm từ: **\"Xác nhận đúng\"** để hệ thống hoàn tất phê duyệt tự động và cấp lịch hẹn nhận giấy bản cứng ngay nhé!\n👉 Nếu cần điều chỉnh: Bạn nhắn lại địa chỉ chính xác để mình cập nhật giúp bạn.",
+      "question": "Dạ hệ thống đã ghi nhận địa chỉ hộ khẩu thường trú của bạn theo chuẩn văn thư hành chính là:\n🏠 **475a Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành Phố Hồ Chí Minh**\n\n⚠️ **CẢNH BÁO QUY CHẾ PHÁP LÝ NGHĨA VỤ QUÂN SỰ (BCH QUÂN SỰ ĐỊA PHƯƠNG):**\nGiấy chứng nhận Tạm hoãn NVQS sẽ được nộp trực tiếp về Ban Chỉ huy Quân sự địa phương nơi bạn đăng ký hộ khẩu thường trú. Sinh viên phải **hoàn toàn chịu trách nhiệm trước pháp luật** về tính chính xác của địa chỉ khai báo (đặc biệt lưu ý tên xã/phường/thị trấn sau các đợt sáp nhập, sắp xếp đơn vị hành chính để tránh bị địa phương từ chối hồ sơ).\n\nBạn vui lòng đối chiếu kỹ với CCCD/Sổ hộ khẩu và xác nhận lại giúp mình:\n👉 Nếu địa chỉ trên đã chính xác: Bạn chỉ cần nhắn **\"Xác nhận đúng\"** (kèm theo cơ sở nhận giấy bản cứng: A-01.01 Sài Gòn hoặc E1-01.05 Thủ Đức nếu chưa chọn) để mình hoàn tất duyệt và cấp mã hồ sơ ngay nhé!\n👉 Nếu cần điều chỉnh: Bạn nhắn lại địa chỉ chính xác để mình cập nhật nhé!",
+      "modelUsed": "gemini-3.8-flash",
+      "executionEvidence": [
+        {
+          "toolName": "process_student_confirmation",
+          "durationMs": 117,
+          "decision": "ASK_CLARIFICATION",
+          "requestId": "cmvbvz4xy0022do2tpnh6kmst",
+          "requestCode": "XNSV-432466"
+        }
+      ],
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "military-original-after-yes",
+      "requestId": "cmvbvyt27001xdo2tx5efkf2d",
+      "status": "WAITING_STUDENT",
+      "addressConfirmed": false
+    },
+    {
+      "id": "military-structured-confirm",
+      "originalRequestId": "cmvbvyt27001xdo2tx5efkf2d",
+      "additionalKeys": [
+        "isAddressConfirmed"
+      ],
+      "httpStatus": 200,
+      "durationMs": 329,
+      "success": true,
+      "decision": "AUTO_APPROVED",
+      "status": "APPROVED",
+      "requestId": "cmvbvyt27001xdo2tx5efkf2d",
+      "requestCode": "XNSV-714436",
+      "rule": "APPROVED_MILITARY_DEFERMENT",
+      "reply": "Đơn [XNSV-714436] đã được EduRef AI tự động thẩm định thành công trong 133ms. Lịch nhận bản cứng là thông tin dự kiến trong bản demo; việc phát hành cần đơn vị phụ trách xác nhận.\n\n📅 **Lịch hẹn nhận bản cứng:**\n- **Địa điểm:** Phòng Công tác Sinh viên (A-01.01) (Tầng trệt sảnh A, số 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh)\n- **Thời gian dự kiến nhận:** Buổi sáng (07h30 – 11h30), Thứ Hai ngày 19/10/2026\n- **Hotline hỗ trợ:** (028) 3512 0785",
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "created-requests",
+      "requests": [
+        {
+          "id": "cmvbvz4xy0022do2tpnh6kmst",
+          "code": "XNSV-432466",
+          "status": "WAITING_STUDENT",
+          "formCode": "MILITARY_DEFERMENT",
+          "inputKeys": [
+            "phone",
+            "idCard",
+            "purpose",
+            "formCode",
+            "sessionId",
+            "debtCourses",
+            "pickupCampus",
+            "studentClass",
+            "historyRequests",
+            "permanentAddress",
+            "isAddressConfirmed",
+            "conversationHistory"
+          ]
+        },
+        {
+          "id": "cmvbvyt27001xdo2tx5efkf2d",
+          "code": "XNSV-714436",
+          "status": "APPROVED",
+          "formCode": "MILITARY_DEFERMENT",
+          "inputKeys": [
+            "major",
+            "phone",
+            "gender",
+            "idCard",
+            "faculty",
+            "purpose",
+            "formCode",
+            "fullName",
+            "typeCode",
+            "birthDate",
+            "sessionId",
+            "idCardDate",
+            "debtCourses",
+            "idCardPlace",
+            "studentCode",
+            "pickupCampus",
+            "studentClass",
+            "formDescription",
+            "historyRequests",
+            "recipientAgency",
+            "permanentAddress",
+            "completionDeadline",
+            "isAddressConfirmed",
+            "conversationHistory"
+          ]
+        },
+        {
+          "id": "cmvbvyeek001sdo2twrongj74",
+          "code": "XNSV-539313",
+          "status": "APPROVED",
+          "formCode": "TAX_DEDUCTION",
+          "inputKeys": [
+            "phone",
+            "idCard",
+            "purpose",
+            "formCode",
+            "sessionId",
+            "debtCourses",
+            "pickupCampus",
+            "studentClass",
+            "historyRequests",
+            "permanentAddress",
+            "isAddressConfirmed",
+            "conversationHistory"
+          ]
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-10-17T04:18:23.659Z"
+}

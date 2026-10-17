@@ -5,6 +5,9 @@ import { useState, useEffect, useRef } from "react";
 import { AlertOctagon, CheckCircle2, XCircle, RotateCcw, User, FileText, ShieldCheck, AlertTriangle, ExternalLink, Info, Award, GraduationCap, Building, Eye, X, Search, ChevronLeft } from "lucide-react";
 import api from "../services/api";
 import EscalationFeedbackForm from '../components/forms/EscalationFeedbackForm';
+import getSocket from '../services/socket';
+import MarkdownRenderer from '../components/common/MarkdownRenderer';
+import { displayLabel } from '../config/displayText';
 
 export default function StaffEscalationPage() {
   const [petitions, setPetitions] = useState([]);
@@ -25,6 +28,7 @@ export default function StaffEscalationPage() {
   // States cho modal phê duyệt / từ chối / hoàn tác
   const [actionModal, setActionModal] = useState(null); // null | 'APPROVE' | 'REJECT' | 'ROLLBACK'
   const [actionNote, setActionNote] = useState('');
+  const [supplementFields, setSupplementFields] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [toast, setToast] = useState(null);
 
@@ -93,6 +97,12 @@ export default function StaffEscalationPage() {
   };
   useEffect(invalidateQueue, [statusFilter, searchQuery, page]);
   useEffect(() => { setPage(1); }, [statusFilter, searchQuery]);
+  useEffect(() => {
+    const socket = getSocket();
+    const refresh = () => { fetchEscalations(); if (selectedPetition?.id) handleSelectPetition(selectedPetition); };
+    socket.on('petition_status_updated', refresh); socket.on('connect', refresh);
+    return () => { socket.off('petition_status_updated', refresh); socket.off('connect', refresh); };
+  }, [selectedPetition?.id, statusFilter, searchQuery, page]);
 
   // Thực hiện hành động Duyệt, Từ chối hoặc Hoàn tác
   const handleExecuteAction = async () => {
@@ -122,6 +132,16 @@ export default function StaffEscalationPage() {
         if (res.data?.success) {
           showToast(`Đã bác bỏ hồ sơ [${selectedPetition.requestCode}].`, 'error');
         }
+      } else if (actionModal === 'SUPPLEMENT') {
+        const res = await api.post(`/petitions/${selectedPetition.id}/request-supplement`, {
+          fields: supplementFields, reason: actionNote || 'Vui lòng bổ sung các thông tin được cán bộ yêu cầu.',
+        });
+        if (!res.data?.success) throw new Error(res.data?.message || 'Chưa thể yêu cầu bổ sung.');
+        showToast('Đã gửi yêu cầu bổ sung tới sinh viên.');
+      } else if (actionModal === 'TRANSFER') {
+        const res = await api.post(`/petitions/${selectedPetition.id}/transfer`, { reason: actionNote || 'Chuyển Trưởng phòng xem xét hồ sơ ngoại lệ.' });
+        if (!res.data?.success) throw new Error(res.data?.message || 'Chưa thể chuyển hồ sơ.');
+        showToast('Đã chuyển hồ sơ tới Trưởng phòng.');
       } else if (actionModal === 'ROLLBACK') {
         const res = await api.post(`/petitions/${selectedPetition.id}/rollback`, {
           reason: actionNote || 'Can thiệp dừng và thu hồi bởi Cán bộ Quản lý',
@@ -416,7 +436,7 @@ export default function StaffEscalationPage() {
                           : 'bg-blue-100 text-blue-800'
                       }`}
                     >
-                      {p.status === 'ESCALATED' ? 'CẦN DUYỆT' : p.status}
+                      {p.status === 'ESCALATED' ? 'CẦN DUYỆT' : displayLabel(p.status)}
                     </span>
                   </div>
 
@@ -473,7 +493,7 @@ export default function StaffEscalationPage() {
                         : 'bg-slate-100 text-slate-700'
                     }`}
                   >
-                    {selectedPetition.status}
+                    {displayLabel(selectedPetition.status)}
                   </span>
                 </div>
                 <h1 className="text-sm font-semibold text-slate-700 mt-0.5">
@@ -501,6 +521,8 @@ export default function StaffEscalationPage() {
                       <XCircle className="w-4 h-4" />
                       Từ Chối Đơn
                     </button>
+                    <button disabled={detailLoading || isSubmitting} onClick={() => { setSupplementFields([]); setActionModal('SUPPLEMENT'); }} className="rounded-lg border border-blue-300 px-3 py-2 text-xs text-blue-800">Yêu cầu bổ sung</button>
+                    <button disabled={detailLoading || isSubmitting} onClick={() => setActionModal('TRANSFER')} className="rounded-lg border px-3 py-2 text-xs">Chuyển Trưởng phòng</button>
                   </>
                 )}
 
@@ -566,7 +588,7 @@ export default function StaffEscalationPage() {
                   Lý do vượt thẩm quyền AI (AI Escalation Reason):
                 </span>
                 <div className="p-3 rounded-lg bg-amber-50/70 border border-amber-200 text-xs text-amber-900 leading-relaxed font-medium">
-                  {capsule?.reason || selectedPetition.escalationReason || 'Thủ tục thuộc phân cấp thẩm quyền phê duyệt của Cán bộ Phòng Đào tạo.'}
+                  <MarkdownRenderer content={capsule?.reason || selectedPetition.escalationReason || 'Thủ tục thuộc phân cấp thẩm quyền phê duyệt của Cán bộ Phòng Đào tạo.'} compact inheritColor />
                 </div>
               </div>
 
@@ -578,7 +600,7 @@ export default function StaffEscalationPage() {
                     Lý do hoàn tác / Thu hồi hồ sơ:
                   </span>
                   <div className="p-3 rounded-lg text-xs leading-relaxed border whitespace-pre-line font-medium bg-amber-50/80 border-amber-200 text-amber-950">
-                    {selectedPetition.escalationReason || 'Hồ sơ đã được cán bộ thu hồi.'}
+                    <MarkdownRenderer content={selectedPetition.escalationReason || 'Hồ sơ đã được cán bộ thu hồi.'} inline />
                   </div>
                 </div>
               )}
@@ -604,7 +626,7 @@ export default function StaffEscalationPage() {
                       ? 'bg-emerald-50/80 border-emerald-200 text-emerald-950'
                       : 'bg-rose-50/80 border-rose-200 text-rose-950'
                   }`}>
-                    {capsule?.reviewerNote || (selectedPetition.status === 'APPROVED' ? 'Đã thẩm định hồ sơ đạt yêu cầu, chấp thuận phê duyệt.' : 'Từ chối tiếp nhận hồ sơ.')}
+                    <MarkdownRenderer content={capsule?.reviewerNote || (selectedPetition.status === 'APPROVED' ? 'Đã thẩm định hồ sơ đạt yêu cầu, chấp thuận phê duyệt.' : 'Từ chối tiếp nhận hồ sơ.')} compact inheritColor />
                   </div>
                 </div>
               )}
@@ -615,7 +637,7 @@ export default function StaffEscalationPage() {
                   Câu hỏi hành động cho người duyệt (Actionable Question):
                 </span>
                 <div className="p-3 rounded-lg bg-indigo-50/80 border border-indigo-200 text-xs text-indigo-900 font-semibold leading-relaxed">
-                  {capsule?.actionableQuestion || `Thầy/Cô có phê duyệt hồ sơ [${selectedPetition.requestCode}] cho sinh viên ${selectedPetition.student?.fullName} không?`}
+                  <MarkdownRenderer content={capsule?.actionableQuestion || `Thầy/Cô có phê duyệt hồ sơ [${selectedPetition.requestCode}] cho sinh viên ${selectedPetition.student?.fullName} không?`} compact inheritColor />
                 </div>
               </div>
 
@@ -916,7 +938,7 @@ export default function StaffEscalationPage() {
                                 )}
                               </div>
                               <p className="text-slate-700 leading-relaxed">
-                                <strong>Lý do xin cấp lại:</strong> {input.reissueReason || input.repeatReason || input.explanation || 'Sinh viên giải trình làm mất bản chính hoặc cần bổ sung nộp cơ quan khác.'}
+                                <strong>Lý do xin cấp lại:</strong> <MarkdownRenderer content={input.reissueReason || input.repeatReason || input.explanation || 'Sinh viên giải trình làm mất bản chính hoặc cần bổ sung nộp cơ quan khác.'} inline />
                               </p>
                               <p className="text-[11px] text-amber-800 italic">
                                 ℹ️ Toàn bộ thông tin hành chính đã được hệ thống tự động kế thừa từ đơn đã được duyệt trong học kỳ, giúp Cán bộ thẩm định nhanh chóng không cần hỏi lại sinh viên.
@@ -1084,7 +1106,7 @@ export default function StaffEscalationPage() {
                                   <div>
                                     <span className="text-slate-400 block text-[10px]">Mục đích giải trình / sử dụng:</span>
                                     <span className="font-medium text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded block border border-slate-200">
-                                      {purpose}
+                                      <MarkdownRenderer content={purpose} inline />
                                     </span>
                                   </div>
                                 </div>
@@ -1096,7 +1118,7 @@ export default function StaffEscalationPage() {
                               <div>
                                 <span className="text-slate-400 block text-[10px]">Mục đích xác nhận cụ thể:</span>
                                 <span className="font-semibold text-indigo-950 bg-indigo-50/80 px-2.5 py-2 rounded block border border-indigo-200">
-                                  🎯 {purpose}
+                                  🎯 <MarkdownRenderer content={purpose} inline />
                                 </span>
                               </div>
                             )}
@@ -1145,7 +1167,7 @@ export default function StaffEscalationPage() {
                     <div>
                       <span className="text-slate-400 block text-[10px]">Ghi chú / Nguyện vọng:</span>
                       <span className="font-medium text-slate-800">
-                        {selectedPetition.inputData?.reason || 'Đủ điều kiện xét tốt nghiệp'}
+                        <MarkdownRenderer content={selectedPetition.inputData?.reason || 'Đủ điều kiện xét tốt nghiệp'} inline />
                       </span>
                     </div>
                   </div>
@@ -1346,16 +1368,20 @@ export default function StaffEscalationPage() {
                 {actionModal === 'APPROVE' && 'Xác nhận Phê duyệt Đơn'}
                 {actionModal === 'REJECT' && 'Từ chối Tiếp nhận Đơn'}
                 {actionModal === 'ROLLBACK' && 'Can thiệp Dừng Khẩn cấp (Rollback)'}
+                {actionModal === 'SUPPLEMENT' && 'Chọn thông tin cần bổ sung'}
+                {actionModal === 'TRANSFER' && 'Chuyển Trưởng phòng xem xét'}
               </h3>
             </div>
 
             <p className="text-xs text-slate-600 leading-relaxed">
               {actionModal === 'APPROVE' && 'Hành động này sẽ phê duyệt cấp giấy, sinh viên nhận thông báo và đến Phòng CTSV nhận bản in có chữ ký và mộc đỏ.'}
               {actionModal === 'REJECT' && 'Vui lòng cung cấp lý do từ chối rõ ràng để sinh viên nắm rõ căn cứ quy chế.'}
-              {actionModal === 'ROLLBACK' && 'CẢNH BÁO: Hành động này sẽ thu hồi quyết định phê duyệt và chuyển trạng thái hồ sơ sang CANCELLED.'}
+              {actionModal === 'ROLLBACK' && 'Hành động này sẽ thu hồi quyết định phê duyệt và chuyển hồ sơ sang trạng thái đã hủy.'}
             </p>
 
             <div className="space-y-1">
+              {actionModal === 'REJECT' && <select aria-label="Lý do từ chối" value={actionNote} onChange={event => setActionNote(event.target.value)} className="w-full rounded-lg border p-2 text-xs mb-2"><option value="">Chọn lý do hoặc nhập nội dung riêng</option>{['Thông tin hồ sơ không đáp ứng yêu cầu xác minh.', 'Chưa đủ điều kiện giải quyết ngoại lệ theo quy định.', 'Minh chứng chưa đủ căn cứ để phê duyệt.'].map(reason => <option key={reason}>{reason}</option>)}</select>}
+              {actionModal === 'SUPPLEMENT' && <fieldset className="grid grid-cols-2 gap-2 mb-3 text-xs">{[['phone', 'Số điện thoại'], ['permanentAddress', 'Địa chỉ thường trú'], ['idCard', 'CCCD/CMND'], ['purpose', 'Mục đích'], ['debtCourses', 'Học phần còn nợ'], ['reissueReason', 'Lý do cấp lại'], ['orphanStatus', 'Tình trạng mồ côi'], ['loanGrantedCount', 'Số lần giải ngân'], ['lastLoanAmount', 'Số tiền vay gần nhất']].map(([key, label]) => <label key={key} className="flex items-center gap-2"><input type="checkbox" checked={supplementFields.includes(key)} onChange={event => setSupplementFields(values => event.target.checked ? [...values, key] : values.filter(value => value !== key))} />{label}</label>)}</fieldset>}
               <label className="text-[11px] font-bold uppercase tracking-wider text-slate-500">
                 {actionModal === 'APPROVE'
                   ? 'Ghi chú phê duyệt của Thầy/Cô (Lưu vào hồ sơ):'

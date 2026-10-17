@@ -1,0 +1,17 @@
+{
+  "frontendStatus": 200,
+  "assetStatus": 200,
+  "backendStatus": 200,
+  "databaseHealthy": true,
+  "demoLogin": true,
+  "cors": "http://localhost:8080",
+  "socketConnected": true,
+  "openQaDrafts": 0,
+  "backendUnitPassed": 161,
+  "frontendTestsPassed": 24,
+  "lint": "passed",
+  "build": "passed",
+  "frontendUrl": "http://localhost:8080",
+  "backendUrl": "http://localhost:5000",
+  "checkedAt": "2026-10-17T05:01:26.382Z"
+}

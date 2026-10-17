@@ -20,6 +20,15 @@ function setup(t) {
 }
 const submit = (core, data = input) => core.processPetitionWorkflow({ studentCode: '2380600001', requestTypeCode: 'STUDENT_CONFIRMATION', inputData: data, forceNewRequest: true });
 
+test('a known school-policy denial ends a legacy workflow before asking for missing personal facts', async t => {
+  const s = setup(t);
+  s.students.push({ id: 'overdue-debt', studentCode: '2280602154', fullName: 'Sinh viên quá hạn', status: 'ACTIVE' });
+  const result = await s.core.processPetitionWorkflow({ studentCode: '2280602154', requestTypeCode: 'STUDENT_CONFIRMATION',
+    inputData: { formCode: 'MILITARY_DEFERMENT' }, forceNewRequest: true });
+  assert.equal(result.status, 'REJECTED'); assert.equal(result.workflowClosed, true); assert.equal(result.rule, 'POL_OVERDUE_COHORT_REQUIRE_DEBT_FORM');
+  assert.match(result.message, /Quy trình này đã kết thúc/); assert.equal(s.state.records[0].status, 'REJECTED');
+});
+
 test('a new form cannot rewrite a request already transferred to staff', async (t) => {
   const s = setup(t);
   const old = s.add({ status: 'ESCALATED', inputData: { ...input, formCode: 'MILITARY_DEFERMENT' }, contextCapsule: { reason: 'Cần cán bộ xác minh' } });

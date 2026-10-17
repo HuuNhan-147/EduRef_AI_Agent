@@ -85,7 +85,7 @@ export default function WelcomeOnboardingModal({
             Chào bạn đến với Cổng Thẩm Định Học Vụ Số!
           </h2>
           <p className="text-xs sm:text-sm text-blue-100/90 mt-1 leading-relaxed">
-            Hệ thống hỗ trợ giải quyết <strong>Giấy xác nhận sinh viên</strong> tức thì trong <strong>2 giây</strong> theo quy chế đào tạo, tự động dừng lại và chuyển Cán bộ khi có ngoại lệ.
+            Hệ thống tự chuẩn bị <strong>Giấy xác nhận sinh viên</strong> từ dữ liệu đã có. Bạn chỉ bổ sung phần còn thiếu và xác nhận nộp; hồ sơ ngoại lệ được chuyển cán bộ.
           </p>
         </div>
 
@@ -101,18 +101,18 @@ export default function WelcomeOnboardingModal({
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
                 <span className="w-5 h-5 rounded-full bg-blue-600 text-white font-bold inline-flex items-center justify-center text-[10px] mb-1.5">1</span>
-                <p className="font-semibold text-slate-800">Chọn hoặc Tạo hồ sơ</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Dùng tài khoản mẫu có sẵn hoặc bấm tạo hồ sơ riêng của bạn.</p>
+                <p className="font-semibold text-slate-800">Chọn thủ tục</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Bấm AI chuẩn bị hồ sơ ở danh mục bên trái.</p>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
                 <span className="w-5 h-5 rounded-full bg-indigo-600 text-white font-bold inline-flex items-center justify-center text-[10px] mb-1.5">2</span>
-                <p className="font-semibold text-slate-800">Nhắn tin yêu cầu</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Gõ mục đích xin giấy hoặc bấm thử 3 kịch bản mẫu bên dưới.</p>
+                <p className="font-semibold text-slate-800">Bổ sung nếu cần</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Thông tin đã có được điền sẵn. Chỉ nhập phần hệ thống còn thiếu.</p>
               </div>
               <div className="p-3 rounded-xl bg-slate-50 border border-slate-200 text-xs">
                 <span className="w-5 h-5 rounded-full bg-emerald-600 text-white font-bold inline-flex items-center justify-center text-[10px] mb-1.5">3</span>
-                <p className="font-semibold text-slate-800">Xem AI thẩm định</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">Tự động duyệt mã XNSV, hỏi lại thông tin hoặc chuyển Cán bộ PĐT.</p>
+                <p className="font-semibold text-slate-800">Xác nhận và nộp</p>
+                <p className="text-[11px] text-slate-500 mt-0.5">Kiểm tra bản tóm tắt, xác nhận một lần rồi theo dõi kết quả tự động.</p>
               </div>
             </div>
           </div>

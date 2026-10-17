@@ -18,6 +18,16 @@ function callbacks(file) {
 }
 const student = callbacks('../src/pages/StudentWorkspacePage.jsx');
 const staff = callbacks('../src/pages/StaffEscalationPage.jsx');
+test('a prepared draft waits for user confirmation and does not stay in processing or claim approval', () => {
+  const state = agentDecisionState({ toolResult: { decision: 'DRAFT_READY', draft: { id: 'd1', state: 'READY', missingFields: [] } } });
+  assert.equal(state.status, 'DRAFT'); assert.equal(state.requestId, null);
+  assert.equal(state.finalDecision, 'CHỜ XÁC NHẬN NỘP'); assert.equal(state.sha256Proof, null);
+});
+test('a policy-denied draft reports a final rejection without pending confirmations or missing fields', () => {
+  const state = agentDecisionState({ toolResult: { draft: { state: 'REJECTED', resolution: { reason: 'Không đủ điều kiện', nextStep: 'Liên hệ phòng ban' } } } });
+  assert.equal(state.status, 'REJECTED'); assert.equal(state.policiesCheck, 'FAILED');
+  assert.match(state.finalDecision, /ĐÃ KẾT THÚC/); assert.match(state.reason, /Liên hệ phòng ban/); assert.deepEqual(state.missingFields, []);
+});
 
 test('a final reply without a streamed chunk is appended without overwriting the previous answer', () => {
   const before = [{ sender: 'agent', text: 'Câu trả lời cũ' }, { sender: 'user', text: 'Yêu cầu mới' }];

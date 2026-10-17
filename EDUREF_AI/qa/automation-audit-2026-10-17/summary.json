@@ -1,0 +1,27 @@
+{
+  "date": "2026-10-17",
+  "timezone": "Asia/Saigon",
+  "mode": "Live API + local tests; browser UI unavailable",
+  "backendTests": {
+    "passed": 153,
+    "failed": 0
+  },
+  "frontendTests": {
+    "passed": 19,
+    "failed": 0
+  },
+  "frontendBuild": "passed",
+  "liveLlmCalls": 8,
+  "qaRequests": 10,
+  "allQaCancelled": true,
+  "originalRequestStatusesPreserved": true,
+  "evidenceFiles": [
+    "QA_AUTOMATION_2026-10-17T04-14-22-088Z-inventory.json",
+    "QA_AUTOMATION_2026-10-17T04-14-39-609Z-probe.json",
+    "QA_AUTOMATION_2026-10-17T04-16-28-428Z-forms.json",
+    "QA_AUTOMATION_2026-10-17T04-17-36-714Z-continuations.json",
+    "QA_AUTOMATION_2026-10-17T04-18-42-190Z-staff.json",
+    "QA_AUTOMATION_2026-10-17T04-19-05-886Z-exact-bank-modal.json",
+    "QA_AUTOMATION_2026-10-17T04-20-36-731Z-cleanup.json"
+  ]
+}

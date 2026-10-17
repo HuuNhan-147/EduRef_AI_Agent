@@ -1,0 +1,272 @@
+{
+  "runId": "QA_AUTOMATION_2026-10-17T04-20-36-731Z",
+  "mode": "cleanup",
+  "base": "https://eduref-ai-agent-1.onrender.com",
+  "startedAt": "2026-10-17T04:20:36.732Z",
+  "results": [
+    {
+      "id": "baseline",
+      "authenticatedUserFields": [
+        "id",
+        "studentCode",
+        "fullName",
+        "email",
+        "role",
+        "status",
+        "tuitionDebt",
+        "gpa",
+        "department"
+      ],
+      "existingRequests": [
+        {
+          "id": "cmvbw0av8002qdo2ti2pd5szw",
+          "code": "XNSV-344072",
+          "formCode": "BANK_LOAN",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvzq6r002ido2twbestvmm",
+          "code": "XNSV-887907",
+          "formCode": "BANK_LOAN",
+          "status": "REJECTED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvzoas002ado2tk5cqq9nt",
+          "code": "XNSV-315639",
+          "formCode": "GENERAL_CONFIRMATION",
+          "status": "APPROVED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvz4xy0022do2tpnh6kmst",
+          "code": "XNSV-432466",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvyt27001xdo2tx5efkf2d",
+          "code": "XNSV-714436",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "APPROVED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvyeek001sdo2twrongj74",
+          "code": "XNSV-539313",
+          "formCode": "TAX_DEDUCTION",
+          "status": "APPROVED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvxfyp001ndo2tr55nht2x",
+          "code": "XNSV-457576",
+          "formCode": "COURSE_DEBT",
+          "status": "APPROVED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvx95w001fdo2tmo9blcue",
+          "code": "XNSV-896825",
+          "formCode": "BANK_LOAN",
+          "status": "APPROVED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvwy14001ado2t4uvbq3zl",
+          "code": "XNSV-931374",
+          "formCode": "GENERAL_CONFIRMATION",
+          "status": "APPROVED",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbvuroh0015do2tp1ylvk3y",
+          "code": "XNSV-116258",
+          "formCode": "TAX_DEDUCTION",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbv0dme0010do2tpb3e901w",
+          "code": "XNSV-999755",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbupyqj000vdo2t52eezopp",
+          "code": "XNSV-893877",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        }
+      ],
+      "hasMore": false,
+      "total": 12
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbvuroh0015do2tp1ylvk3y",
+      "requestCode": "XNSV-116258",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "WAITING_STUDENT",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbvwy14001ado2t4uvbq3zl",
+      "requestCode": "XNSV-931374",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "APPROVED",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbvx95w001fdo2tmo9blcue",
+      "requestCode": "XNSV-896825",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "APPROVED",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbvxfyp001ndo2tr55nht2x",
+      "requestCode": "XNSV-457576",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "APPROVED",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbvyeek001sdo2twrongj74",
+      "requestCode": "XNSV-539313",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "APPROVED",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbvyt27001xdo2tx5efkf2d",
+      "requestCode": "XNSV-714436",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "APPROVED",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbvz4xy0022do2tpnh6kmst",
+      "requestCode": "XNSV-432466",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "WAITING_STUDENT",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbvzoas002ado2tk5cqq9nt",
+      "requestCode": "XNSV-315639",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "APPROVED",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbvzq6r002ido2twbestvmm",
+      "requestCode": "XNSV-887907",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "REJECTED",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "cleanup-qa-petition",
+      "requestId": "cmvbw0av8002qdo2ti2pd5szw",
+      "requestCode": "XNSV-344072",
+      "httpStatus": 200,
+      "success": true,
+      "previousStatus": "WAITING_STUDENT",
+      "currentStatus": "CANCELLED"
+    },
+    {
+      "id": "final-state",
+      "qaRequests": [
+        {
+          "id": "cmvbw0av8002qdo2ti2pd5szw",
+          "requestCode": "XNSV-344072",
+          "status": "CANCELLED"
+        },
+        {
+          "id": "cmvbvzq6r002ido2twbestvmm",
+          "requestCode": "XNSV-887907",
+          "status": "CANCELLED"
+        },
+        {
+          "id": "cmvbvzoas002ado2tk5cqq9nt",
+          "requestCode": "XNSV-315639",
+          "status": "CANCELLED"
+        },
+        {
+          "id": "cmvbvz4xy0022do2tpnh6kmst",
+          "requestCode": "XNSV-432466",
+          "status": "CANCELLED"
+        },
+        {
+          "id": "cmvbvyt27001xdo2tx5efkf2d",
+          "requestCode": "XNSV-714436",
+          "status": "CANCELLED"
+        },
+        {
+          "id": "cmvbvyeek001sdo2twrongj74",
+          "requestCode": "XNSV-539313",
+          "status": "CANCELLED"
+        },
+        {
+          "id": "cmvbvxfyp001ndo2tr55nht2x",
+          "requestCode": "XNSV-457576",
+          "status": "CANCELLED"
+        },
+        {
+          "id": "cmvbvx95w001fdo2tmo9blcue",
+          "requestCode": "XNSV-896825",
+          "status": "CANCELLED"
+        },
+        {
+          "id": "cmvbvwy14001ado2t4uvbq3zl",
+          "requestCode": "XNSV-931374",
+          "status": "CANCELLED"
+        },
+        {
+          "id": "cmvbvuroh0015do2tp1ylvk3y",
+          "requestCode": "XNSV-116258",
+          "status": "CANCELLED"
+        }
+      ],
+      "originalRequests": [
+        {
+          "id": "cmvbv0dme0010do2tpb3e901w",
+          "requestCode": "XNSV-999755",
+          "status": "WAITING_STUDENT"
+        },
+        {
+          "id": "cmvbupyqj000vdo2t52eezopp",
+          "requestCode": "XNSV-893877",
+          "status": "WAITING_STUDENT"
+        }
+      ]
+    },
+    {
+      "id": "created-requests",
+      "requests": []
+    }
+  ],
+  "completedAt": "2026-10-17T04:20:39.952Z"
+}

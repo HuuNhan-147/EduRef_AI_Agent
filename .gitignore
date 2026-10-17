@@ -9,3 +9,5 @@ dist/
 # Scratch and temporary scripts
 scratch/
 **/scratch/
+
+/EDUREF_AI/backend/.env.example

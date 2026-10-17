@@ -122,7 +122,7 @@ test('5. TC-5: Sinh viên quá 4 năm VÀ CÒN NỢ TÍN CHỈ (< 150 tín chỉ
   assert.equal(overdueStatus.hasDebtCourses, true);
   assert.equal(overdueStatus.isCompleted, false);
 
-  // Nếu nộp biểu mẫu khác -> Bị phát hiện lệch form và điều hướng sang COURSE_DEBT (ASK_CLARIFICATION)
+  // Không đủ điều kiện của mẫu thường: kết luận từ chối trước khi hỏi thêm dữ liệu.
   const result = evaluateStudentConfirmation({
     student: overdueStudentWithDebt,
     inputData: {
@@ -132,9 +132,9 @@ test('5. TC-5: Sinh viên quá 4 năm VÀ CÒN NỢ TÍN CHỈ (< 150 tín chỉ
     },
   });
 
-  assert.equal(result.decision, 'ASK_CLARIFICATION');
-  assert.equal(result.rule, 'MISMATCH_FORM_GUIDANCE');
-  assert.ok(result.actionableQuestion.includes('nợ môn') || result.actionableQuestion.includes('COURSE_DEBT'));
+  assert.equal(result.decision, 'REJECTED_POLICY');
+  assert.equal(result.rule, 'POL_OVERDUE_COHORT_REQUIRE_DEBT_FORM');
+  assert.match(result.reason, /nợ môn/);
 });
 
 test('5B. TC-5B: Sinh viên Khóa 2022 (2280602154) sau ngày 30/08/2026 -> Quá 4 năm đào tạo chuẩn nợ môn -> Điều hướng COURSE_DEBT', () => {
@@ -162,9 +162,9 @@ test('5B. TC-5B: Sinh viên Khóa 2022 (2280602154) sau ngày 30/08/2026 -> Quá
     },
   });
 
-  assert.equal(result.decision, 'ASK_CLARIFICATION');
-  assert.equal(result.rule, 'MISMATCH_FORM_GUIDANCE');
-  assert.ok(result.actionableQuestion.includes('nợ môn') || result.actionableQuestion.includes('COURSE_DEBT'));
+  assert.equal(result.decision, 'REJECTED_POLICY');
+  assert.equal(result.rule, 'POL_OVERDUE_COHORT_REQUIRE_DEBT_FORM');
+  assert.match(result.reason, /nợ môn/);
 });
 
 test('6. TC-6: Sinh viên quá 4 năm NHƯNG ĐÃ HOÀN THÀNH ĐỦ KHỐI LƯỢNG (>= 150 tín chỉ hoặc GRADUATED) -> VƯỢT QUYỀN AI, ESCALATE_TO_STAFF', () => {

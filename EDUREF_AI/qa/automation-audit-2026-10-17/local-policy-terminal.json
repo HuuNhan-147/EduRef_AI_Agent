@@ -1,0 +1,42 @@
+{
+  "checkedAt": "2026-10-17T05:40:14.462Z",
+  "base": "http://127.0.0.1:5000",
+  "passed": true,
+  "policyDenial": {
+    "draftId": "cmvbywj340001j0amffrlqkq1",
+    "state": "REJECTED",
+    "rule": "POL_OVERDUE_COHORT_REQUIRE_DEBT_FORM",
+    "persistedOnReload": true,
+    "editsAndSubmissionBlocked": true,
+    "yesReplyKeepsClosed": true,
+    "modelCallForYes": false
+  },
+  "recommended": {
+    "separateTask": true,
+    "state": "NEEDS_INPUT",
+    "missingFields": [
+      "pickupCampus",
+      "debtCourses"
+    ]
+  },
+  "dropped": {
+    "state": "REJECTED",
+    "noIncorrectAlternative": true
+  },
+  "terminal": {
+    "actualSocketReceived": true,
+    "steps": [
+      "WORKFLOW_START",
+      "PROFILE_LOADED",
+      "DRAFT_SAVED",
+      "REQUIREMENTS_CHECK",
+      "POLICY_CHECK",
+      "DECISION_SAVED",
+      "WORKFLOW_CLOSED"
+    ],
+    "historyRecoversTrace": true,
+    "isolatedBetweenStudents": true
+  },
+  "businessRequestsCreated": 0,
+  "recommendedDraftCancelled": true
+}

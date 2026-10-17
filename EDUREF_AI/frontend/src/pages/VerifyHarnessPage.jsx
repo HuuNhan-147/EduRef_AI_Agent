@@ -2,6 +2,8 @@ import { useMemo, useState, useEffect, useRef } from "react";
 import { Activity, CheckCircle2, Clock, FileText, Play, RotateCw, XCircle } from "lucide-react";
 import api from '../services/api';
 import LiveTerminalConsole from '../components/common/LiveTerminalConsole';
+import MarkdownRenderer from '../components/common/MarkdownRenderer';
+import { displayLabel, toDisplayText } from '../config/displayText';
 
 const TRACK_A_CASES = [
   { id: 'TH-01', title: 'TH-01 (ROUTINE): Hồ sơ hợp lệ tự động duyệt trong 0.85s', expectedDecision: 'AUTO_APPROVED', category: 'ROUTINE' },
@@ -92,7 +94,7 @@ function DecisionBadge({ value }) {
         : value === 'COURSE_DEBT'
           ? 'bg-purple-100 text-purple-800 border border-purple-300'
           : 'bg-blue-100 text-blue-800 border border-blue-300';
-  return <span className={`rounded px-2.5 py-1 font-mono text-[11px] font-bold ${color}`}>{value || 'CHƯA CHẠY'}</span>;
+  return <span className={`rounded px-2.5 py-1 text-[11px] font-bold ${color}`}>{displayLabel(value || 'Chưa chạy')}</span>;
 }
 
 export default function VerifyHarnessPage() {
@@ -227,7 +229,7 @@ export default function VerifyHarnessPage() {
             <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
               <div className="text-[10px] font-bold uppercase text-slate-500">Phân bố 4 nhánh quyết định</div>
               <div className="mt-1 font-mono text-xs font-bold text-blue-800">
-                {distributionLabel}
+                {toDisplayText(distributionLabel)}
               </div>
             </div>
             <div className="rounded-lg border border-slate-200 p-3 bg-slate-50">
@@ -245,7 +247,7 @@ export default function VerifyHarnessPage() {
           </div>
           {error && (
             <p className="mt-3 rounded-lg bg-rose-50 border border-rose-200 p-2.5 text-xs text-rose-700 font-medium">
-              Không thể chạy Verify: {error}
+              Không thể chạy Verify: <MarkdownRenderer content={error} inline />
             </p>
           )}
         </header>
@@ -257,7 +259,7 @@ export default function VerifyHarnessPage() {
             <div className="flex items-center justify-between border-b border-slate-200 p-3 bg-slate-50">
               <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-800">
                 <FileText className="h-4 w-4 text-blue-700" />
-                Bộ 4 ca trọng yếu: TH-01 (ROUTINE) · TH-02 (ASK) · TH-03 (REJECT) · TH-04 (ESCALATE)
+                Bộ 4 ca trọng yếu: tự duyệt · bổ sung · từ chối · chuyển cán bộ
               </div>
               <span className="text-xs font-mono text-slate-500">
                 Policy: {run?.policyVersion || 'Chưa chạy'}
@@ -289,9 +291,9 @@ export default function VerifyHarnessPage() {
                         }`}
                       >
                         <td className="p-3 font-mono font-bold text-blue-700">{testCase.id}</td>
-                        <td className="p-3 font-semibold text-slate-900">{testCase.title}</td>
+                        <td className="p-3 font-semibold text-slate-900">{toDisplayText(testCase.title)}</td>
                         <td className="p-3 font-mono text-[11px] text-slate-600">
-                          {testCase.classification || testCase.category || '—'}
+                          {displayLabel(testCase.classification || testCase.category || '—')}
                         </td>
                         <td className="p-3">
                           <DecisionBadge value={testCase.expectedDecision} />
@@ -304,12 +306,12 @@ export default function VerifyHarnessPage() {
                             testCase.passed ? (
                               <span className="inline-flex items-center gap-1 font-bold text-emerald-700">
                                 <CheckCircle2 className="h-4 w-4" />
-                                PASS
+                                Đạt
                               </span>
                             ) : (
                               <span className="inline-flex items-center gap-1 font-bold text-rose-700">
                                 <XCircle className="h-4 w-4" />
-                                FAIL
+                                Chưa đạt
                               </span>
                             )
                           ) : (
@@ -328,7 +330,7 @@ export default function VerifyHarnessPage() {
               <div>
                 <div className="text-[10px] font-bold uppercase text-slate-500">Đầu vào của sinh viên (Input)</div>
                 <p className="mt-1 text-xs leading-5 text-slate-800 bg-white p-2.5 rounded border border-slate-200">
-                  {selected?.prompt || selected?.title}
+                  <MarkdownRenderer content={selected?.prompt || selected?.title} inline />
                 </p>
               </div>
               <div>
@@ -337,7 +339,7 @@ export default function VerifyHarnessPage() {
                   <div className="mt-1 space-y-1.5 bg-white p-2.5 rounded border border-slate-200">
                     <DecisionBadge value={selected.actualDecision} />
                     <p className="text-xs leading-5 text-slate-700">
-                      {selected.actionableQuestion || selected.message}
+                      <MarkdownRenderer content={selected.actionableQuestion || selected.message} inline />
                     </p>
                   </div>
                 ) : (
@@ -392,12 +394,12 @@ export default function VerifyHarnessPage() {
                       key={idx}
                       type="button"
                       onClick={() => handleSelectChip(chip)}
-                      title={chip.tip}
+                      title={toDisplayText(chip.tip)}
                       disabled={isCustomRunning}
                       className={`flex items-center justify-between rounded-lg border px-2 py-1.5 text-[11px] font-medium transition-all cursor-pointer disabled:opacity-50 ${chip.color}`}
                     >
                       <span className="truncate">{chip.label}</span>
-                      <span className="ml-1 text-[9px] font-bold uppercase opacity-80">{chip.badge}</span>
+                      <span className="ml-1 text-[9px] font-bold uppercase opacity-80">{displayLabel(chip.badge)}</span>
                     </button>
                   ))}
                 </div>
@@ -425,15 +427,15 @@ export default function VerifyHarnessPage() {
               </button>
               <div className="mt-3 min-h-24 rounded-lg border border-slate-200 bg-slate-50 p-3 text-xs">
                 {!customResult && <p className="text-slate-400">Kết quả sẽ xuất hiện sau khi backend thực thi.</p>}
-                {customResult && !customResult.success && <p className="text-rose-700 font-semibold">{customResult.error}</p>}
+                {customResult && !customResult.success && <p className="text-rose-700 font-semibold"><MarkdownRenderer content={customResult.error} inline /></p>}
                 {customResult?.success && (
                   <div className="space-y-2">
                     <div className="flex items-center justify-between">
                       <DecisionBadge value={customDecision} />
                       <span className="font-mono text-[10px] text-slate-500">{customResult.durationMs} ms</span>
                     </div>
-                    <p><strong>Phân loại:</strong> {customResult.data?.classification || '—'}</p>
-                    <p className="text-slate-700">{customQuestion || customResult.data?.message}</p>
+                    <p><strong>Phân loại:</strong> {displayLabel(customResult.data?.classification || '—')}</p>
+                    <div className="text-slate-700"><MarkdownRenderer content={customQuestion || customResult.data?.message} compact inheritColor /></div>
                     <p className="text-[10px] text-slate-500 font-mono">Hoàn tất: {formatTimestamp(customResult.completedAt)}</p>
                   </div>
                 )}

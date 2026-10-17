@@ -1,0 +1,319 @@
+{
+  "runId": "QA_AUTOMATION_2026-10-17T04-16-28-428Z",
+  "mode": "forms",
+  "base": "https://eduref-ai-agent-1.onrender.com",
+  "startedAt": "2026-10-17T04:16:28.429Z",
+  "results": [
+    {
+      "id": "baseline",
+      "authenticatedUserFields": [
+        "id",
+        "studentCode",
+        "fullName",
+        "email",
+        "role",
+        "status",
+        "tuitionDebt",
+        "gpa",
+        "department"
+      ],
+      "existingRequests": [
+        {
+          "id": "cmvbvuroh0015do2tp1ylvk3y",
+          "code": "XNSV-116258",
+          "formCode": "TAX_DEDUCTION",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbv0dme0010do2tpb3e901w",
+          "code": "XNSV-999755",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        },
+        {
+          "id": "cmvbupyqj000vdo2t52eezopp",
+          "code": "XNSV-893877",
+          "formCode": "MILITARY_DEFERMENT",
+          "status": "WAITING_STUDENT",
+          "verificationRunId": null
+        }
+      ],
+      "hasMore": false,
+      "total": 3
+    },
+    {
+      "id": "general-modal-http",
+      "transport": "http",
+      "sessionId": "QA_AUTOMATION_2026-10-17T04-16-28-428Z-general-modal-http",
+      "message": "Em xin cấp giấy xác nhận sinh viên để làm vé tháng xe buýt. Kiểm thử QA_AUTOMATION_2026-10-17T04-16-28-428Z.",
+      "inputKeys": [
+        "fullName",
+        "studentCode",
+        "birthDate",
+        "gender",
+        "studentClass",
+        "faculty",
+        "major",
+        "phone",
+        "idCard",
+        "idCardDate",
+        "idCardPlace",
+        "formCode",
+        "permanentAddress",
+        "recipientAgency",
+        "purpose",
+        "pickupCampus",
+        "debtCourses",
+        "completionDeadline"
+      ],
+      "httpStatus": 200,
+      "durationMs": 13855,
+      "success": true,
+      "decision": "AUTO_APPROVED",
+      "status": "APPROVED",
+      "requestId": "cmvbvwy14001ado2t4uvbq3zl",
+      "requestCode": "XNSV-931374",
+      "rule": "APPROVED_GENERAL_CONFIRMATION",
+      "reply": "Chào bạn Nguyễn Văn An! 👋✨\n\nHồ sơ xin cấp Giấy xác nhận sinh viên phục vụ mục đích **Làm vé tháng xe buýt** của bạn đã được hệ thống phê duyệt tự động thành công! 🎯\n\nDưới đây là thông tin chi tiết về hồ sơ của bạn:\n\n📄 **Thông tin phê duyệt:**\n- **Mã hồ sơ:** **XNSV-931374**\n- **Họ và tên:** Nguyễn Văn An\n- **Mã số sinh viên:** 2380600001\n- **Khoa:** Khoa Công Nghệ Thông Tin\n- **Biểu mẫu:** Biểu mẫu xác nhận sinh viên chung\n- **Mục đích:** Làm vé tháng xe buýt\n\n🏢 **Lịch hẹn và địa điểm nhận bản cứng:**\n- **Địa điểm:** Phòng Công tác Sinh viên (A-01.01) — Tầng trệt sảnh A, Sai Gon Campus (số 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh).\n- **Thời gian dự kiến nhận:** **Buổi sáng (07h30 – 11h30), Thứ Hai ngày 19/10/2026**.\n- **Điện thoại hỗ trợ:** (028) 3512 0785\n\n📌 **Lưu ý:**\n- Khi đến nhận giấy xác nhận, bạn vui lòng mang theo Thẻ sinh viên hoặc CCCD để đối chiếu.\n- Giấy xác nhận được cấp là bản cứng có chữ ký sống và mộc đỏ chính thức của Nhà trường để nộp làm thẻ xe buýt.\n\nChúc bạn có một ngày học tập thật tốt và nhiều niềm vui! Nếu cần hỗ trợ thêm bất kỳ thủ tục học vụ nào khác, bạn cứ nhắn cho mình nhé! ✨😊",
+      "modelUsed": "gemini-3.8-flash",
+      "executionEvidence": [
+        {
+          "toolName": "process_student_confirmation",
+          "durationMs": 108,
+          "decision": "AUTO_APPROVED",
+          "requestId": "cmvbvwy14001ado2t4uvbq3zl",
+          "requestCode": "XNSV-931374"
+        }
+      ],
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "bank-modal-socket",
+      "transport": "socket",
+      "sessionId": "QA_AUTOMATION_2026-10-17T04-16-28-428Z-bank-modal-socket",
+      "message": "Em xin giấy xác nhận vay vốn NHCSXH theo Mẫu 01. Kiểm thử QA_AUTOMATION_2026-10-17T04-16-28-428Z.",
+      "inputKeys": [
+        "fullName",
+        "studentCode",
+        "birthDate",
+        "gender",
+        "studentClass",
+        "faculty",
+        "major",
+        "phone",
+        "idCard",
+        "idCardDate",
+        "idCardPlace",
+        "formCode",
+        "permanentAddress",
+        "recipientAgency",
+        "purpose",
+        "pickupCampus",
+        "debtCourses",
+        "completionDeadline"
+      ],
+      "streamedChunks": 19,
+      "httpStatus": 200,
+      "durationMs": 15287,
+      "success": true,
+      "decision": "ASK_CLARIFICATION",
+      "status": "WAITING_STUDENT",
+      "requestId": "cmvbvx95w001fdo2tmo9blcue",
+      "requestCode": "XNSV-896825",
+      "rule": "REQ_ORPHANSTATUS",
+      "missing": [
+        {
+          "code": "REQ_ORPHANSTATUS",
+          "name": "Tình trạng mồ côi",
+          "description": "Vui lòng cung cấp tình trạng mồ côi."
+        },
+        {
+          "code": "REQ_LOANFORMCOUNT",
+          "name": "Số lần đã được cấp giấy vay vốn",
+          "description": "Vui lòng cung cấp số lần đã được cấp giấy vay vốn (số không âm, nhập 0 nếu chưa có)."
+        },
+        {
+          "code": "REQ_LOANGRANTEDCOUNT",
+          "name": "Số lần đã được vay vốn",
+          "description": "Vui lòng cung cấp số lần đã được vay vốn (số không âm, nhập 0 nếu chưa có)."
+        },
+        {
+          "code": "REQ_LASTLOANAMOUNT",
+          "name": "Số tiền vay lần gần nhất",
+          "description": "Vui lòng cung cấp số tiền vay lần gần nhất (số không âm, nhập 0 nếu chưa có)."
+        }
+      ],
+      "reply": "Chào bạn **Nguyễn Văn An**! 👋✨\n\nHệ thống đã tiếp nhận yêu cầu xin cấp **Giấy xác nhận vay vốn — Mẫu xác nhận vay vốn ngân hàng (Mẫu 01)** của bạn với mã hồ sơ tạm thời là **[XNSV-896825]**.\n\n⚠️ **Hồ sơ xin cấp Giấy xác nhận sinh viên còn thiếu thông tin bắt buộc sau:**\n\n1. **Tình trạng mồ côi**: Vui lòng cung cấp tình trạng mồ côi (Không mồ côi / Mồ côi cha / Mồ côi mẹ / Mồ côi cả cha lẫn mẹ).\n2. **Số lần đã được cấp giấy vay vốn**: Vui lòng cung cấp số lần đã được cấp giấy vay vốn (số không âm, nhập 0 nếu là lần đầu).\n3. **Số lần đã được vay vốn**: Vui lòng cung cấp số lần đã được vay vốn (số không âm, nhập 0 nếu chưa từng vay).\n4. **Số tiền vay lần gần nhất**: Vui lòng cung cấp số tiền vay lần gần nhất (số không âm, nhập 0 nếu chưa từng vay).\n5. **Thông tin liên lạc & nhận giấy**: Số điện thoại di động chính xác (10 chữ số) và cơ sở nhận giấy bản cứng mong muốn (**Sai Gon Campus — Phòng Công tác Sinh viên (A-01.01)** hoặc **Thu Duc Campus — Phòng Công tác Sinh viên (E1-01.05)**).\n\n---\n\n👉 Để hoàn tất hồ sơ, bạn có thể lựa chọn 1 trong 2 cách thuận tiện sau:\n\n* **Cách 1: Điền đơn bên tay trái**: Nhìn sang danh mục biểu mẫu ở cột bên trái màn hình, tìm biểu mẫu **\"Giấy xác nhận vay vốn — Mẫu xác nhận vay vốn ngân hàng (Mẫu 01)\"** và bấm **\"Điền đơn\"**.\n* **Cách 2: Gửi trực tiếp thông tin cho mình ngay tại đây**: Bạn chỉ cần nhắn trực tiếp các thông tin còn thiếu vào khung chat này để mình hỗ trợ cập nhật và thẩm định hồ sơ cho bạn nhé!",
+      "question": "⚠️ **Hồ sơ xin cấp Giấy xác nhận sinh viên còn thiếu thông tin bắt buộc sau:**\n\n1. **Tình trạng mồ côi**: Vui lòng cung cấp tình trạng mồ côi.\n2. **Số lần đã được cấp giấy vay vốn**: Vui lòng cung cấp số lần đã được cấp giấy vay vốn (số không âm, nhập 0 nếu chưa có).\n3. **Số lần đã được vay vốn**: Vui lòng cung cấp số lần đã được vay vốn (số không âm, nhập 0 nếu chưa có).\n4. **Số tiền vay lần gần nhất**: Vui lòng cung cấp số tiền vay lần gần nhất (số không âm, nhập 0 nếu chưa có).\n\n👉 Bạn vui lòng bổ sung đầy đủ các thông tin trên để Nhà trường hoàn tất hồ sơ cho bạn nhé!",
+      "modelUsed": "gemini-3.8-flash",
+      "executionEvidence": [
+        {
+          "toolName": "process_student_confirmation",
+          "durationMs": 66,
+          "decision": "ASK_CLARIFICATION",
+          "requestId": "cmvbvx95w001fdo2tmo9blcue",
+          "requestCode": "XNSV-896825"
+        }
+      ],
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "bank-resume-missing-four",
+      "originalRequestId": "cmvbvx95w001fdo2tmo9blcue",
+      "additionalKeys": [
+        "orphanStatus",
+        "loanFormCount",
+        "loanGrantedCount",
+        "lastLoanAmount"
+      ],
+      "httpStatus": 200,
+      "durationMs": 379,
+      "success": true,
+      "decision": "AUTO_APPROVED",
+      "status": "APPROVED",
+      "requestId": "cmvbvx95w001fdo2tmo9blcue",
+      "requestCode": "XNSV-896825",
+      "rule": "APPROVED_BANK_LOAN",
+      "reply": "Đơn [XNSV-896825] đã được EduRef AI tự động thẩm định thành công trong 107ms. Lịch nhận bản cứng là thông tin dự kiến trong bản demo; việc phát hành cần đơn vị phụ trách xác nhận.\n\n📅 **Lịch hẹn nhận bản cứng:**\n- **Địa điểm:** Phòng Công tác Sinh viên (A-01.01) (Tầng trệt sảnh A, số 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh)\n- **Thời gian dự kiến nhận:** Buổi sáng (07h30 – 11h30), Thứ Hai ngày 19/10/2026\n- **Hotline hỗ trợ:** (028) 3512 0785",
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "course-debt-direct",
+      "transport": "direct-http",
+      "inputKeys": [
+        "fullName",
+        "studentCode",
+        "birthDate",
+        "gender",
+        "studentClass",
+        "faculty",
+        "major",
+        "phone",
+        "idCard",
+        "idCardDate",
+        "idCardPlace",
+        "formCode",
+        "permanentAddress",
+        "recipientAgency",
+        "purpose",
+        "pickupCampus",
+        "debtCourses",
+        "completionDeadline"
+      ],
+      "httpStatus": 200,
+      "durationMs": 255,
+      "success": true,
+      "decision": "AUTO_APPROVED",
+      "status": "APPROVED",
+      "requestId": "cmvbvxfyp001ndo2tr55nht2x",
+      "requestCode": "XNSV-457576",
+      "rule": "APPROVED_COURSE_DEBT",
+      "reply": "Đơn [XNSV-457576] đã được EduRef AI tự động thẩm định thành công trong 129ms. Lịch nhận bản cứng là thông tin dự kiến trong bản demo; việc phát hành cần đơn vị phụ trách xác nhận.\n\n📅 **Lịch hẹn nhận bản cứng:**\n- **Địa điểm:** Phòng Công tác Sinh viên (A-01.01) (Tầng trệt sảnh A, số 475A Điện Biên Phủ, Phường Thạnh Mỹ Tây, Thành phố Hồ Chí Minh)\n- **Thời gian dự kiến nhận:** Buổi sáng (07h30 – 11h30), Thứ Hai ngày 19/10/2026\n- **Hotline hỗ trợ:** (028) 3512 0785",
+      "hasDraft": false,
+      "hasActions": false
+    },
+    {
+      "id": "created-requests",
+      "requests": [
+        {
+          "id": "cmvbvxfyp001ndo2tr55nht2x",
+          "code": "XNSV-457576",
+          "status": "APPROVED",
+          "formCode": "COURSE_DEBT",
+          "inputKeys": [
+            "major",
+            "phone",
+            "gender",
+            "idCard",
+            "faculty",
+            "purpose",
+            "qaRunId",
+            "formCode",
+            "fullName",
+            "birthDate",
+            "idCardDate",
+            "debtCourses",
+            "idCardPlace",
+            "studentCode",
+            "pickupCampus",
+            "studentClass",
+            "historyRequests",
+            "recipientAgency",
+            "permanentAddress",
+            "completionDeadline"
+          ]
+        },
+        {
+          "id": "cmvbvx95w001fdo2tmo9blcue",
+          "code": "XNSV-896825",
+          "status": "APPROVED",
+          "formCode": "BANK_LOAN",
+          "inputKeys": [
+            "major",
+            "phone",
+            "gender",
+            "idCard",
+            "faculty",
+            "purpose",
+            "formCode",
+            "fullName",
+            "birthDate",
+            "sessionId",
+            "idCardDate",
+            "debtCourses",
+            "idCardPlace",
+            "studentCode",
+            "orphanStatus",
+            "pickupCampus",
+            "studentClass",
+            "loanFormCount",
+            "lastLoanAmount",
+            "historyRequests",
+            "recipientAgency",
+            "loanGrantedCount",
+            "permanentAddress",
+            "completionDeadline",
+            "isAddressConfirmed",
+            "conversationHistory"
+          ]
+        },
+        {
+          "id": "cmvbvwy14001ado2t4uvbq3zl",
+          "code": "XNSV-931374",
+          "status": "APPROVED",
+          "formCode": "GENERAL_CONFIRMATION",
+          "inputKeys": [
+            "major",
+            "phone",
+            "gender",
+            "idCard",
+            "faculty",
+            "purpose",
+            "formCode",
+            "fullName",
+            "birthDate",
+            "sessionId",
+            "idCardDate",
+            "debtCourses",
+            "idCardPlace",
+            "studentCode",
+            "pickupCampus",
+            "studentClass",
+            "historyRequests",
+            "recipientAgency",
+            "permanentAddress",
+            "completionDeadline",
+            "isAddressConfirmed",
+            "conversationHistory"
+          ]
+        }
+      ]
+    }
+  ],
+  "completedAt": "2026-10-17T04:16:58.912Z"
+}

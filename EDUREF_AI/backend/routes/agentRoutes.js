@@ -1,16 +1,14 @@
 import express from 'express';
-import prisma from '../config/prisma.js';
+import { loadUserContext } from '../services/UserContextService.js';
 import { authenticateToken, requireStaffOrDean } from '../middlewares/authMiddleware.js';
 import { respondServerError } from '../services/ErrorShield.js';
 import { runAgent } from '../modules/ai-agent/index.js';
 import verifyTools from '../modules/ai-agent/tools/actions/verifyTools.js';
 import petitionTools from '../modules/ai-agent/tools/actions/petitionTools.js';
-import { checkCohortOverdueStatus } from '../services/StudentConfirmationDecisionService.js';
 import { RESERVED_BENCHMARK_STUDENT_CODES } from '../controllers/authController.js';
 import { scopeSessionId } from '../modules/ai-agent/memory/sessionScope.js';
 import { rateLimit } from '../middlewares/rateLimit.js';
 import { stripServerAuthoritativeFields } from '../services/ClientInputGuard.js';
-import { getStudentFullProfile } from '../config/studentRegistry.js';
 
 const router = express.Router();
 
@@ -99,68 +97,7 @@ router.post('/chat', authenticateToken, chatLimiter, async (req, res) => {
     }
 
     // Tự động nạp ngữ cảnh người dùng thực tế từ Database
-    let userContext = {};
-    const explicitStudentCode = req.body?.studentCode || req.body?.currentUser?.studentCode;
-    const isStaffRole = ['STAFF', 'DEAN', 'ADMIN'].includes(req.user?.role) && !explicitStudentCode;
-
-    if (isStaffRole) {
-      const staffUser = await prisma.user.findUnique({
-        where: { id: req.user.id },
-      });
-      if (staffUser) {
-        userContext = {
-          username: staffUser.username,
-          fullName: staffUser.fullName,
-          email: staffUser.email,
-          role: staffUser.role,
-          type: 'STAFF',
-        };
-      }
-    } else {
-      // AN NINH (ZERO-TRUST IDENTITY): phiên STUDENT bắt buộc dùng studentCode trong JWT,
-      // không nhận studentCode do client gửi (đồng bộ với nhánh Socket.IO).
-      const codeToFind = req.user?.role === 'STUDENT'
-        ? req.user?.studentCode
-        : (explicitStudentCode || req.user?.studentCode);
-      if (codeToFind) {
-        const student = await prisma.student.findUnique({
-          where: { studentCode: String(codeToFind).trim() },
-          include: { department: true },
-        });
-        if (student) {
-          const cohortStatus = checkCohortOverdueStatus(student);
-          const academicProfile = getStudentFullProfile(student.studentCode, student);
-          const credits = academicProfile.enrolledCredits;
-
-          let admYear = Number(student.admissionYear || 0);
-          if (!admYear && student.studentCode) {
-            const prefix = String(student.studentCode).trim().slice(0, 2);
-            const parsedPrefix = parseInt(prefix, 10);
-            if (!isNaN(parsedPrefix) && parsedPrefix >= 10 && parsedPrefix <= 99) {
-              admYear = 2000 + parsedPrefix;
-            } else {
-              admYear = 2022;
-            }
-          }
-
-          userContext = {
-            studentCode: student.studentCode,
-            fullName: student.fullName,
-            email: student.email,
-            status: student.status,
-            department: student.department?.name,
-            tuitionDebt: Number(student.tuitionDebt),
-            gpa: Number(student.gpa),
-            admissionYear: admYear,
-            hasSchedule: credits === null ? null : credits > 0,
-            enrolledCredits: credits,
-            isOverdueCohort: cohortStatus.isOverdue,
-            role: 'STUDENT',
-            type: 'STUDENT',
-          };
-        }
-      }
-    }
+    const userContext = await loadUserContext(req.user, req.body?.studentCode || req.body?.currentUser?.studentCode);
 
     if (!userContext.role) {
       return res.status(403).json({ success: false, message: 'Không xác định được danh tính hợp lệ của phiên đăng nhập.' });
